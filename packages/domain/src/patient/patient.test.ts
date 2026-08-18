@@ -41,4 +41,8 @@ describe("Patient", () => {
 
     expect(first.sameIdentityAs(second)).toBe(true);
   });
+
+  it("cannot be created without the required personal information", () => {
+    expect(() => Patient.create({ ...validAttributes, lastName: "" })).toThrow();
+  });
 });

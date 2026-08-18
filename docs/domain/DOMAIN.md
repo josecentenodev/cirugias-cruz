@@ -18,9 +18,87 @@ investigación clínica. El primer procedimiento de trabajo es **pterigión**.
 | Actor | Scope | Notes |
 |---|---|---|
 | **Platform Admin** | Platform-level, cross-tenant | Product owner/operator. Not a member of any physician's tenant. Purpose is business/platform management only — never clinical data. |
-| **Physician (Médico)** | Tenant owner | The tenant itself. Full control of own workspace. May act as their own resident. |
-| **Resident** | Inside a physician's workspace | Optional, zero or more. Assigned to patients. |
+| **Physician (Médico)** | Tenant owner | **The Physician IS the Tenant** — there is no separate conceptual distinction between "Physician" and "Tenant" in the product model. Full control of own workspace. May act as their own resident. |
+| **Resident** | Inside a physician's workspace | Optional, zero or more. Belongs exclusively to one Physician/Tenant. Created and managed by the Physician; assigned directly to Surgeries, never to a Patient (see §1b). |
 | **Patient** | Inside a physician's workspace | Exists only within a tenant, no global identity. |
+
+### 1a. Shared person shape
+
+Physician and Resident are both people and share the same base personal
+information shape:
+
+- `firstName` — required
+- `lastName` — required
+- `phone` — required
+- `email` — required
+- `dateOfBirth` — required
+- `metadata` — optional
+
+Patient uses the same shape, plus:
+
+- `observations` — optional (Patient only)
+
+No additional personal attributes are assumed for any of these actors.
+
+### 1b. Resident assignment is direct to the Surgery — there is no Patient ↔ Resident relationship
+
+**Superseded rule.** An earlier discovery round modeled Resident
+assignment at the Patient level (Resident ↔ Patient), with clinical
+participation separately tied to a Surgery. That Patient ↔ Resident
+relationship is now **eliminated**. It does not exist in the domain.
+
+The current, authoritative relationship is:
+
+```
+Physician
+    │
+    ├── Residents
+    │
+    └── Patients
+           │
+           └── Surgeries
+                  │
+                  └── Residents participating
+                         │
+                         └── Controls
+```
+
+- The Physician creates and manages Residents.
+- The Physician creates Surgeries.
+- The Physician assigns one or more Residents **directly to a Surgery**.
+- From that assignment, the Resident **participates** in that Surgery —
+  even before they have recorded any Control.
+- The Resident is never assigned to the Patient. There is no
+  Resident ↔ Patient relationship of any kind.
+- If the same Patient has another Surgery, the participating Residents
+  for that Surgery are determined independently — assignment to one
+  Surgery does not carry over to another, even for the same Patient.
+- A Resident may participate in multiple Surgeries (of the same or
+  different Patients).
+- A Resident may participate in one Surgery and not in another Surgery of
+  the same Patient.
+
+This reflects that the unit of a Resident's clinical responsibility is
+the **Surgery**, not the Patient.
+
+### 1c. Resident removal from a Surgery and participation preservation
+
+A Resident assigned to a Surgery who has **not** recorded any Control for
+that Surgery may be removed from it.
+
+Once a Resident has recorded a Control for a Surgery, their participation
+in that Surgery must be preserved and **cannot be removed**.
+
+This is not treated as a purely technical immutability constraint: the
+product owner considers it clinically relevant because the Resident may
+carry professional/civil responsibility for their participation in that
+particular Surgery.
+
+- A Resident's participation in one Surgery does not imply participation
+  in another Surgery, even for the same Patient.
+- The exact implementation of this responsibility rule beyond
+  "cannot be removed once a Control was recorded" is still to be
+  determined later — not invented now.
 
 ---
 
@@ -69,9 +147,10 @@ current iteration (see §11).
 
 The physician has full control of their own workspace and can:
 manage patients, invite patients, manage surgeries, manage residents,
-assign patients to residents, perform patient follow-up (controls),
-communicate with patients, manage information related to their own
-surgeries, and perform research over their accumulated data.
+assign residents directly to surgeries (§1b — there is no resident↔patient
+assignment), perform patient follow-up (controls), communicate with
+patients, manage information related to their own surgeries, and perform
+research over their accumulated data.
 
 The physician may act as their own resident — residents are not required.
 
@@ -79,17 +158,20 @@ The physician may act as their own resident — residents are not required.
 
 ## 5. Patient (confirmed)
 
-Belongs exclusively to one physician's tenant. Current attributes:
+Belongs exclusively to one physician's tenant. Uses the shared person
+shape (§1a) plus `observations`:
 
-- first name
-- last name
-- phone
-- email
-- date of birth
-- `metadata` — free-form extensibility mechanism for information useful to
-  the physician that is not yet part of the formal domain model (e.g.
-  insurance/health coverage, other context)
-- `observations` — free-form notes that don't yet justify a structured concept
+- first name — required
+- last name — required
+- phone — required
+- email — required
+- date of birth — required
+- `metadata` — optional; free-form extensibility mechanism for information
+  useful to the physician that is not yet part of the formal domain model
+  (e.g. insurance/health coverage, other context)
+- `observations` — optional; free-form notes that don't yet justify a
+  structured concept. **Only Patient has this field** — Physician and
+  Resident do not.
 
 No additional mandatory attributes are assumed.
 
@@ -99,17 +181,27 @@ No additional mandatory attributes are assumed.
 
 Confirmed information:
 
-- belongs to a Patient
-- has a Procedure Type
+- belongs to exactly one Patient
+- has exactly one Procedure Type
 - has a performance/realization date
-- has a single state: `DONE`
-- has a `metadata` mechanism for information not yet part of the formal model
+- is currently always in state `DONE`
+- may initially exist without Controls; is expected to eventually have
+  multiple Controls (postoperative follow-up is a core purpose of the
+  product, but the domain must not require a Control at surgery-creation
+  time)
+- has a `metadata` mechanism for information not yet part of the formal
+  model — **intentionally unresolved**, not to be defined further here
+
+**Modification and deletion (confirmed):**
+- Only the **Physician** may modify a Surgery.
+- Only the **Physician** may delete a Surgery.
 
 Explicitly **not** part of this iteration:
 - surgery scheduling
 - calendar
 - pre-operative lifecycle
 - future/planned surgery states
+- additional Surgery lifecycle states beyond `DONE`
 
 No surgery-specific clinical fields are assumed beyond the above.
 
@@ -122,28 +214,69 @@ postoperative follow-up.
 
 - **Follow-up is not a domain entity.** It is the process of accumulating
   Controls over time for a surgery.
-- Controls are created **manually** by the physician whenever they want to
-  record an observation.
+- A Control belongs to exactly one Surgery.
+- A Control has `observations` and a mandatory date/time.
+- A Control records **who performed it** — either the Physician directly,
+  or a Resident who is assigned to (participating in) that specific
+  Surgery (see §1b/§10).
+- Controls are created **manually** by the physician (or a participating
+  resident) whenever they want to record an observation.
 - There is no automated control scheduling, no requirement to
   auto-generate controls, and no enforced control frequency in this
   iteration — timing is determined by the physician per patient.
-- Controls must support **configurable/custom information** via the
-  CustomField mechanism (§9), because the exact pterygium measurements are
-  not yet known.
-- **Interpretation of a Control is free text** for this iteration — an
-  explicit, deliberate simplification, not a placeholder for a "better"
-  design. The domain should preserve room to make interpretation more
-  structured later, without that structure being decided now.
+- A Control may contain multiple CustomFields/measurements. Each
+  CustomField can be recorded **only once** within a given Control.
+  (CustomField's own value model remains unresolved — see §9.)
+- **Interpretation/observations of a Control is free text** for this
+  iteration — an explicit, deliberate simplification, not a placeholder
+  for a "better" design. The domain should preserve room to make
+  interpretation more structured later, without that structure being
+  decided now.
+
+**Modification and deletion (confirmed):**
+- Only the **Physician** may modify a Control.
+- Only the **Physician** may delete a Control.
+  (Note: a Resident may *perform*/record a Control if participating in
+  that surgery, but only the Physician may modify or delete it.)
+
+A Surgery may exist without any Controls — the domain must not require
+one to be created at surgery-creation time.
 
 ---
 
 ## 8. Procedure Types (confirmed, open in detail)
 
-- Procedure Types are customizable by the physician; not a fixed enum.
+- Procedure Types are owned and managed by the Physician within their own
+  tenant. Only the Physician can create or modify Procedure Types.
+- Procedure Types are not fixed globally; not a fixed enum.
 - Pterygium is the first Procedure Type.
 - The physician must be able to work with multiple procedure types over time.
 - Procedure Types support extension via the CustomField mechanism (§9).
-- Exact structure/constraints beyond this are intentionally open.
+
+**Current initial idea (not yet closed) of what a Procedure Type may contain:**
+
+- `name`
+- `description`
+- surgical technique
+
+For Pterygium, the initial known surgical technique options are:
+
+- Conjunctival autograft
+- Conjunctival autograft + MMC
+- Amniotic membrane
+- Autograft + fibrin glue
+
+These are documented as current domain knowledge, not a final or
+exhaustive list. No additional techniques are assumed. The exact final
+Procedure Type model (including whether/how technique options are
+structured) will be researched and refined later.
+
+**Deletion rule (confirmed):** A Procedure Type must **not** be deleted.
+This is an explicit business decision — Procedure Types may be referenced
+by historical surgeries and clinical research, so removing one would
+orphan that history. No soft-delete, archival, or replacement behavior is
+assumed or proposed at this stage; additional lifecycle rules will only be
+introduced if explicitly requested later.
 
 ---
 
@@ -162,11 +295,25 @@ CustomField structure:
 - `magnitude` — required
 
 CustomFields can extend: Procedure Types, Surgeries, Controls, and other
-predefined clinical concepts where appropriate.
+predefined clinical concepts where appropriate. A Control may contain
+multiple CustomFields, and each CustomField can be recorded only once
+within a given Control (§7).
 
 No additional CustomField types/constraints are assumed. The current
 structure is considered sufficient for this stage, not final/immutable
 forever.
+
+**Explicitly unresolved (do not implement beyond the `name` /
+`description` / `unit` / `magnitude` structure above):**
+- The exact value representation of a CustomField (how an actual recorded
+  value is stored/typed).
+- The relationship between `magnitude` and `unit`.
+- The exact value types allowed.
+- How CustomField *definitions* are associated with Procedure Types,
+  Surgeries, and Controls (i.e. where a CustomField is defined vs. where
+  it is filled in).
+
+These remain out of implementation scope until explicitly resolved.
 
 ---
 
@@ -174,14 +321,22 @@ forever.
 
 - Optional; a physician may have zero or more.
 - A physician may act as their own resident.
-- Residents are assigned to Patients (not directly to individual surgeries —
-  the exact scope of a resident's participation across a patient's
-  surgeries remains open).
-- A patient may have one or more residents assigned.
-- **Immutability rule:** once a resident has participated in a Control, or
-  recorded information related to the controls of a surgery, that resident
-  cannot be removed from that relevant context. Historical participation
-  must be preserved.
+- Belongs exclusively to one Physician/Tenant.
+- Uses the shared person shape (§1a) — no `observations` field.
+- Created and managed by the Physician.
+- **Assigned directly to a Surgery** (never to a Patient — there is no
+  Resident ↔ Patient relationship; see §1b). A Surgery may have zero or
+  more assigned/participating Residents.
+- A Resident may be assigned to (participate in) multiple Surgeries,
+  across the same or different Patients. Assignment to one Surgery has no
+  bearing on any other Surgery, even for the same Patient.
+- **Removal rule:** a resident assigned to a Surgery who has not recorded
+  any Control for that Surgery may be removed from it.
+- **Participation-preservation rule:** once a resident has recorded a
+  Control for a Surgery, their participation in that Surgery must be
+  preserved and cannot be removed. This reflects potential
+  professional/civil responsibility for that participation, not merely
+  technical immutability (see §1c).
 - No additional resident permission rules are assumed.
 
 ---
@@ -189,28 +344,72 @@ forever.
 ## 11. Research (confirmed)
 
 A Research Study is a structured scientific study built progressively over
-time, not a generic dashboard/query.
+time, not a generic dashboard/query. It belongs exclusively to one
+Physician/Tenant.
+
+**A Research Study contains only:**
+- `hypothesis` — free text
+- `results` — free text
+- `analysis` — free text
+- `conclusion` — free text
+- a universe of selected Surgeries
+
+All four textual components are currently free text; no further structure
+is assumed for them.
+
+The Physician selects which Surgeries belong to the research universe. A
+Research Study may contain Surgeries from multiple, different Patients
+within the same Physician/Tenant. **There is currently no requirement
+that all selected Surgeries share the same Procedure Type** — this
+corrects the earlier discovery draft, which had described the universe as
+surgeries "of the same Procedure Type" (see the Documentation
+Consistency note below).
 
 **Lifecycle:**
 
 ```
-DRAFT → IN PROGRESS → COMPLETED
+DRAFT → IN_PROGRESS → COMPLETED
 ```
 
-- **DRAFT** — study created, hypothesis not yet confirmed.
-- **IN PROGRESS** — physician confirms the hypothesis; study becomes active
-  and accumulates a universe of surgeries of the same Procedure Type plus
-  their associated controls/data.
-- **COMPLETED** — physician confirms the conclusion.
+- **DRAFT**
+  - May exist without any selected Surgery.
+  - The Physician may add Surgeries.
+  - The Physician may remove Surgeries.
+  - The Physician may delete the Research Study (deletion is only
+    possible in this state).
+- **IN_PROGRESS**
+  - Entered when the Physician confirms the hypothesis.
+  - The universe of Surgeries is **locked**: surgeries cannot be added or
+    removed.
+- **COMPLETED**
+  - Entered when the Physician confirms the conclusion.
+  - The universe of Surgeries remains locked (cannot be added or removed).
+  - The Research Study itself (its text fields) may still be modified by
+    the Physician, because it belongs to their own workspace — completion
+    does not make the study immutable.
 
-A study conceptually contains: hypothesis, universe of surgeries,
-controls/collected data, results, analysis, conclusion.
+**A Research Study may only be deleted while in `DRAFT`.**
 
-- The physician may modify the research as needed, including after
-  completion — there is currently **no immutable/final/locked state**, no
-  versioning, no publishing, no audit trail. These are not assumed.
-- **Tenancy:** a research study can only operate over data belonging to
-  that physician's own tenant. No cross-physician research exists.
+Explicitly **not** introduced: publishing, versioning, locking of the
+entire Research Study, audit behavior, or immutable conclusions.
+
+- **Tenancy:** a research study can only operate over data (Surgeries,
+  Controls) belonging to that physician's own tenant. No cross-physician
+  research exists. The Platform Admin gains no access to clinical
+  information through these relationships (see §3).
+
+---
+
+### 11a. Documentation consistency note
+
+An earlier revision of this document described a Research Study's
+universe as "surgeries of the same Procedure Type." The authoritative
+product-owner decision incorporated in this round explicitly states there
+is currently no such requirement — a study's universe may mix Surgeries
+of different Procedure Types, as long as they belong to the same
+Physician/Tenant. §11 above reflects the corrected rule; the "same
+Procedure Type" requirement is retired and should not be treated as
+current.
 
 ---
 
@@ -248,21 +447,32 @@ ahead of time.
 ## 14. Current conceptual relationships
 
 ```
-Platform
-  ├── Admin (business/platform visibility only)
-  └── Physician / Tenant
-        ├── Patient
-        │     └── Surgery (state = DONE)
-        │           └── Control (measurement + free-text interpretation)
-        └── Resident (0..N, optional)
+Physician
+  │
+  ├── Residents (0..N, optional; created/managed by Physician)
+  │
+  └── Patients
+        └── Surgeries (state = DONE; modify/delete = Physician only)
+              ├── Residents participating (assigned directly by Physician;
+              │     removable only before they record a Control)
+              └── Controls (observations, mandatory datetime, author;
+                    modify/delete = Physician only)
 
-Resident ←→ Patient        : assignment (0..N each way)
-Physician ←→ Control        : physician may record controls directly
-Research Study → Universe of Surgeries (same Procedure Type, same tenant) → their Controls/data
-Procedure Type / Surgery / Control ← CustomField (controlled extensibility)
+Platform
+  └── Admin (business/platform visibility only — no clinical access)
+
+Physician ←→ Control        : physician may perform controls directly; only physician may modify/delete any control
+Research Study → Universe of Surgeries (Physician-selected, same tenant, Procedure Type NOT required to match) → their Controls/data
+Procedure Type / Surgery / Control ← CustomField (controlled extensibility — value model still unresolved)
+Physician → owns/manages → Procedure Type (physician-scoped, never deleted)
 ```
 
 This is a conceptual sketch only — not an aggregate/entity diagram.
+
+**There is no Resident ↔ Patient relationship of any kind.** A Resident
+is assigned directly to a Surgery by the Physician; that assignment is
+the only link between a Resident and a Patient's clinical record, and it
+is scoped to that one Surgery. See §1b–§1c.
 
 ---
 
@@ -271,13 +481,20 @@ This is a conceptual sketch only — not an aggregate/entity diagram.
 Known to exist conceptually; whether/how each becomes an entity, value
 object, or something else is **not decided**:
 
-- Control (fields beyond "measurement + free-text interpretation + CustomFields")
-- Surgery (attributes beyond the confirmed list)
-- Procedure Type (structure beyond "customizable, supports CustomFields")
+- Control (exact field set beyond "observations, mandatory datetime,
+  author, CustomFields" — e.g. how "who performed it" is represented)
+- Surgery (attributes beyond the confirmed list; `metadata` remains
+  intentionally unresolved)
+- Procedure Type (exact final structure — `name`/`description`/technique is
+  a current initial idea, not closed; whether technique is a fixed list,
+  an open catalog, or a CustomField-driven concept is undecided)
 - Patient (structure beyond confirmed attributes)
-- Research Study (internal structure of hypothesis/results/analysis/conclusion)
-- Resident-to-Surgery relationship (assigned to patient vs. scoped per surgery)
-- CustomField `magnitude`/`unit` — exact semantics/validation not defined
+- Research Study (internal structure is now confirmed to be free-text
+  hypothesis/results/analysis/conclusion — no further structure is open
+  for the text fields themselves; how the Surgery universe is represented
+  remains an implementation question, not a business one)
+- CustomField `magnitude`/`unit` and value model — exact semantics not
+  defined (§9)
 
 ---
 
@@ -285,14 +502,16 @@ object, or something else is **not decided**:
 
 - Exact Admin permissions/tooling beyond activate/deactivate and the four
   listed metrics.
-- Exact scope of a resident's participation: patient-wide vs. per-surgery.
-- Exact semantics of CustomField `magnitude` and `unit` (are these free
-  text, a controlled vocabulary, numeric-only, etc.)?
-- Whether/how a research study's editability after `COMPLETED` should ever
-  be constrained (currently: no constraint at all).
-- Pterygium-specific measurements, control structure, and interpretation
-  rules — to be obtained from the physician meeting.
-- Surgery- and procedure-specific information beyond the confirmed fields.
+- CustomField: exact value representation, the relationship between
+  `magnitude` and `unit`, exact value types, and how CustomField
+  definitions are associated with Procedure Types, Surgeries, and
+  Controls (§9) — explicitly unresolved, not to be implemented yet.
+- Pterygium-specific measurements and interpretation rules — to be
+  obtained from the physician meeting.
+- Surgery `metadata` — intentionally unresolved, no further definition.
+- Whether the initial pterygium surgical technique list (§8) is exhaustive
+  or will be extended/refined after the physician meeting.
+- Exact final Procedure Type structure beyond the current initial idea.
 
 ---
 

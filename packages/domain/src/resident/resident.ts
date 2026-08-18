@@ -1,35 +1,37 @@
 import { DomainError } from "../shared/domain-error.js";
 import { Person, type PersonAttributes } from "../shared/person.js";
 
-export interface PatientAttributes extends PersonAttributes {
+export interface ResidentAttributes extends PersonAttributes {
   id: string;
   physicianId: string;
-  observations?: string;
 }
 
 /**
- * There is no Resident ↔ Patient relationship. A Resident is assigned
- * directly to a Surgery by the Physician (see Surgery.assignResident) —
- * Patient does not track residents in any way.
+ * A Resident belongs exclusively to one Physician/Tenant.
+ *
+ * Assignment to a Patient and clinical participation in a Surgery are
+ * different relationships and are NOT tracked here:
+ * - assignment lives on Patient (see Patient.assignResident)
+ * - participation lives on Surgery (see Surgery.recordControl /
+ *   Surgery.hasResidentParticipated)
  */
-export class Patient {
+export class Resident {
   private constructor(
     private readonly id_: string,
     private readonly physicianId_: string,
     private readonly person: Person,
-    private readonly observations_: string | undefined,
   ) {}
 
-  static create(attributes: PatientAttributes): Patient {
+  static create(attributes: ResidentAttributes): Resident {
     if (!attributes.id.trim()) {
-      throw new DomainError("Patient requires an id");
+      throw new DomainError("Resident requires an id");
     }
     if (!attributes.physicianId.trim()) {
-      throw new DomainError("Patient must belong to a physician (tenant)");
+      throw new DomainError("Resident must belong to a physician (tenant)");
     }
 
     const person = Person.create(attributes);
-    return new Patient(attributes.id, attributes.physicianId, person, attributes.observations);
+    return new Resident(attributes.id, attributes.physicianId, person);
   }
 
   get id(): string {
@@ -64,11 +66,7 @@ export class Patient {
     return this.person.metadata;
   }
 
-  get observations(): string | undefined {
-    return this.observations_;
-  }
-
-  sameIdentityAs(other: Patient): boolean {
-    return this.physicianId_ === other.physicianId_ && this.id_ === other.id_;
+  belongsToTenant(physicianId: string): boolean {
+    return this.physicianId_ === physicianId;
   }
 }

@@ -154,16 +154,16 @@ La utilización de TypeScript no implica compartir indiscriminadamente todo el c
 
 # 🏗️ Stack tecnológico
 
-|Área|Tecnología / decisión|
-|---|---|
-|Lenguaje|**TypeScript**|
-|Runtime backend|**Node.js**|
-|Base de datos|**PostgreSQL**|
-|ORM|**Prisma**|
-|Monorepo|**pnpm Workspaces**|
-|Modelado|**Domain-Driven Design**|
-|Desarrollo|**Test-Driven Development**|
-|Infraestructura|**Railway**|
+| Área            | Tecnología / decisión       |
+| --------------- | --------------------------- |
+| Lenguaje        | **TypeScript**              |
+| Runtime backend | **Node.js**                 |
+| Base de datos   | **PostgreSQL**              |
+| ORM             | **Prisma**                  |
+| Monorepo        | **pnpm Workspaces**         |
+| Modelado        | **Domain-Driven Design**    |
+| Desarrollo      | **Test-Driven Development** |
+| Infraestructura | **Railway**                 |
 
 ### Frontend
 
@@ -417,15 +417,15 @@ La relación comercial y conceptual del producto es:
 
 Médico
 
-  │
+│
 
-  ├── Pacientes
+├── Pacientes
 
-  ├── Residentes
+├── Residentes
 
-  ├── Cirugías
+├── Cirugías
 
-  └── Investigaciones
+└── Investigaciones
 
 La información médica será considerada un aspecto crítico del sistema.
 
@@ -475,15 +475,15 @@ La implementación deberá mantener una separación clara entre:
 
 Domain
 
-   ↓
+↓
 
 Application
 
-   ↓
+↓
 
 Infrastructure
 
-   ↓
+↓
 
 Node.js / HTTP
 
@@ -503,15 +503,11 @@ domain/
 
 └── test/
 
-  
-
 application/
 
 ├── src/
 
 └── test/
-
-  
 
 infrastructure/
 
@@ -543,46 +539,46 @@ El proyecto comienza deliberadamente con un alcance reducido.
 
 ### Definido
 
-- [x]  Producto orientado a médicos cirujanos.
-- [x]  Médico como propietario del espacio.
-- [x]  Pacientes.
-- [x]  Residentes.
-- [x]  Cirugías.
-- [x]  Seguimiento postoperatorio.
-- [x]  Investigación como objetivo central.
-- [x]  Primer procedimiento: pterigión.
-- [x]  TypeScript.
-- [x]  Node.js.
-- [x]  PostgreSQL.
-- [x]  Prisma.
-- [x]  DDD.
-- [x]  TDD.
-- [x]  Monorepo.
-- [x]  pnpm Workspaces.
-- [x]  Shared monorepo compatible con Railway.
-- [x]  Railway como plataforma de infraestructura.
-- [x]  Web como Railway Service.
-- [x]  API como Railway Service.
-- [x]  PostgreSQL como Railway Service.
-- [x]  Watch Paths para los servicios.
-- [x]  Prisma migrations mediante Pre-Deploy Command.
+- [x] Producto orientado a médicos cirujanos.
+- [x] Médico como propietario del espacio.
+- [x] Pacientes.
+- [x] Residentes.
+- [x] Cirugías.
+- [x] Seguimiento postoperatorio.
+- [x] Investigación como objetivo central.
+- [x] Primer procedimiento: pterigión.
+- [x] TypeScript.
+- [x] Node.js.
+- [x] PostgreSQL.
+- [x] Prisma.
+- [x] DDD.
+- [x] TDD.
+- [x] Monorepo.
+- [x] pnpm Workspaces.
+- [x] Shared monorepo compatible con Railway.
+- [x] Railway como plataforma de infraestructura.
+- [x] Web como Railway Service.
+- [x] API como Railway Service.
+- [x] PostgreSQL como Railway Service.
+- [x] Watch Paths para los servicios.
+- [x] Prisma migrations mediante Pre-Deploy Command.
 
 ### Pendiente
 
-- [ ]  Framework de frontend.
-- [ ]  Framework HTTP del backend.
-- [ ]  Sistema de autenticación.
-- [ ]  Diseño definitivo de la UI.
-- [ ]  Modelo de dominio detallado.
-- [ ]  Casos de uso detallados.
-- [ ]  Modelo de persistencia detallado.
-- [ ]  Estrategia de notificaciones.
-- [ ]  Almacenamiento de archivos.
-- [ ]  Observabilidad.
-- [ ]  CI/CD.
-- [ ]  Estrategia de backups y recuperación.
-- [ ]  Seguridad y auditoría.
-- [ ]  Requisitos regulatorios y de cumplimiento.
+- [ ] Framework de frontend.
+- [ ] Framework HTTP del backend.
+- [ ] Sistema de autenticación.
+- [ ] Diseño definitivo de la UI.
+- [ ] Modelo de dominio detallado.
+- [ ] Casos de uso detallados.
+- [ ] Modelo de persistencia detallado.
+- [ ] Estrategia de notificaciones.
+- [ ] Almacenamiento de archivos.
+- [ ] Observabilidad.
+- [ ] CI/CD.
+- [ ] Estrategia de backups y recuperación.
+- [ ] Seguridad y auditoría.
+- [ ] Requisitos regulatorios y de cumplimiento.
 
 Los elementos pendientes no representan problemas por resolver inmediatamente.
 

@@ -1,10 +1,12 @@
 # 0010 — Resident assignment is direct to the Surgery; no Resident ↔ Patient relationship
 
 ## Status
+
 Established (current iteration). **Amends** the original version of this
 ADR — see Amendment below.
 
 ## Decision
+
 There is no Resident ↔ Patient relationship of any kind. A Resident is
 never assigned to a Patient.
 
@@ -39,6 +41,7 @@ for a Surgery, their participation in that Surgery must be preserved and
 cannot be removed.
 
 ## Amendment
+
 The original version of this decision modeled Resident assignment at the
 Patient level (Resident ↔ Patient), with clinical participation described
 as a separate, Surgery-scoped fact layered on top of that assignment.
@@ -51,6 +54,7 @@ separate cross-aggregate check to preserve participation when
 "unassigning" a resident, since removal is now a Surgery-local operation.
 
 ## Rationale
+
 The product owner considers Surgery-scoped participation clinically
 relevant, not merely a technical immutability concern: the resident may
 carry professional/civil responsibility for their participation in that
@@ -61,6 +65,7 @@ assignment) reflects that this responsibility was never about the
 Patient relationship at all.
 
 ## Not decided here
+
 - The exact technical representation/enforcement of the
   participation-preservation rule beyond "cannot be removed once a
   Control was recorded" (deferred — see [DOMAIN.md §16](../domain/DOMAIN.md#16-open-business-questions)).

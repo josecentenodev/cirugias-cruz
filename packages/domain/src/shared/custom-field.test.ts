@@ -27,21 +27,15 @@ describe("CustomField", () => {
   });
 
   it("cannot be created without a name", () => {
-    expect(() =>
-      CustomField.create({ name: "", unit: "mm", magnitude: "length" }),
-    ).toThrow();
+    expect(() => CustomField.create({ name: "", unit: "mm", magnitude: "length" })).toThrow();
   });
 
   it("cannot be created without a unit", () => {
-    expect(() =>
-      CustomField.create({ name: "Redness", unit: "", magnitude: "ordinal" }),
-    ).toThrow();
+    expect(() => CustomField.create({ name: "Redness", unit: "", magnitude: "ordinal" })).toThrow();
   });
 
   it("cannot be created without a magnitude", () => {
-    expect(() =>
-      CustomField.create({ name: "Redness", unit: "grade", magnitude: "" }),
-    ).toThrow();
+    expect(() => CustomField.create({ name: "Redness", unit: "grade", magnitude: "" })).toThrow();
   });
 
   it("is equal to another CustomField with the same values", () => {

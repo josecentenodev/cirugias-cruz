@@ -19,9 +19,7 @@ describe("Patient", () => {
   });
 
   it("cannot be created without an owning physician (tenant)", () => {
-    expect(() =>
-      Patient.create({ ...validAttributes, physicianId: "" }),
-    ).toThrow();
+    expect(() => Patient.create({ ...validAttributes, physicianId: "" })).toThrow();
   });
 
   it("cannot be created without an id", () => {
@@ -29,8 +27,16 @@ describe("Patient", () => {
   });
 
   it("two patients belonging to different physicians are never the same patient, even with identical personal data", () => {
-    const patientOfPhysicianA = Patient.create({ ...validAttributes, id: "shared-id", physicianId: "physician-a" });
-    const patientOfPhysicianB = Patient.create({ ...validAttributes, id: "shared-id", physicianId: "physician-b" });
+    const patientOfPhysicianA = Patient.create({
+      ...validAttributes,
+      id: "shared-id",
+      physicianId: "physician-a",
+    });
+    const patientOfPhysicianB = Patient.create({
+      ...validAttributes,
+      id: "shared-id",
+      physicianId: "physician-b",
+    });
 
     expect(patientOfPhysicianA.sameIdentityAs(patientOfPhysicianB)).toBe(false);
   });

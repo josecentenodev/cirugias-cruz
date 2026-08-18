@@ -1,0 +1,20 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+**/dist
+
+# Coverage output
+coverage
+**/coverage
+
+# Package manager metadata (generated, not hand-formatted)
+pnpm-lock.yaml
+
+# IDE metadata
+.vscode
+.idea
+
+# Git metadata
+.git

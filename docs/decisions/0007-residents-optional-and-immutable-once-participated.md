@@ -1,9 +1,11 @@
 # 0007 — Residents are optional; immutable once they have participated
 
 ## Status
+
 Established (current iteration).
 
 ## Decision
+
 Residents are optional. A physician may have zero or more residents and
 may act as their own resident. Residents are assigned to patients (not
 directly to individual surgeries — the exact scope of a resident's
@@ -15,11 +17,13 @@ related to the controls of a surgery, that resident cannot be removed
 from that relevant context.
 
 ## Rationale
+
 Historical clinical participation must be preserved for accuracy and
 accountability, even if the physician later wants to remove a resident
 from ongoing work.
 
 ## Not decided here
+
 - Whether resident participation should be scoped per-surgery rather than
   per-patient.
 - Any additional resident permission or workflow rules beyond assignment

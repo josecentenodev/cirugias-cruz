@@ -1,10 +1,7 @@
 export { Physician, type PhysicianAttributes } from "./physician/physician.js";
 export { Patient, type PatientAttributes } from "./patient/patient.js";
 export { Resident, type ResidentAttributes } from "./resident/resident.js";
-export {
-  ProcedureType,
-  type ProcedureTypeAttributes,
-} from "./procedure-type/procedure-type.js";
+export { ProcedureType, type ProcedureTypeAttributes } from "./procedure-type/procedure-type.js";
 export {
   Surgery,
   type SurgeryAttributes,

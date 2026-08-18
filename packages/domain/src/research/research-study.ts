@@ -17,6 +17,10 @@ export interface ResearchStudyAttributes {
  * (plus the surgery's own physicianId, to enforce tenant isolation)
  * rather than embedding the Surgery aggregate — the two evolve
  * independently and a study's universe is just a set of references.
+ *
+ * Lifecycle: DRAFT and IN_PROGRESS are both fully modifiable (text and
+ * surgery universe). COMPLETED is the only non-modifiable state, and it
+ * is reversible via reopen() back to IN_PROGRESS.
  */
 export class ResearchStudy {
   private status_: ResearchStudyStatus = "DRAFT";
@@ -81,35 +85,44 @@ export class ResearchStudy {
     return [...this.surgeryIds_];
   }
 
+  private assertModifiable(): void {
+    if (this.status_ === "COMPLETED") {
+      throw new DomainError("A completed research study cannot be modified");
+    }
+  }
+
   updateHypothesis(hypothesis: string, actingPhysicianId: string): void {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
+    this.assertModifiable();
     this.hypothesis_ = hypothesis;
   }
 
   updateResults(results: string, actingPhysicianId: string): void {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
+    this.assertModifiable();
     this.results_ = results;
   }
 
   updateAnalysis(analysis: string, actingPhysicianId: string): void {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
+    this.assertModifiable();
     this.analysis_ = analysis;
   }
 
   updateConclusion(conclusion: string, actingPhysicianId: string): void {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
+    this.assertModifiable();
     this.conclusion_ = conclusion;
   }
 
   /**
    * The universe is not required to share a Procedure Type, and may
-   * include surgeries from multiple patients — the only constraint is
-   * that the surgery belongs to the same tenant and the universe is
-   * still open (DRAFT).
+   * include surgeries from multiple patients. It is modifiable in both
+   * DRAFT and IN_PROGRESS, and locked only once COMPLETED.
    */
   addSurgery(surgery: { id: string; physicianId: string }, actingPhysicianId: string): void {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
-    this.assertUniverseIsOpen();
+    this.assertModifiable();
     assertActingPhysicianOwnsResource(this.physicianId_, surgery.physicianId);
 
     this.surgeryIds_.add(surgery.id);
@@ -117,45 +130,40 @@ export class ResearchStudy {
 
   removeSurgery(surgeryId: string, actingPhysicianId: string): void {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
-    this.assertUniverseIsOpen();
+    this.assertModifiable();
 
     this.surgeryIds_.delete(surgeryId);
   }
 
-  private assertUniverseIsOpen(): void {
-    if (this.status_ !== "DRAFT") {
-      throw new DomainError(
-        "The research study's surgery universe is locked outside of DRAFT",
-      );
-    }
-  }
-
-  confirmHypothesis(actingPhysicianId: string): void {
+  moveToInProgress(actingPhysicianId: string): void {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
 
     if (this.status_ !== "DRAFT") {
-      throw new DomainError("Only a DRAFT research study can confirm its hypothesis");
-    }
-    if (!this.hypothesis_?.trim()) {
-      throw new DomainError("A hypothesis must be set before it can be confirmed");
+      throw new DomainError("Only a DRAFT research study can move to IN_PROGRESS");
     }
 
     this.status_ = "IN_PROGRESS";
   }
 
-  confirmConclusion(actingPhysicianId: string): void {
+  complete(actingPhysicianId: string): void {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
 
     if (this.status_ !== "IN_PROGRESS") {
-      throw new DomainError(
-        "Only an IN_PROGRESS research study can confirm its conclusion",
-      );
-    }
-    if (!this.conclusion_?.trim()) {
-      throw new DomainError("A conclusion must be set before it can be confirmed");
+      throw new DomainError("Only an IN_PROGRESS research study can be completed");
     }
 
     this.status_ = "COMPLETED";
+  }
+
+  /** Completion is reversible: a COMPLETED study can be reopened, becoming fully modifiable again. */
+  reopen(actingPhysicianId: string): void {
+    assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
+
+    if (this.status_ !== "COMPLETED") {
+      throw new DomainError("Only a COMPLETED research study can be reopened");
+    }
+
+    this.status_ = "IN_PROGRESS";
   }
 
   assertCanBeDeletedBy(actingPhysicianId: string): void {

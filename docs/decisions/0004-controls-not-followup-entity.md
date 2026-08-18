@@ -1,9 +1,11 @@
 # 0004 — Control as the domain concept; Follow-up is not an entity
 
 ## Status
+
 Established (current iteration).
 
 ## Decision
+
 "Follow-up" is not modeled as a domain entity. It is the process of
 accumulating **Controls** over time for a surgery.
 
@@ -25,6 +27,7 @@ known.
 Control, regardless of who originally performed it.
 
 ## Rationale
+
 The vocabulary term "Seguimiento" describes a process, not a discrete
 record with its own identity and lifecycle. Forcing it into an entity
 would misrepresent the domain. The actual recorded thing is the Control.
@@ -36,6 +39,7 @@ Physician's role as the sole controller of their tenant's clinical
 record.
 
 ## Not decided here
+
 - Exact Control fields/structure beyond "observations + mandatory
   datetime + author + CustomFields" (deferred to physician meeting).
 - Future procedure-specific or predefined control schedules — explicitly

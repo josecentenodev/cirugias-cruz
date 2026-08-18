@@ -45,9 +45,7 @@ describe("ProcedureType", () => {
   it("cannot be modified by a physician from another tenant", () => {
     const procedureType = ProcedureType.create(validAttributes);
 
-    expect(() =>
-      procedureType.modify({ technique: "amniotic membrane" }, "physician-2"),
-    ).toThrow();
+    expect(() => procedureType.modify({ technique: "amniotic membrane" }, "physician-2")).toThrow();
   });
 
   it("has no deletion capability — a ProcedureType must never be deleted", () => {

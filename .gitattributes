@@ -1,2 +1,11 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Repository-wide line-ending policy: LF everywhere, regardless of the
+# checking-out developer's platform or global Git configuration.
+* text=auto eol=lf
+
+# Explicit overrides for common binary types, in case any are added later.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

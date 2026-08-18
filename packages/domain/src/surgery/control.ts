@@ -1,8 +1,7 @@
 import { DomainError } from "../shared/domain-error.js";
 
 export type ControlAuthor =
-  | { type: "physician"; physicianId: string }
-  | { type: "resident"; residentId: string };
+  { type: "physician"; physicianId: string } | { type: "resident"; residentId: string };
 
 export interface ControlAttributes {
   id: string;

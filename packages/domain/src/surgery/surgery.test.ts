@@ -120,12 +120,29 @@ describe("Surgery", () => {
     expect(control.author).toEqual({ type: "resident", residentId: "resident-1" });
   });
 
+  it("assignment means participation immediately, even before any control is recorded", () => {
+    const surgery = createSurgery();
+
+    surgery.assignResident("resident-1", PHYSICIAN_ID);
+
+    expect(surgery.participatingResidentIds).toContain("resident-1");
+  });
+
+  it("a resident can be assigned to and participate in multiple surgeries", () => {
+    const surgeryA = Surgery.create({ ...validAttributes, id: "surgery-a" });
+    const surgeryB = Surgery.create({ ...validAttributes, id: "surgery-b" });
+
+    surgeryA.assignResident("resident-1", PHYSICIAN_ID);
+    surgeryB.assignResident("resident-1", PHYSICIAN_ID);
+
+    expect(surgeryA.participatingResidentIds).toContain("resident-1");
+    expect(surgeryB.participatingResidentIds).toContain("resident-1");
+  });
+
   it("only the owning physician may add a participating resident", () => {
     const surgery = createSurgery();
 
-    expect(() =>
-      surgery.assignResident("resident-1", OTHER_PHYSICIAN_ID),
-    ).toThrow();
+    expect(() => surgery.assignResident("resident-1", OTHER_PHYSICIAN_ID)).toThrow();
   });
 
   it("resident participation is specific to a surgery: participating in one does not imply participation in another", () => {
@@ -162,9 +179,7 @@ describe("Surgery", () => {
       author: { type: "resident", residentId: "resident-1" },
     });
 
-    expect(() =>
-      surgery.removeResident("resident-1", PHYSICIAN_ID),
-    ).toThrow();
+    expect(() => surgery.removeResident("resident-1", PHYSICIAN_ID)).toThrow();
   });
 
   it("allows removing a participating resident who has not recorded any control yet", () => {

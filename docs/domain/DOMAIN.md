@@ -15,12 +15,12 @@ investigación clínica. El primer procedimiento de trabajo es **pterigión**.
 
 ## 1. Actors
 
-| Actor | Scope | Notes |
-|---|---|---|
-| **Platform Admin** | Platform-level, cross-tenant | Product owner/operator. Not a member of any physician's tenant. Purpose is business/platform management only — never clinical data. |
-| **Physician (Médico)** | Tenant owner | **The Physician IS the Tenant** — there is no separate conceptual distinction between "Physician" and "Tenant" in the product model. Full control of own workspace. May act as their own resident. |
-| **Resident** | Inside a physician's workspace | Optional, zero or more. Belongs exclusively to one Physician/Tenant. Created and managed by the Physician; assigned directly to Surgeries, never to a Patient (see §1b). |
-| **Patient** | Inside a physician's workspace | Exists only within a tenant, no global identity. |
+| Actor                  | Scope                          | Notes                                                                                                                                                                                              |
+| ---------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Platform Admin**     | Platform-level, cross-tenant   | Product owner/operator. Not a member of any physician's tenant. Purpose is business/platform management only — never clinical data.                                                                |
+| **Physician (Médico)** | Tenant owner                   | **The Physician IS the Tenant** — there is no separate conceptual distinction between "Physician" and "Tenant" in the product model. Full control of own workspace. May act as their own resident. |
+| **Resident**           | Inside a physician's workspace | Optional, zero or more. Belongs exclusively to one Physician/Tenant. Created and managed by the Physician; assigned directly to Surgeries, never to a Patient (see §1b).                           |
+| **Patient**            | Inside a physician's workspace | Exists only within a tenant, no global identity.                                                                                                                                                   |
 
 ### 1a. Shared person shape
 
@@ -119,6 +119,7 @@ particular Surgery.
 Purpose: business/platform management, not clinical oversight.
 
 The Admin can:
+
 - See registered physicians/tenants.
 - See platform usage metrics: number of registered physicians, number of
   surgeries, number of controls, number of research studies.
@@ -128,6 +129,7 @@ The Admin can:
   physicians.
 
 The Admin must **not**:
+
 - Access patient clinical information or individual patient records.
 - Access individual clinical measurements or control data.
 - Access sensitive surgery information.
@@ -193,10 +195,12 @@ Confirmed information:
   model — **intentionally unresolved**, not to be defined further here
 
 **Modification and deletion (confirmed):**
+
 - Only the **Physician** may modify a Surgery.
 - Only the **Physician** may delete a Surgery.
 
 Explicitly **not** part of this iteration:
+
 - surgery scheduling
 - calendar
 - pre-operative lifecycle
@@ -234,9 +238,10 @@ postoperative follow-up.
   decided now.
 
 **Modification and deletion (confirmed):**
+
 - Only the **Physician** may modify a Control.
 - Only the **Physician** may delete a Control.
-  (Note: a Resident may *perform*/record a Control if participating in
+  (Note: a Resident may _perform_/record a Control if participating in
   that surgery, but only the Physician may modify or delete it.)
 
 A Surgery may exist without any Controls — the domain must not require
@@ -285,7 +290,7 @@ introduced if explicitly requested later.
 The platform supports **controlled** extensibility, not an arbitrary
 form-builder. The platform owns the core domain concepts (Patient, Surgery,
 Control, Procedure Type, Research); the physician customizes the
-information captured *within* those concepts.
+information captured _within_ those concepts.
 
 CustomField structure:
 
@@ -305,11 +310,12 @@ forever.
 
 **Explicitly unresolved (do not implement beyond the `name` /
 `description` / `unit` / `magnitude` structure above):**
+
 - The exact value representation of a CustomField (how an actual recorded
   value is stored/typed).
 - The relationship between `magnitude` and `unit`.
 - The exact value types allowed.
-- How CustomField *definitions* are associated with Procedure Types,
+- How CustomField _definitions_ are associated with Procedure Types,
   Surgeries, and Controls (i.e. where a CustomField is defined vs. where
   it is filled in).
 
@@ -348,6 +354,7 @@ time, not a generic dashboard/query. It belongs exclusively to one
 Physician/Tenant.
 
 **A Research Study contains only:**
+
 - `hypothesis` — free text
 - `results` — free text
 - `analysis` — free text
@@ -365,33 +372,39 @@ corrects the earlier discovery draft, which had described the universe as
 surgeries "of the same Procedure Type" (see the Documentation
 Consistency note below).
 
-**Lifecycle:**
+**Lifecycle (revised — see Amendment below):**
 
 ```
-DRAFT → IN_PROGRESS → COMPLETED
+DRAFT ⇄ IN_PROGRESS ⇄ COMPLETED
 ```
 
 - **DRAFT**
   - May exist without any selected Surgery.
+  - The Physician may modify all text fields.
   - The Physician may add Surgeries.
   - The Physician may remove Surgeries.
   - The Physician may delete the Research Study (deletion is only
     possible in this state).
 - **IN_PROGRESS**
-  - Entered when the Physician confirms the hypothesis.
-  - The universe of Surgeries is **locked**: surgeries cannot be added or
-    removed.
+  - The Physician may modify all text fields.
+  - The Physician may add Surgeries.
+  - The Physician may remove Surgeries.
+  - The Surgery universe is **not locked** in this state — it remains
+    completely modifiable.
 - **COMPLETED**
-  - Entered when the Physician confirms the conclusion.
-  - The universe of Surgeries remains locked (cannot be added or removed).
-  - The Research Study itself (its text fields) may still be modified by
-    the Physician, because it belongs to their own workspace — completion
-    does not make the study immutable.
+  - The Research Study becomes **completely non-modifiable**: the
+    Physician cannot modify text, add Surgeries, remove Surgeries, or
+    otherwise change the study.
+  - The Physician **may transition a `COMPLETED` study back to
+    `IN_PROGRESS`**. Once reopened, the study becomes fully modifiable
+    again (text and universe). Completion is therefore reversible, not a
+    final/locked state.
 
 **A Research Study may only be deleted while in `DRAFT`.**
 
-Explicitly **not** introduced: publishing, versioning, locking of the
-entire Research Study, audit behavior, or immutable conclusions.
+Explicitly **not** introduced: publishing, versioning, audit behavior,
+immutable history, or any research locking beyond the `COMPLETED` state
+itself (which is reversible).
 
 - **Tenancy:** a research study can only operate over data (Surgeries,
   Controls) belonging to that physician's own tenant. No cross-physician
@@ -410,6 +423,21 @@ of different Procedure Types, as long as they belong to the same
 Physician/Tenant. §11 above reflects the corrected rule; the "same
 Procedure Type" requirement is retired and should not be treated as
 current.
+
+### 11b. Amendment — lifecycle simplified, COMPLETED reversible
+
+A later revision replaced the original lifecycle description. Previously:
+`IN_PROGRESS` was entered by "confirming the hypothesis" and **locked**
+the Surgery universe; `COMPLETED` was entered by "confirming the
+conclusion" and left the universe locked while text stayed editable. That
+model is **retired**.
+
+The current, authoritative lifecycle (§11 above) removes the
+hypothesis/conclusion confirmation preconditions entirely: transitions
+are plain state changes gated only by tenant ownership and current state.
+The Surgery universe is never locked while the study is `DRAFT` or
+`IN_PROGRESS` — only `COMPLETED` makes the study non-modifiable, and that
+state is reversible via an explicit return to `IN_PROGRESS`.
 
 ---
 

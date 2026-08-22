@@ -4,8 +4,8 @@
 
 This is the living roadmap from the current repository state toward the
 MVP. It is a planning artifact, not an implementation task list — it
-records *what* the approved plan is and *where the project currently
-stands against it*, not *how* to build any given piece.
+records _what_ the approved plan is and _where the project currently
+stands against it_, not _how_ to build any given piece.
 
 It should be consulted before starting any new implementation work, and
 updated as milestones progress (see Roadmap Maintenance Rules below). When
@@ -37,12 +37,14 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 - **Application Layer implementation** — the approved pattern (ports
   defined in Application, plain factory-function operations, no
-  `*UseCase` classes) is implemented and proven for exactly two
-  operations: assigning a Resident to a Surgery, and adding a Surgery to
-  a Research Study's universe. The remaining operations the Domain
-  already supports — registering a Patient, a Procedure Type, or a
-  Surgery; recording or modifying a Control; the rest of the Research
-  Study lifecycle — do not yet have an Application-layer operation.
+  `*UseCase` classes) now covers every MVP-required operation: registering
+  a Patient, a Procedure Type, and a Surgery; recording and modifying a
+  Control; assigning a Resident to a Surgery; and adding a Surgery to a
+  Research Study's universe (Milestone 1, completed). Still missing:
+  removing a Resident from a Surgery, and the rest of the Research Study
+  lifecycle (create, edit text, remove surgery, move/complete/reopen,
+  delete) — both intentionally out of Milestone 1's scope as Post-MVP
+  capabilities.
 
 ### Not started
 
@@ -125,24 +127,24 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 ## Capability Map
 
-| Capability | Domain | Application | Persistence | API | E2E | Overall status |
-|---|---|---|---|---|---|---|
-| Register Patient | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer |
-| Register Procedure Type | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer |
-| Register Surgery | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer |
-| Record Control | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer — highest-priority gap |
-| Modify Control | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer |
-| Assign Resident to Surgery | ✅ | ✅ | ❌ | ❌ | ❌ | Application complete; blocked below that layer |
-| Remove Resident from Surgery | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer |
-| Add Surgery to Research Study | ✅ | ✅ | ❌ | ❌ | ❌ | Application complete; blocked below that layer |
-| Research Study lifecycle (create, edit text, remove surgery, move/complete/reopen, delete) | ✅ | ❌ (one of ~8 methods has an operation) | ❌ | ❌ | ❌ | Mostly not started at Application layer |
-| Platform Admin visibility | ❌ | ❌ | ❌ | ❌ | ❌ | Not started at any layer |
+| Capability                                                                                 | Domain | Application                             | Persistence | API | E2E | Overall status                                 |
+| ------------------------------------------------------------------------------------------ | ------ | --------------------------------------- | ----------- | --- | --- | ---------------------------------------------- |
+| Register Patient                                                                           | ✅     | ✅                                      | ❌          | ❌  | ❌  | Application complete; blocked below that layer |
+| Register Procedure Type                                                                    | ✅     | ✅                                      | ❌          | ❌  | ❌  | Application complete; blocked below that layer |
+| Register Surgery                                                                           | ✅     | ✅                                      | ❌          | ❌  | ❌  | Application complete; blocked below that layer |
+| Record Control                                                                             | ✅     | ✅                                      | ❌          | ❌  | ❌  | Application complete; blocked below that layer |
+| Modify Control                                                                             | ✅     | ✅                                      | ❌          | ❌  | ❌  | Application complete; blocked below that layer |
+| Assign Resident to Surgery                                                                 | ✅     | ✅                                      | ❌          | ❌  | ❌  | Application complete; blocked below that layer |
+| Remove Resident from Surgery                                                               | ✅     | ❌                                      | ❌          | ❌  | ❌  | Not started at Application layer               |
+| Add Surgery to Research Study                                                              | ✅     | ✅                                      | ❌          | ❌  | ❌  | Application complete; blocked below that layer |
+| Research Study lifecycle (create, edit text, remove surgery, move/complete/reopen, delete) | ✅     | ❌ (one of ~8 methods has an operation) | ❌          | ❌  | ❌  | Mostly not started at Application layer        |
+| Platform Admin visibility                                                                  | ❌     | ❌                                      | ❌          | ❌  | ❌  | Not started at any layer                       |
 
-No capability has reached Persistence yet. The two capabilities furthest
-along (Resident assignment, Research Study surgery addition) were chosen
-to prove the Application pattern works, not because they are the most
-product-critical — the product-critical capabilities (register a Surgery,
-record a Control) are currently the least started.
+Every MVP-required capability now has an Application-layer operation
+(Milestone 1 complete). No capability has reached Persistence yet —
+Milestone 2 is the next unit of progress. Remove Resident from Surgery and
+the rest of the Research Study lifecycle remain Post-MVP per the MVP
+Definition above and were intentionally left out of Milestone 1's scope.
 
 ---
 
@@ -184,7 +186,19 @@ above shows Application = ✅.
 
 **Dependencies**: none.
 
-**Status**: `NOT_STARTED`
+**Status**: `COMPLETED` — `registerPatient`, `registerProcedureType`,
+`registerSurgery`, `recordControl`, and `modifyControl` are implemented
+under `packages/application/src`, each following the existing
+factory-function pattern, with `PatientRepository` and
+`ProcedureTypeRepository` ports added. The full workspace quality gate
+(lint, format-check, typecheck, test) passes: 79 Domain tests + 30
+Application tests, all green. One genuine cross-aggregate gap was found
+and closed along the way: `Surgery.recordControl`'s resident-authored
+branch has no parameter for the acting caller's tenant at all (only the
+physician-authored branch is tenant-checked inside the Domain method), so
+`recordControl` explicitly verifies `surgery.physicianId === physicianId`
+for every authorship branch before delegating — documented in the
+operation's own code comment, not a Domain change.
 
 ---
 
@@ -358,24 +372,25 @@ every current capability is at most "in progress" by this definition.
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: Milestone 1 — Complete the core clinical Application capability set**
+> **CURRENT MILESTONE: Milestone 2 — Real persistence for the core loop**
 
-- **Objective**: implement the Application-layer operations for
-  registering a Patient, a Procedure Type, and a Surgery, and for
-  recording/modifying a Control — closing the gap between what the Domain
-  already supports and what the Application layer currently exposes.
-- **Scope**: `registerPatient`, `registerProcedureType`,
-  `registerSurgery`, `recordControl`, `modifyControl`, plus the
-  `PatientRepository` and `ProcedureTypeRepository` ports they require.
-- **Prerequisites**: none.
-- **Definition of Done**: the workspace quality gate (lint, format-check,
-  typecheck, test) passes with these additions; every new operation has
-  tests covering its happy path, its relevant not-found case(s), and the
-  one tenant-boundary case genuinely applicable to it; no new Domain
-  changes and no repository/abstraction beyond what's listed in Scope
-  (in particular, no `ControlRepository`).
-- **Completion criteria**: every "MVP-required" row in the Capability Map
-  shows Application = ✅.
+Milestone 1 is complete (see its entry above and Historical Progress
+below). Milestone 2 is now current:
+
+- **Objective**: `PatientRepository`, `ProcedureTypeRepository`, and
+  `SurgeryRepository` have real, Prisma/PostgreSQL-backed implementations,
+  proven against the operations built in Milestone 1.
+- **Scope**: a Prisma schema for Physician, Patient, ProcedureType,
+  Surgery, and Control only; real implementations of the three
+  repositories; infrastructure-level tests proving save-then-find
+  round-trips correctly.
+- **Prerequisites**: Milestone 1 completed — satisfied.
+- **Definition of Done**: the Milestone 1 operations, run against the real
+  repository implementations instead of fakes, produce identical
+  externally-observable results; the workspace quality gate remains green
+  with the new package included.
+- **Completion criteria**: zero fakes remain in the code path exercised by
+  the Milestone 1 operations.
 
 **Status**: `NOT_STARTED`
 
@@ -383,27 +398,32 @@ every current capability is at most "in progress" by this definition.
 
 ## Next Milestone
 
-**Milestone 2 — Real persistence for the core loop.** Not to be started
-until Milestone 1's Definition of Done is met.
+**Milestone 3 — Minimal reachable surface (HTTP + auth).** Blocked until
+Milestone 2 completes and the HTTP-framework/authentication decisions are
+made (see Planning Decisions Requiring Approval).
 
 ---
 
 ## Risks and Unknowns
 
-- The two currently-implemented Application operations do not cover the
-  Domain's own stated core purpose (postoperative follow-up /
+- Milestone 1 closed the gap where Application operations did not cover
+  the Domain's own stated core purpose (postoperative follow-up /
   `recordControl`) — a real, evidence-based gap, not a stylistic
   observation.
 - No Infrastructure, HTTP, frontend, CI, or deployment configuration
   exists at all yet — any planning that assumes these are "mostly done"
   would be incorrect.
-- `registerSurgery` will need to verify that the Patient and Procedure
-  Type it's given both belong to the acting physician's tenant, because
-  Domain's own `Surgery.create` only checks that the id strings are
-  non-empty — this mirrors an already-identified pattern (the
-  Resident/Surgery tenant-check gap documented in
-  `docs/architecture/application-layer-discovery.md` §4.3) and should be
-  planned for rather than discovered mid-implementation.
+- Two Application-level tenant checks were required beyond what Domain
+  enforces on its own, because the affected Domain methods have no
+  parameter to check the relevant tenant themselves: `registerSurgery`
+  verifying the referenced Patient/ProcedureType belong to the acting
+  physician (mirroring the Resident/Surgery gap documented in
+  `docs/architecture/application-layer-discovery.md` §4.3), and
+  `recordControl` verifying the surgery itself belongs to the acting
+  physician for every authorship branch (since `Surgery.recordControl`'s
+  resident-authored branch has no tenant parameter at all). Both are now
+  implemented and tested — recorded here as a pattern to watch for in
+  future milestones, not as an open risk.
 - Whether Resident-related capabilities belong in the first MVP release
   is unresolved; no repository evidence answers it either way.
 - CustomField's value model remains blocked on a physician consultation
@@ -465,7 +485,6 @@ rather than leaving the resolved question listed here as still open.
 
 ## Historical Progress
 
-| Milestone | Status | Completion evidence |
-|---|---|---|
-
-_No milestones completed yet._
+| Milestone                                                           | Status    | Completion evidence                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Milestone 1 — Complete the core clinical Application capability set | COMPLETED | `registerPatient`, `registerProcedureType`, `registerSurgery`, `recordControl`, `modifyControl` implemented in `packages/application/src`; 79 Domain + 30 Application tests passing; full workspace quality gate (lint, format-check, typecheck, test) green |

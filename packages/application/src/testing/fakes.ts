@@ -1,7 +1,15 @@
-import type { ResearchStudy, Resident, Surgery } from "@cirugias-cruz/domain";
+import type {
+  Patient,
+  ProcedureType,
+  ResearchStudy,
+  Resident,
+  Surgery,
+} from "@cirugias-cruz/domain";
 import type { SurgeryRepository } from "../surgery/surgery-repository.js";
 import type { ResidentRepository } from "../resident/resident-repository.js";
 import type { ResearchStudyRepository } from "../research-study/research-study-repository.js";
+import type { PatientRepository } from "../patient/patient-repository.js";
+import type { ProcedureTypeRepository } from "../procedure-type/procedure-type-repository.js";
 
 /**
  * In-memory fakes for Application orchestration tests. No Infrastructure
@@ -51,6 +59,40 @@ export class InMemoryResearchStudyRepository implements ResearchStudyRepository 
 
   save(study: ResearchStudy): Promise<void> {
     this.studies.set(study.id, study);
+    return Promise.resolve();
+  }
+}
+
+export class InMemoryPatientRepository implements PatientRepository {
+  private readonly patients = new Map<string, Patient>();
+
+  seed(patient: Patient): void {
+    this.patients.set(patient.id, patient);
+  }
+
+  findById(id: string): Promise<Patient | null> {
+    return Promise.resolve(this.patients.get(id) ?? null);
+  }
+
+  save(patient: Patient): Promise<void> {
+    this.patients.set(patient.id, patient);
+    return Promise.resolve();
+  }
+}
+
+export class InMemoryProcedureTypeRepository implements ProcedureTypeRepository {
+  private readonly procedureTypes = new Map<string, ProcedureType>();
+
+  seed(procedureType: ProcedureType): void {
+    this.procedureTypes.set(procedureType.id, procedureType);
+  }
+
+  findById(id: string): Promise<ProcedureType | null> {
+    return Promise.resolve(this.procedureTypes.get(id) ?? null);
+  }
+
+  save(procedureType: ProcedureType): Promise<void> {
+    this.procedureTypes.set(procedureType.id, procedureType);
     return Promise.resolve();
   }
 }

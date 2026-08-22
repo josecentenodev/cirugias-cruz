@@ -42,7 +42,7 @@ changes.
 - **Resident** — belongs to exactly one physician. **There is no
   Resident ↔ Patient relationship of any kind** (this was an earlier
   model, deliberately eliminated — see ADR 0010 amending ADR 0007). A
-  Resident is assigned directly to a **Surgery**, and that assignment *is*
+  Resident is assigned directly to a **Surgery**, and that assignment _is_
   participation from that moment, even before any Control is recorded.
 - **Platform Admin** — platform-level only, sees business metrics
   (physician count, surgery count, control count, research study count)
@@ -93,7 +93,7 @@ changes.
   "aggregates," and shouldn't be treated as needing aggregate machinery
   they have no invariant to justify.
 - `packages/application` — orchestration only: loads aggregates via
-  repository *ports* (interfaces defined in Application, not Domain),
+  repository _ports_ (interfaces defined in Application, not Domain),
   invokes real domain methods, persists results. **Deliberately no
   `*UseCase` class-per-operation pattern** — operations are plain
   factory-function/closure-based (`operation(deps)` returns

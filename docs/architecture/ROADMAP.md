@@ -44,6 +44,18 @@ gets corrected — it is not meant to be treated as fixed once written.
   sessions (no JWT/Redis/external IdP), and `registerPhysician`/`login`/
   `logout` in `packages/application`. Every MVP-required capability is
   now reachable end-to-end. See Milestone 3's entry below.
+- **Railway deployment wiring** — the `cirugias-cruz` service builds and
+  runs successfully on Railway from `main` (Railpack detects the pnpm
+  workspace from the repo root; `deploy.startCommand` and
+  `build.buildCommand` explicitly target `@cirugias-cruz/http` and
+  `@cirugias-cruz/infrastructure` via `pnpm --filter`, since setting
+  `source.rootDirectory` to a subpackage broke workspace detection —
+  see the note under "Hosting platform" below). `deploy.preDeployCommand`
+  runs `prisma migrate deploy` before each deploy, per the mechanism
+  README.md already documented. `DATABASE_URL` (private-network
+  reference to the `Postgres` service) and `NODE_ENV=production` are set
+  on the service. No public domain is attached yet — the service is only
+  reachable on Railway's private network for now.
 
 ### Partially completed
 
@@ -62,9 +74,9 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 - Frontend.
 - CI/CD.
-- Railway deployment wiring (the platform choice itself is decided and
-  documented — see "Hosting platform" below; only the actual service
-  configuration/deploy wiring remains not started).
+- A public domain for the `cirugias-cruz` service (it currently deploys
+  and runs, but is reachable only on Railway's private network — no one
+  outside the project can reach it yet).
 - Platform Admin (no domain or application representation exists yet).
 
 ### Hosting platform
@@ -73,10 +85,24 @@ gets corrected — it is not meant to be treated as fixed once written.
 project** — not an open option. See `README.md`'s "🚂 Railway" section
 for the full topology (shared monorepo, per-service build/start
 commands, PostgreSQL as a Railway-managed service, migrations via the
-Pre-Deploy Command). Milestone 2's persistence work was verified against
-a real Postgres instance provisioned on this same Railway project. Only
-the _deployment wiring itself_ (see "Not started" above) remains
-outstanding — the platform decision is not.
+Pre-Deploy Command). The `cirugias-cruz` service now builds and deploys
+successfully from `main`. **One deviation from the originally-assumed
+approach, worth recording as durable knowledge**: setting
+`source.rootDirectory` to a subpackage (`packages/http`) broke Railpack's
+pnpm-workspace detection — it stopped seeing the root `pnpm-workspace.yaml`
+and fell back to plain `npm`, which can't resolve the `workspace:*`
+protocol. The working configuration instead leaves `rootDirectory` at the
+repo root and sets explicit, `pnpm --filter`-scoped commands:
+`build.buildCommand: "pnpm --filter @cirugias-cruz/infrastructure run prisma:generate"`,
+`deploy.preDeployCommand: "pnpm --filter @cirugias-cruz/infrastructure exec prisma migrate deploy"`,
+`deploy.startCommand: "pnpm --filter @cirugias-cruz/http run start"`. A
+second, unrelated fix was required along the way: `tsx` (which runs
+`packages/http`'s `start` script directly against TypeScript source) had
+to move from `devDependencies` to `dependencies`, because Railpack prunes
+devDependencies from the final runtime image — and the `pnpm-lock.yaml`
+regeneration that change requires must be committed in the same change,
+or `pnpm install --frozen-lockfile` fails the build (this actually
+happened once mid-fix and is recorded here so it isn't rediscovered).
 
 ### Explicitly deferred
 
@@ -498,10 +524,10 @@ treat "Milestones 1–3 are done" as implicit authorization to begin it.
   the Domain's own stated core purpose (postoperative follow-up /
   `recordControl`) — a real, evidence-based gap, not a stylistic
   observation.
-- Infrastructure now exists (Milestone 2, real Prisma/PostgreSQL
-  repositories for Patient/ProcedureType/Surgery) — but HTTP, frontend,
-  CI, and deployment wiring still do not exist at all; any planning that
-  assumes those are "mostly done" would be incorrect.
+- Infrastructure (Milestone 2) and HTTP + auth (Milestone 3) both exist
+  and are now deployed and running on Railway — but frontend and CI/CD
+  still do not exist at all; any planning that assumes those are "mostly
+  done" would be incorrect.
 - Two Application-level tenant checks were required beyond what Domain
   enforces on its own, because the affected Domain methods have no
   parameter to check the relevant tenant themselves: `registerSurgery`

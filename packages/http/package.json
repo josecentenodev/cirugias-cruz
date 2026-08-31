@@ -14,12 +14,12 @@
     "@cirugias-cruz/domain": "workspace:*",
     "@cirugias-cruz/infrastructure": "workspace:*",
     "@fastify/cookie": "^9.4.0",
-    "fastify": "^4.28.1"
+    "fastify": "^4.28.1",
+    "tsx": "^4.19.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "dotenv": "^16.4.5",
-    "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
   }

@@ -423,3 +423,69 @@ Carried over unchanged from the Tactical DDD Challenge, not expanded:
 
 Neither blocks Application Layer implementation, and neither is touched
 in this task.
+
+---
+
+## 7. Milestone 2 addendum — `Surgery.reconstitute` is hydration, not a boundary change
+
+Milestone 2 (`packages/infrastructure`) added `Surgery.reconstitute(...)`
+to `packages/domain/src/surgery/surgery.ts`. This section records why
+that addition is consistent with everything above, rather than an
+exception to it.
+
+**What it is.** A second static factory on `Surgery`, alongside
+`Surgery.create`, whose only purpose is to rebuild an aggregate that is
+already known to be valid — because it was loaded from persisted state a
+repository just read back — including its full `Control` history and its
+complete `participatingResidentIds` roster.
+
+**Why it is intentionally distinct from `Surgery.create`.**
+`Surgery.create` answers "is this a valid _new_ Surgery" and therefore
+runs creation-time validation (non-empty id/physicianId/patientId/
+procedureTypeId, a real `performedAt`) and always starts with empty
+`controls_`/`participatingResidentIds_` — there is no legitimate way for a
+brand-new Surgery to already have history. `reconstitute` answers a
+different question — "rebuild the Surgery this already-validated record
+describes" — so it does not re-run those creation checks, and it accepts
+the child state (`controls`, `participatingResidentIds`) that `create`
+correctly refuses to accept. Reusing `create` for hydration would have
+been the actual mistake: it has no parameter for pre-existing children,
+so persisted Controls/residents could not have been restored through it
+at all.
+
+**Why this does not weaken Domain purity.** `reconstitute`'s parameter
+shape is built entirely from types Domain already owns and exports
+(`ControlAttributes[]`, `string[]`, the same primitives `SurgeryAttributes`
+uses) — nothing from `@prisma/client`, nothing infrastructure-shaped,
+nothing repository-shaped. `packages/domain` still has zero outbound
+dependencies; only the _caller_ (`PrismaSurgeryRepository.findById`)
+knows about Prisma, and it does the row→attributes mapping itself before
+calling `reconstitute`.
+
+**Why the aggregate boundary is unchanged.** `reconstitute` does not
+introduce a new way to construct a `Control` from outside `Surgery`, does
+not expose `controls_`/`participatingResidentIds_` for external mutation,
+and does not add a second load/save path that bypasses `Surgery` — a
+repository still loads and saves exactly one `Surgery` per operation, per
+§1.3/§3 above. It is a second entry point into the _same_ consistency
+boundary, not a second boundary.
+
+**Why runtime invariants still hold after reconstruction.** Because
+`reconstitute` populates the real private fields `Surgery`'s own methods
+already read from (`controls_`, `participatingResidentIds_`), every
+invariant that depends on them — the participation-preservation rule in
+`removeResident`/`hasResidentParticipated`, the authorship check in
+`recordControl` — operates identically on a reconstituted aggregate and
+on one built through `assignResident`/`recordControl` calls. There is no
+separate "reconstructed" code path inside those methods that could drift
+from the "freshly built" one.
+
+**What is deliberately out of scope for `reconstitute`.** It does not
+re-validate the top-level Surgery fields (id/physicianId/patientId/
+procedureTypeId/performedAt) the way `create` does — those are trusted as
+already-valid because the schema enforces them as `NOT NULL` at the
+database level (see `packages/infrastructure/prisma/schema.prisma`).
+Each `Control` passed in is still built via `Control.create`, which does
+re-run Control's own field-shape validation — this is harmless (the data
+was already valid when first written) and acts as an incidental
+corruption check, not a required part of the hydration contract.

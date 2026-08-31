@@ -59,6 +59,46 @@ export class Surgery {
     );
   }
 
+  /**
+   * Rebuilds a Surgery already known to be valid — from persisted state —
+   * including its Controls and participating-resident roster. This is
+   * distinct from `create()`: `create()` is the public, validating entry
+   * point for *new* surgeries, and intentionally has no way to accept
+   * pre-existing child state. `reconstitute()` is the trusted hydration
+   * path a repository uses to rebuild the aggregate from a previously
+   * saved, already-validated record — it does not re-run "is this a valid
+   * new Surgery" checks, because that question does not apply to data that
+   * already exists. No repository or persistence concept is referenced
+   * here; this stays plain Domain, taking only the shapes Surgery and
+   * Control already expose.
+   */
+  static reconstitute(params: {
+    id: string;
+    physicianId: string;
+    patientId: string;
+    procedureTypeId: string;
+    performedAt: Date;
+    controls: ControlAttributes[];
+    participatingResidentIds: string[];
+  }): Surgery {
+    const surgery = new Surgery(
+      params.id,
+      params.physicianId,
+      params.patientId,
+      params.procedureTypeId,
+      params.performedAt,
+    );
+
+    for (const controlAttributes of params.controls) {
+      surgery.controls_.push(Control.create(controlAttributes));
+    }
+    for (const residentId of params.participatingResidentIds) {
+      surgery.participatingResidentIds_.add(residentId);
+    }
+
+    return surgery;
+  }
+
   get id(): string {
     return this.id_;
   }

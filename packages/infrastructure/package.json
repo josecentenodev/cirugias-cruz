@@ -1,0 +1,27 @@
+{
+  "name": "@cirugias-cruz/infrastructure",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@cirugias-cruz/application": "workspace:*",
+    "@cirugias-cruz/domain": "workspace:*",
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.14.0",
+    "dotenv": "^16.4.5",
+    "prisma": "^5.22.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

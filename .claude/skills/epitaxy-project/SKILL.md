@@ -18,7 +18,7 @@ source of truth is:
 
 - [`docs/domain/DOMAIN.md`](../../../docs/domain/DOMAIN.md) — the domain
   discovery document
-- [`docs/decisions/`](../../../docs/decisions/) — numbered ADRs (0001–0011
+- [`docs/decisions/`](../../../docs/decisions/) — numbered ADRs (0001–0012
   as of this writing; some amend earlier ones — check `Status` at the top
   of each for supersession notes before treating one as current)
 - [`docs/architecture/application-layer-discovery.md`](../../../docs/architecture/application-layer-discovery.md)
@@ -48,6 +48,14 @@ changes.
   (physician count, surgery count, control count, research study count)
   and can activate/deactivate physician accounts. **Never** has access to
   clinical data of any kind.
+- **Physician identification** — a Physician is identified/authenticated
+  via their existing `email` field (ADR 0012; no new Domain field). No
+  Physician-creation path exists yet at any layer (no
+  `registerPhysician` operation, no `PhysicianRepository`) — this is
+  approved, scoped work for Milestone 3, not an open decision, but it
+  isn't built. The actual authentication mechanism (password/magic
+  link/OAuth/session vs. token) remains genuinely undecided — don't
+  assume one.
 
 ## Confirmed business rules (do not re-derive these from general practice)
 
@@ -100,9 +108,20 @@ changes.
   `(input) => Promise<Output>`), not classes, and not a generic
   `UseCase<Input, Output>` interface. No `ControlRepository`. No
   repository is injected into a domain object.
-- Dependency direction is strictly `Application → Domain`; Domain has zero
-  outbound dependencies. Infrastructure (Prisma/PostgreSQL/HTTP) does not
-  exist yet — don't introduce it speculatively.
+- Dependency direction is strictly `Application → Domain`; `Infrastructure
+→ Application/Domain`. Domain has zero outbound dependencies.
+  `packages/infrastructure` exists (Milestone 2): a Prisma/PostgreSQL
+  schema for Physician/Patient/ProcedureType/Surgery/Control, and real
+  repository implementations for `PatientRepository`,
+  `ProcedureTypeRepository`, and `SurgeryRepository` — proven against a
+  real Postgres instance. `SurgeryRepository` loads/saves the whole
+  Surgery aggregate (Surgery + Controls + participating-resident ids) in
+  one unit; `Surgery.reconstitute(...)` (Domain) is the hydration path a
+  repository uses to rebuild it — see
+  `docs/architecture/application-layer-discovery.md` §7 before treating
+  it as a boundary change, it isn't one. No `ControlRepository`, no
+  Resident persistence, no ResearchStudy persistence. HTTP/frontend still
+  don't exist — don't introduce them speculatively.
 - Tooling baseline: pnpm workspaces (`workspace:*` protocol), Vitest per
   package (`"test": "vitest run"`), a flat ESLint config +
   Prettier at the repo root, and a root `check` script chaining
@@ -115,15 +134,23 @@ changes.
 - Final Procedure Type structure beyond `name`/`description`/`technique`.
 - Pterygium-specific clinical measurements and interpretation rules
   (pending a physician consultation — do not guess clinical content).
-- HTTP framework, frontend framework, authentication/authorization
-  implementation, notifications/reminders, payments/subscriptions,
-  observability, CI/CD, backup strategy, regulatory/compliance
-  implementation.
+- HTTP framework, frontend framework, notifications/reminders,
+  payments/subscriptions, observability, CI/CD, backup strategy,
+  regulatory/compliance implementation.
+- The authentication _mechanism_ (password, magic link, external
+  OAuth/IdP, session vs. token). Narrower than it used to be: ADR 0012
+  already settled that a Physician is identified via `email` — don't
+  treat that specific question as still open, but don't invent the
+  mechanism either.
 
 Railway, PostgreSQL, Prisma, pnpm Workspaces, and TypeScript/Node.js are
-the only infrastructure/tooling decisions already closed at the platform
-level (see the README and ADRs) — everything above them in the stack is
-still open.
+closed platform/tooling decisions (see the README and ADRs). Railway is
+the **confirmed, permanent** hosting platform, not one option among
+several. Prisma/PostgreSQL persistence for
+Physician/Patient/ProcedureType/Surgery/Control is **built**
+(`packages/infrastructure`, Milestone 2) — don't treat "introducing
+Prisma" as still speculative. HTTP framework and frontend framework
+remain genuinely open.
 
 ## Hard "do not invent" rules
 
@@ -140,9 +167,15 @@ still open.
    `ResearchStudy`, or otherwise cross an already-established aggregate
    boundary — see `docs/architecture/application-layer-discovery.md` for
    the reasoning if a change here seems tempting.
-7. Don't introduce Prisma, a database schema, an HTTP layer, or a frontend
-   framework because it would be convenient to have — those are explicitly
-   undecided.
+7. Don't introduce an HTTP layer or a frontend framework because it would
+   be convenient to have — those are explicitly undecided. (Prisma and
+   the PostgreSQL schema are no longer undecided — they exist,
+   `packages/infrastructure` — don't re-litigate that choice.)
+8. Don't add optimistic locking, a version column, or participant-diffing
+   logic to `PrismaSurgeryRepository.save()` to fix its known
+   participant-replacement lost-update risk — it's deliberately deferred
+   until a real multi-writer/concurrent-editing requirement exists (see
+   `docs/architecture/ROADMAP.md` § Risks and Unknowns).
 
 ## How to use this alongside the other project skills
 

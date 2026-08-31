@@ -227,6 +227,30 @@ describe("Surgery", () => {
     expect(surgery.controls[0]?.observations).toBe("updated");
   });
 
+  it("reconstitutes a surgery with its existing controls and participating residents, without re-running creation checks", () => {
+    const surgery = Surgery.reconstitute({
+      ...validAttributes,
+      controls: [
+        {
+          id: "control-1",
+          observations: "obs",
+          recordedAt: new Date("2026-01-11"),
+          author: { type: "resident", residentId: "resident-1" },
+        },
+      ],
+      participatingResidentIds: ["resident-1"],
+    });
+
+    expect(surgery.controls).toHaveLength(1);
+    expect(surgery.controls[0]?.id).toBe("control-1");
+    expect(surgery.participatingResidentIds).toContain("resident-1");
+
+    // Reconstituted state behaves exactly like state built through the
+    // normal domain methods: the participation-preservation invariant
+    // still applies to residents present at hydration time.
+    expect(() => surgery.removeResident("resident-1", PHYSICIAN_ID)).toThrow();
+  });
+
   it("only the owning physician may delete a control", () => {
     const surgery = createSurgery();
     surgery.recordControl({

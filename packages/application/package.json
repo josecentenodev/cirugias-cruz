@@ -12,6 +12,7 @@
     "@cirugias-cruz/domain": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^20.14.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
   }

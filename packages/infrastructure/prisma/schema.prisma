@@ -1,0 +1,163 @@
+// Prisma schema for Milestone 2 — real persistence for the core loop.
+//
+// Scope is intentionally limited to what Milestone 2 requires: Physician,
+// Patient, ProcedureType, Surgery, Control. No ResearchStudy, no Resident
+// table — see the SurgeryParticipant model below for why participating
+// resident ids are still persisted without one.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Physician {
+  id          String   @id
+  firstName   String
+  lastName    String
+  phone       String
+  email       String
+  dateOfBirth DateTime
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  patients       Patient[]
+  procedureTypes ProcedureType[]
+  surgeries      Surgery[]
+  credential     PhysicianCredential?
+  sessions       Session[]
+
+  @@map("physicians")
+}
+
+// The login credential for a Physician — deliberately not part of the
+// Physician model itself (see
+// packages/application/src/physician/physician-credential-repository.ts):
+// Physician (Domain) has no password concept. `emailNormalized` is the
+// lowercased form of `email`, unique-constrained, so email uniqueness is
+// enforced case-insensitively without requiring the `citext` Postgres
+// extension (which would need CREATE EXTENSION privileges this milestone
+// doesn't assume are available).
+model PhysicianCredential {
+  physicianId     String   @id
+  email           String
+  emailNormalized String   @unique
+  passwordHash    String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  physician Physician @relation(fields: [physicianId], references: [id])
+
+  @@map("physician_credentials")
+}
+
+// Server-side session (PostgreSQL-backed, per the approved decision — no
+// JWT, no Redis). `id` is the opaque token the browser holds via a
+// cookie; it is never the physicianId.
+model Session {
+  id          String   @id
+  physicianId String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  physician Physician @relation(fields: [physicianId], references: [id])
+
+  @@index([physicianId])
+  @@map("sessions")
+}
+
+model Patient {
+  id           String   @id
+  physicianId  String
+  firstName    String
+  lastName     String
+  phone        String
+  email        String
+  dateOfBirth  DateTime
+  metadata     Json?
+  observations String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  physician Physician @relation(fields: [physicianId], references: [id])
+  surgeries Surgery[]
+
+  @@index([physicianId])
+  @@map("patients")
+}
+
+model ProcedureType {
+  id          String   @id
+  physicianId String
+  name        String
+  description String?
+  technique   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  physician Physician @relation(fields: [physicianId], references: [id])
+  surgeries Surgery[]
+
+  @@index([physicianId])
+  @@map("procedure_types")
+}
+
+model Surgery {
+  id              String   @id
+  physicianId     String
+  patientId       String
+  procedureTypeId String
+  performedAt     DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  physician     Physician            @relation(fields: [physicianId], references: [id])
+  patient       Patient              @relation(fields: [patientId], references: [id])
+  procedureType ProcedureType        @relation(fields: [procedureTypeId], references: [id])
+  controls      Control[]
+  participants  SurgeryParticipant[]
+
+  @@index([physicianId])
+  @@map("surgeries")
+}
+
+// Control is an internal entity of the Surgery aggregate (see
+// docs/architecture/application-layer-discovery.md §1.3/§3) — this table
+// is written/read only through SurgeryRepository, never through a
+// repository of its own.
+model Control {
+  id                String   @id
+  surgeryId         String
+  observations      String
+  recordedAt        DateTime
+  authorType        String
+  authorPhysicianId String?
+  authorResidentId  String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  surgery Surgery @relation(fields: [surgeryId], references: [id])
+
+  @@index([surgeryId])
+  @@map("controls")
+}
+
+// Persists Surgery.participatingResidentIds — a Set<string> of opaque
+// resident ids that Surgery itself never validates against a Resident
+// record (see surgery.ts: assignResident only checks the acting
+// physician). Deliberately has NO relation to a "residents" table:
+// Resident persistence is out of scope for this milestone. This table
+// stores exactly what the Surgery aggregate already owns, nothing more.
+model SurgeryParticipant {
+  surgeryId  String
+  residentId String
+
+  surgery Surgery @relation(fields: [surgeryId], references: [id])
+
+  @@id([surgeryId, residentId])
+  @@map("surgery_participants")
+}

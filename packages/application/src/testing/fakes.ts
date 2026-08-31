@@ -1,7 +1,31 @@
+<<<<<<< Updated upstream
 import type { ResearchStudy, Resident, Surgery } from "@cirugias-cruz/domain";
 import type { SurgeryRepository } from "../surgery/surgery-repository.js";
 import type { ResidentRepository } from "../resident/resident-repository.js";
 import type { ResearchStudyRepository } from "../research-study/research-study-repository.js";
+=======
+import { randomUUID } from "node:crypto";
+import type {
+  Patient,
+  Physician,
+  ProcedureType,
+  ResearchStudy,
+  Resident,
+  Surgery,
+} from "@cirugias-cruz/domain";
+import type { SurgeryRepository } from "../surgery/surgery-repository.js";
+import type { ResidentRepository } from "../resident/resident-repository.js";
+import type { ResearchStudyRepository } from "../research-study/research-study-repository.js";
+import type { PatientRepository } from "../patient/patient-repository.js";
+import type { ProcedureTypeRepository } from "../procedure-type/procedure-type-repository.js";
+import type { PhysicianRepository } from "../physician/physician-repository.js";
+import type {
+  PhysicianCredential,
+  PhysicianCredentialRepository,
+} from "../physician/physician-credential-repository.js";
+import type { PasswordHasher } from "../physician/password-hasher.js";
+import type { Session, SessionRepository } from "../physician/session-repository.js";
+>>>>>>> Stashed changes
 
 /**
  * In-memory fakes for Application orchestration tests. No Infrastructure
@@ -54,3 +78,112 @@ export class InMemoryResearchStudyRepository implements ResearchStudyRepository 
     return Promise.resolve();
   }
 }
+<<<<<<< Updated upstream
+=======
+
+export class InMemoryPatientRepository implements PatientRepository {
+  private readonly patients = new Map<string, Patient>();
+
+  seed(patient: Patient): void {
+    this.patients.set(patient.id, patient);
+  }
+
+  findById(id: string): Promise<Patient | null> {
+    return Promise.resolve(this.patients.get(id) ?? null);
+  }
+
+  save(patient: Patient): Promise<void> {
+    this.patients.set(patient.id, patient);
+    return Promise.resolve();
+  }
+}
+
+export class InMemoryProcedureTypeRepository implements ProcedureTypeRepository {
+  private readonly procedureTypes = new Map<string, ProcedureType>();
+
+  seed(procedureType: ProcedureType): void {
+    this.procedureTypes.set(procedureType.id, procedureType);
+  }
+
+  findById(id: string): Promise<ProcedureType | null> {
+    return Promise.resolve(this.procedureTypes.get(id) ?? null);
+  }
+
+  save(procedureType: ProcedureType): Promise<void> {
+    this.procedureTypes.set(procedureType.id, procedureType);
+    return Promise.resolve();
+  }
+}
+
+export class InMemoryPhysicianRepository implements PhysicianRepository {
+  private readonly physicians = new Map<string, Physician>();
+
+  seed(physician: Physician): void {
+    this.physicians.set(physician.id, physician);
+  }
+
+  findById(id: string): Promise<Physician | null> {
+    return Promise.resolve(this.physicians.get(id) ?? null);
+  }
+
+  save(physician: Physician): Promise<void> {
+    this.physicians.set(physician.id, physician);
+    return Promise.resolve();
+  }
+}
+
+export class InMemoryPhysicianCredentialRepository implements PhysicianCredentialRepository {
+  private readonly credentials = new Map<string, PhysicianCredential>();
+
+  seed(credential: PhysicianCredential): void {
+    this.credentials.set(credential.email.toLowerCase(), credential);
+  }
+
+  findByEmail(email: string): Promise<PhysicianCredential | null> {
+    return Promise.resolve(this.credentials.get(email.toLowerCase()) ?? null);
+  }
+
+  save(credential: PhysicianCredential): Promise<void> {
+    this.credentials.set(credential.email.toLowerCase(), credential);
+    return Promise.resolve();
+  }
+}
+
+/** Not real hashing — a fake for Application-level tests, which don't need real cryptography. */
+export class FakePasswordHasher implements PasswordHasher {
+  hash(plainPassword: string): Promise<string> {
+    return Promise.resolve(`fake-hash:${plainPassword}`);
+  }
+
+  verify(plainPassword: string, hash: string): Promise<boolean> {
+    return Promise.resolve(hash === `fake-hash:${plainPassword}`);
+  }
+}
+
+export class InMemorySessionRepository implements SessionRepository {
+  private readonly sessions = new Map<string, Session>();
+
+  create(physicianId: string): Promise<Session> {
+    const session: Session = {
+      id: randomUUID(),
+      physicianId,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    };
+    this.sessions.set(session.id, session);
+    return Promise.resolve(session);
+  }
+
+  findById(sessionId: string): Promise<Session | null> {
+    const session = this.sessions.get(sessionId);
+    if (!session || session.expiresAt.getTime() < Date.now()) {
+      return Promise.resolve(null);
+    }
+    return Promise.resolve(session);
+  }
+
+  delete(sessionId: string): Promise<void> {
+    this.sessions.delete(sessionId);
+    return Promise.resolve();
+  }
+}
+>>>>>>> Stashed changes

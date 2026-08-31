@@ -1,9 +1,3 @@
-<<<<<<< Updated upstream
-import type { ResearchStudy, Resident, Surgery } from "@cirugias-cruz/domain";
-import type { SurgeryRepository } from "../surgery/surgery-repository.js";
-import type { ResidentRepository } from "../resident/resident-repository.js";
-import type { ResearchStudyRepository } from "../research-study/research-study-repository.js";
-=======
 import { randomUUID } from "node:crypto";
 import type {
   Patient,
@@ -25,7 +19,6 @@ import type {
 } from "../physician/physician-credential-repository.js";
 import type { PasswordHasher } from "../physician/password-hasher.js";
 import type { Session, SessionRepository } from "../physician/session-repository.js";
->>>>>>> Stashed changes
 
 /**
  * In-memory fakes for Application orchestration tests. No Infrastructure
@@ -78,8 +71,6 @@ export class InMemoryResearchStudyRepository implements ResearchStudyRepository 
     return Promise.resolve();
   }
 }
-<<<<<<< Updated upstream
-=======
 
 export class InMemoryPatientRepository implements PatientRepository {
   private readonly patients = new Map<string, Patient>();
@@ -186,4 +177,3 @@ export class InMemorySessionRepository implements SessionRepository {
     return Promise.resolve();
   }
 }
->>>>>>> Stashed changes

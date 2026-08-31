@@ -49,14 +49,6 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 - **Application Layer implementation** — the approved pattern (ports
   defined in Application, plain factory-function operations, no
-<<<<<<< Updated upstream
-  `*UseCase` classes) is implemented and proven for exactly two
-  operations: assigning a Resident to a Surgery, and adding a Surgery to
-  a Research Study's universe. The remaining operations the Domain
-  already supports — registering a Patient, a Procedure Type, or a
-  Surgery; recording or modifying a Control; the rest of the Research
-  Study lifecycle — do not yet have an Application-layer operation.
-=======
   `*UseCase` classes) now covers every MVP-required operation: registering
   a Patient, a Procedure Type, a Surgery, and a Physician; recording and
   modifying a Control; authenticating and logging out; assigning a
@@ -65,7 +57,6 @@ gets corrected — it is not meant to be treated as fixed once written.
   Resident from a Surgery, and the rest of the Research Study lifecycle —
   both intentionally out of scope through Milestone 3, Post-MVP per the
   MVP Definition below.
->>>>>>> Stashed changes
 
 ### Not started
 
@@ -159,26 +150,6 @@ outstanding — the platform decision is not.
 
 ## Capability Map
 
-<<<<<<< Updated upstream
-| Capability | Domain | Application | Persistence | API | E2E | Overall status |
-|---|---|---|---|---|---|---|
-| Register Patient | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer |
-| Register Procedure Type | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer |
-| Register Surgery | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer |
-| Record Control | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer — highest-priority gap |
-| Modify Control | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer |
-| Assign Resident to Surgery | ✅ | ✅ | ❌ | ❌ | ❌ | Application complete; blocked below that layer |
-| Remove Resident from Surgery | ✅ | ❌ | ❌ | ❌ | ❌ | Not started at Application layer |
-| Add Surgery to Research Study | ✅ | ✅ | ❌ | ❌ | ❌ | Application complete; blocked below that layer |
-| Research Study lifecycle (create, edit text, remove surgery, move/complete/reopen, delete) | ✅ | ❌ (one of ~8 methods has an operation) | ❌ | ❌ | ❌ | Mostly not started at Application layer |
-| Platform Admin visibility | ❌ | ❌ | ❌ | ❌ | ❌ | Not started at any layer |
-
-No capability has reached Persistence yet. The two capabilities furthest
-along (Resident assignment, Research Study surgery addition) were chosen
-to prove the Application pattern works, not because they are the most
-product-critical — the product-critical capabilities (register a Surgery,
-record a Control) are currently the least started.
-=======
 | Capability                                                                                 | Domain | Application                             | Persistence | API | E2E | Overall status                                                                                                                                                                                                                                                                                                                               |
 | ------------------------------------------------------------------------------------------ | ------ | --------------------------------------- | ----------- | --- | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Register Patient                                                                           | ✅     | ✅                                      | ✅          | ✅  | ✅  | End-to-end complete (real HTTP, real auth, real Postgres)                                                                                                                                                                                                                                                                                    |
@@ -200,7 +171,6 @@ against a real Railway-hosted Postgres instance (Milestones 1–3). Remove
 Resident from Surgery and the rest of the Research Study lifecycle remain
 Post-MVP per the MVP Definition above and were intentionally left out of
 all three milestones' scope.
->>>>>>> Stashed changes
 
 ---
 
@@ -500,44 +470,17 @@ progress."
 
 ## Current Milestone
 
-<<<<<<< Updated upstream
-> **CURRENT MILESTONE: Milestone 1 — Complete the core clinical Application capability set**
-
-- **Objective**: implement the Application-layer operations for
-  registering a Patient, a Procedure Type, and a Surgery, and for
-  recording/modifying a Control — closing the gap between what the Domain
-  already supports and what the Application layer currently exposes.
-- **Scope**: `registerPatient`, `registerProcedureType`,
-  `registerSurgery`, `recordControl`, `modifyControl`, plus the
-  `PatientRepository` and `ProcedureTypeRepository` ports they require.
-- **Prerequisites**: none.
-- **Definition of Done**: the workspace quality gate (lint, format-check,
-  typecheck, test) passes with these additions; every new operation has
-  tests covering its happy path, its relevant not-found case(s), and the
-  one tenant-boundary case genuinely applicable to it; no new Domain
-  changes and no repository/abstraction beyond what's listed in Scope
-  (in particular, no `ControlRepository`).
-- **Completion criteria**: every "MVP-required" row in the Capability Map
-  shows Application = ✅.
-
-**Status**: `NOT_STARTED`
-=======
 > **CURRENT MILESTONE: none — Milestones 1–3 are complete; Milestone 4 is deferred pending a product decision**
 
 Milestones 1, 2, and 3 are complete (see their entries above and
 Historical Progress below). There is no milestone actively in progress.
 Do not begin Milestone 4 implementation — see its entry above and "Next
 Milestone" below for what's still blocking it.
->>>>>>> Stashed changes
 
 ---
 
 ## Next Milestone
 
-<<<<<<< Updated upstream
-**Milestone 2 — Real persistence for the core loop.** Not to be started
-until Milestone 1's Definition of Done is met.
-=======
 **Milestone 4 — Resident and Research capabilities.** Status remains
 `DEFERRED`. It is not blocked on any technical decision — the
 Application-operation half needs only Domain + fakes, same as Milestones
@@ -546,7 +489,6 @@ decision that hasn't been made (see Planning Decisions Requiring Approval
 items 1–2: whether Resident workflows and/or Research Study must ship in
 the first release). Do not start it without that decision, and do not
 treat "Milestones 1–3 are done" as implicit authorization to begin it.
->>>>>>> Stashed changes
 
 ---
 
@@ -556,18 +498,6 @@ treat "Milestones 1–3 are done" as implicit authorization to begin it.
   the Domain's own stated core purpose (postoperative follow-up /
   `recordControl`) — a real, evidence-based gap, not a stylistic
   observation.
-<<<<<<< Updated upstream
-- No Infrastructure, HTTP, frontend, CI, or deployment configuration
-  exists at all yet — any planning that assumes these are "mostly done"
-  would be incorrect.
-- `registerSurgery` will need to verify that the Patient and Procedure
-  Type it's given both belong to the acting physician's tenant, because
-  Domain's own `Surgery.create` only checks that the id strings are
-  non-empty — this mirrors an already-identified pattern (the
-  Resident/Surgery tenant-check gap documented in
-  `docs/architecture/application-layer-discovery.md` §4.3) and should be
-  planned for rather than discovered mid-implementation.
-=======
 - Infrastructure now exists (Milestone 2, real Prisma/PostgreSQL
   repositories for Patient/ProcedureType/Surgery) — but HTTP, frontend,
   CI, and deployment wiring still do not exist at all; any planning that
@@ -599,7 +529,6 @@ treat "Milestones 1–3 are done" as implicit authorization to begin it.
   concrete multi-writer/concurrent-editing requirement (e.g. a resident
   and physician editing the same Surgery from separate devices at
   overlapping times) — there is no such requirement today.
->>>>>>> Stashed changes
 - Whether Resident-related capabilities belong in the first MVP release
   is unresolved; no repository evidence answers it either way.
 - CustomField's value model remains blocked on a physician consultation
@@ -662,15 +591,8 @@ rather than leaving the resolved question listed here as still open.
 
 ## Historical Progress
 
-<<<<<<< Updated upstream
-| Milestone | Status | Completion evidence |
-|---|---|---|
-
-_No milestones completed yet._
-=======
 | Milestone                                                           | Status    | Completion evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Milestone 1 — Complete the core clinical Application capability set | COMPLETED | `registerPatient`, `registerProcedureType`, `registerSurgery`, `recordControl`, `modifyControl` implemented in `packages/application/src`; 79 Domain + 30 Application tests passing; full workspace quality gate (lint, format-check, typecheck, test) green                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | Milestone 2 — Real persistence for the core loop                    | COMPLETED | `packages/infrastructure` added with a Prisma schema for Physician/Patient/ProcedureType/Surgery/Control (+ `SurgeryParticipant`, no Resident table); `PrismaPatientRepository`/`PrismaProcedureTypeRepository`/`PrismaSurgeryRepository` implement the existing Application ports unchanged; `Surgery.reconstitute(...)` added to Domain as the sole hydration mechanism; all five Milestone 1 operations run against real repositories (no fakes) and pass against a real Postgres instance on Railway; 80 Domain + 30 Application + 17 Infrastructure tests passing; full workspace quality gate green                                                                                                                                                                                                                                                                                                                                                                                                 |
 | Milestone 3 — Minimal reachable surface (HTTP + auth)               | COMPLETED | `packages/http` (Fastify) added with `POST /physicians`, `POST /sessions`, `DELETE /sessions`, and the five Milestone 1 operations behind a `requireAuth` preHandler resolving physicianId only from the session cookie; `registerPhysician`/`login`/`logout` added to `packages/application` with `PhysicianRepository`/`PhysicianCredentialRepository`/`PasswordHasher`/`SessionRepository` ports; `PrismaPhysicianRepository`/`PrismaPhysicianCredentialRepository`/`PrismaSessionRepository`/`BcryptPasswordHasher` added to `packages/infrastructure`; `PhysicianCredential`/`Session` Prisma models added (case-insensitive email uniqueness via a normalized unique index, no `citext`); e2e tests (real HTTP, real bcrypt, real session cookie, real Postgres) cover registration, login success/failure, session expiry, logout, unauthenticated rejection, and cross-tenant rejection; 80 Domain + 40 Application + 31 Infrastructure + 8 HTTP tests passing; full workspace quality gate green |
->>>>>>> Stashed changes

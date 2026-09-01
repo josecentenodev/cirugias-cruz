@@ -23,6 +23,16 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
     // production would hide operational signal; noisier ("debug") is
     // appropriate only for local troubleshooting, not the default.
     logger: { level: process.env.LOG_LEVEL ?? "info" },
+    // Fastify's AJV default (`removeAdditional: true`) is documented by
+    // AJV itself as unreliable when combined with `oneOf` +
+    // `additionalProperties: false` (as in recordControl's discriminated
+    // `author` union, routes/core-loop.ts): it can strip a valid branch's
+    // own property — e.g. `residentId` — before oneOf ever evaluates,
+    // rejecting an otherwise-correct payload. `removeAdditional: false`
+    // disables that stripping; `additionalProperties: false` inside each
+    // branch still rejects genuinely unknown fields, oneOf just decides
+    // correctly now.
+    ajv: { customOptions: { removeAdditional: false } },
   });
 
   await app.register(cookie);

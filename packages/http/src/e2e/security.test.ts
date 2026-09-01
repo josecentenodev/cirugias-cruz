@@ -6,6 +6,7 @@ import {
   InMemoryPhysicianCredentialRepository,
   InMemoryPhysicianRepository,
   InMemoryProcedureTypeRepository,
+  InMemoryResidentRepository,
   InMemorySessionRepository,
   InMemorySurgeryRepository,
 } from "@cirugias-cruz/application/src/testing/fakes.js";
@@ -27,6 +28,7 @@ function buildTestDeps(): AppDeps {
     patientRepository: new InMemoryPatientRepository(),
     procedureTypeRepository: new InMemoryProcedureTypeRepository(),
     surgeryRepository: new InMemorySurgeryRepository(),
+    residentRepository: new InMemoryResidentRepository(),
   };
 }
 

@@ -44,6 +44,17 @@ gets corrected — it is not meant to be treated as fixed once written.
   sessions (no JWT/Redis/external IdP), and `registerPhysician`/`login`/
   `logout` in `packages/application`. Every MVP-required capability is
   now reachable end-to-end. See Milestone 3's entry below.
+- **Read/Query, Resident, Research, and API hardening (Milestones 4–7)**
+  — implemented in parallel (separate git worktrees, merged into `main`
+  in sequence) and verified together against the full workspace quality
+  gate and a real Railway Postgres instance: list/get routes for
+  Patient/ProcedureType/Surgery (Milestone 4); Resident registration,
+  removal from a Surgery, and Resident read (Milestone 5); the full
+  Research Study lifecycle — create, edit, manage its Surgery universe,
+  transitions, delete, read (Milestone 6); request validation, forwarded-
+  IP-keyed rate limiting, security headers, structured logging, and a
+  health check on `api` (Milestone 7). See each milestone's entry below
+  for full detail.
 - **Railway deployment wiring** — the `cirugias-cruz` service builds and
   runs successfully on Railway from `main` (Railpack detects the pnpm
   workspace from the repo root; `deploy.startCommand` and
@@ -59,17 +70,11 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 ### Partially completed
 
-- **Application Layer implementation** — the approved pattern (ports
-  defined in Application, plain factory-function operations, no
-  `*UseCase` classes) covers registering a Patient, a Procedure Type, a
-  Surgery, and a Physician; recording and modifying a Control;
-  authenticating and logging out; assigning a Resident to a Surgery; and
-  adding a Surgery to a Research Study's universe (Milestones 1 and 3,
-  completed). **Still missing, and now MVP-required rather than
-  Post-MVP** (see the revised MVP Definition below): read/list
-  operations for every resource; registering and removing a Resident;
-  the rest of the Research Study lifecycle (create, edit text, remove
-  surgery, move/complete/reopen, delete). See Milestones 4–6.
+- Nothing — every Application-layer capability the MVP Definition below
+  requires (Milestones 1–7) is now implemented, tested, and reachable
+  through authenticated HTTP against real Postgres. What remains is the
+  frontend and public reachability (Milestones 8–9), not partially-built
+  backend capability.
 
 ### Not started
 
@@ -220,23 +225,25 @@ reasoning and Milestone 8 for its scope.
 > "usable by a physician through the product" are no longer treated as
 > equivalent — see Progress Measurement below.
 
-| Capability                                                                | Domain | Application             | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                                           |
-| ------------------------------------------------------------------------- | ------ | ----------------------- | ----------- | --------- | -------- | --- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Physician registration + authentication                                   | N/A    | ✅                      | ✅          | ✅        | N/A      | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                                                                |
-| Patient (register + retrieve)                                             | ✅     | ✅                      | ✅          | ✅        | ❌       | ❌  | ❌        | Write technically complete; read not started — Milestone 4                                                                               |
-| Procedure Type (register + retrieve)                                      | ✅     | ✅                      | ✅          | ✅        | ❌       | ❌  | ❌        | Same as above — Milestone 4                                                                                                              |
-| Surgery + Control history (register/record/modify + retrieve)             | ✅     | ✅                      | ✅          | ✅        | ❌       | ❌  | ❌        | Write technically complete; read not started (`GET /surgeries/:id` needs only a route — the aggregate already loads fully) — Milestone 4 |
-| Resident (register, assign/remove on Surgery, retrieve)                   | ✅     | ⚠️ (assign only)        | ❌          | ⚠️        | ❌       | ❌  | ❌        | No `residents` table exists yet; registration/removal/read not started — Milestone 5                                                     |
-| Research Study (create, edit, manage universe, full lifecycle, retrieve)  | ✅     | ⚠️ (1 of ~9 operations) | ❌          | ⚠️        | ❌       | ❌  | ❌        | No persistence exists yet; only `addSurgeryToResearchStudy` is wired — Milestone 6                                                       |
-| `api` security baseline (validation, forwarded-IP rate limiting, headers) | N/A    | N/A                     | N/A         | ❌        | N/A      | N/A | N/A       | Not started — Milestone 7                                                                                                                |
-| `web` security baseline (headers/CSP, client-IP forwarding)               | N/A    | N/A                     | N/A         | N/A       | N/A      | ❌  | N/A       | Not started — Milestone 8 (`web` doesn't exist yet)                                                                                      |
-| Public reachability                                                       | N/A    | N/A                     | N/A         | N/A       | N/A      | N/A | ❌        | No public domain attached — Milestone 9                                                                                                  |
-| Platform Admin visibility                                                 | ❌     | ❌                      | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                                       |
+| Capability                                                                | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                      |
+| ------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | --------------------------------------------------- |
+| Physician registration + authentication                                   | N/A    | ✅          | ✅          | ✅        | N/A      | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
+| Patient (register + retrieve)                                             | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
+| Procedure Type (register + retrieve)                                      | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
+| Surgery + Control history (register/record/modify + retrieve)             | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
+| Resident (register, assign/remove on Surgery, retrieve)                   | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
+| Research Study (create, edit, manage universe, full lifecycle, retrieve)  | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
+| `api` security baseline (validation, forwarded-IP rate limiting, headers) | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                              |
+| `web` security baseline (headers/CSP, client-IP forwarding)               | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | N/A       | Not started — Milestone 8 (`web` doesn't exist yet) |
+| Public reachability                                                       | N/A    | N/A         | N/A         | N/A       | N/A      | N/A | ❌        | No public domain attached — Milestone 9             |
+| Platform Admin visibility                                                 | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                  |
 
-**Nothing is Human-E2E complete yet.** The core loop's write path is
-proven end-to-end at the HTTP/Postgres level (Milestones 1–3), but
-"proven by an automated HTTP test" and "usable by a physician through the
-product" are different claims — see Progress Measurement below.
+**Nothing is Human-E2E complete yet.** Every MVP-required backend
+capability (Milestones 1–7) is now `TECHNICALLY_COMPLETE` — proven
+end-to-end at the HTTP/Postgres level — but "proven by an automated HTTP
+test" and "usable by a physician through the product" are different
+claims; that gap closes with Milestone 8 (frontend) and Milestone 9
+(public domain + human walkthrough) — see Progress Measurement below.
 
 ---
 
@@ -493,7 +500,18 @@ proving `findByPhysicianId` returns the right rows and no others. HTTP
 e2e tests proving the full retrieve-after-write flow and cross-tenant
 rejection. No Domain-level tests needed — nothing in Domain changes.
 
-**Status**: `NOT_STARTED`
+**Status**: `COMPLETED` — `findByPhysicianId` added to
+`PatientRepository`, `ProcedureTypeRepository`, and `SurgeryRepository`
+(Application ports) with matching Prisma implementations; `GET
+/patients`, `GET /procedure-types`, `GET /surgeries` (list) and `GET
+/patients/:id`, `GET /procedure-types/:id`, `GET /surgeries/:id` (get)
+added to `packages/http`, each verifying `resource.physicianId ===
+request.physicianId` and returning 404 (not 403) for a foreign resource.
+`get-surgery` returns the full Control history via the already-existing
+`Surgery.reconstitute` load path — no new Domain code. HTTP e2e tests
+prove list + get for all three resources plus cross-tenant 404 for each;
+Infrastructure round-trip tests prove `findByPhysicianId` scoping. No
+Domain changes.
 
 ---
 
@@ -550,7 +568,18 @@ tests for the two new operations (fakes), mirroring
 tests for `PrismaResidentRepository`, mirroring `PrismaPatientRepository`'s
 tests. HTTP e2e covering the full vertical.
 
-**Status**: `NOT_STARTED`
+**Status**: `COMPLETED` — `registerResident` and
+`removeResidentFromSurgery` added to `packages/application`, each a thin
+wrapper mirroring the existing `registerPatient`/`assignResidentToSurgery`
+pattern with no Domain changes; a `residents` Prisma model (mirrors
+`patients` exactly) and migration added; `PrismaResidentRepository`
+added, mirroring `PrismaPatientRepository`; HTTP routes `POST
+/residents`, `GET /residents`, `GET /residents/:id`, `POST
+/surgeries/:id/residents`, `DELETE
+/surgeries/:id/residents/:residentId` added. An e2e test proves the full
+vertical (register → assign → record-control-as-resident →
+removal-rejected-after-participation → removal-allowed-before-
+participation) and cross-tenant rejection.
 
 ---
 
@@ -611,7 +640,26 @@ operation (fakes) — thin orchestration tests, most resembling
 `addSurgeryToResearchStudy.test.ts`. Infrastructure round-trip tests for
 the two new tables. HTTP e2e for the full lifecycle.
 
-**Status**: `NOT_STARTED`
+**Status**: `COMPLETED` — all ~11 Application operations
+(`createResearchStudy`, `updateHypothesis`/`updateResults`/
+`updateAnalysis`/`updateConclusion`, `removeSurgeryFromResearchStudy`,
+`moveResearchStudyToInProgress`, `completeResearchStudy`,
+`reopenResearchStudy`, `deleteResearchStudy`, `listResearchStudies`,
+`getResearchStudy`) added, each a thin wrapper over the corresponding
+Domain method; `research_studies` and `research_study_surgeries` Prisma
+models added (the bridge table deliberately has no FK to `surgeries`,
+mirroring the `SurgeryParticipant` precedent of not embedding
+cross-aggregate references); `PrismaResearchStudyRepository` added. One
+Domain addition was made during integration review, beyond what the
+implementing agent was asked to touch: `ResearchStudy.reconstitute(...)`
+was added to `packages/domain`, mirroring `Surgery.reconstitute`
+exactly, so hydration no longer replays `addSurgery`/
+`moveToInProgress`/`complete` against already-persisted rows — the same
+anti-pattern Milestone 2 introduced `Surgery.reconstitute` specifically
+to avoid. An e2e test exercises the full lifecycle (create, edit,
+add/remove surgeries, DRAFT → IN_PROGRESS → COMPLETED → reopen →
+IN_PROGRESS, rejecting edits while COMPLETED) plus cross-tenant
+rejection.
 
 ---
 
@@ -687,7 +735,22 @@ IP — not collectively for all callers, `/health` 200).
 **Testing strategy**: HTTP-level tests only — this is entirely an
 HTTP-adapter concern; nothing in Domain/Application changes.
 
-**Status**: `NOT_STARTED`
+**Status**: `COMPLETED` — Fastify JSON-schema validation added on every
+route's body/params (structural only, no Domain-rule duplication);
+`@fastify/rate-limit` added on `POST /sessions` and `POST /physicians`,
+keyed by `forwardedClientIp` (reads `X-Forwarded-For` then
+`X-Real-IP`, falling back to a shared bucket if neither is present —
+see `packages/http/src/shared/rate-limit-key.ts`); `@fastify/helmet`
+added for security headers; `GET /health` route added
+(unauthenticated); structured logging enabled via Fastify's built-in
+Pino logger. One integration bug was found and fixed while merging this
+milestone alongside Milestone 5: Fastify's AJV default
+(`removeAdditional: true`) was stripping a valid property from
+`recordControl`'s discriminated `author` oneOf union before evaluation
+— fixed by setting `ajv: { customOptions: { removeAdditional: false } }`
+in `build-app.ts`. `packages/http/src/e2e/security.test.ts` proves
+malformed-body rejection, per-forwarded-IP rate-limit triggering, and
+`/health` returning 200.
 
 ---
 
@@ -820,16 +883,9 @@ whole plan that is deliberately not a test suite.
 ## Dependency Graph
 
 ```
-Milestones 1–3 (DONE, deployed)
-     │
-     ├──▶ Milestone 4 (Read/Query)      ─────────┐
-     │                                            │  parallelizable —
-     ├──▶ Milestone 5 (Resident)        ──────────┤  independent code
-     │                                            │  paths, independent
-     ├──▶ Milestone 6 (Research)        ──────────┤  Prisma models; only
-     │                                            │  shared resource is
-     └──▶ Milestone 7 (Security/Ops)    ──────────┘  migration ordering
-                                                      (trivial, serial)
+Milestones 1–7 (DONE, deployed)
+                                    │
+                                    ▼
      Milestones 4 + 5 + 6 ──▶ Milestone 8 (Frontend: Next.js App Router, BFF)
                                     │
         Milestone 7 (private network to api) ───┤
@@ -839,16 +895,16 @@ Milestones 1–3 (DONE, deployed)
 
 **Sequential (hard)**: Milestones 1–3 → {4, 5, 6, 7} → 8 → 9.
 
-**Parallelizable**: Milestones 4, 5, 6, and 7 have no dependency on each
-other and can proceed simultaneously — different code paths, different
-Prisma models, no shared blocking resource beyond serial migration
-application. Handling this parallelization (multiple agents/sessions
-working the four milestones concurrently) is an execution-management
-concern, not a scope decision — see Roadmap Maintenance Rules.
+**Completed in parallel**: Milestones 4, 5, 6, and 7 had no dependency
+on each other and were implemented simultaneously (separate git
+worktrees, merged into `main` in sequence) — different code paths,
+different Prisma models, with schema-touching milestones (5, then 6)
+sequenced against each other while the schema-free milestones (4, 7)
+ran fully in parallel. All four are now `COMPLETED` and merged.
 
 **Blocked**: nothing remains blocked on a framework decision — Next.js
-App Router + BFF is confirmed. Milestone 9 remains blocked on Milestones
-4–8 all completing.
+App Router + BFF is confirmed. Milestone 9 remains blocked on Milestone
+8 completing (Milestones 4–7 are done).
 
 **Deferred, not scheduled**: CustomField/clinical measurements (blocked
 on physician consultation), notifications, payments, Platform Admin,
@@ -879,44 +935,44 @@ commits, or token usage. For a given capability:
 
 A capability is never considered MVP-complete merely because its Domain
 or Application implementation exists, and — as of this replanning pass —
-**not merely because it is reachable via HTTP either.** The five
-Milestone-1-scoped capabilities (Register Patient/Procedure
-Type/Surgery, Record/Modify Control) are `TECHNICALLY_COMPLETE`: real
-HTTP, real auth, real persistence, proven by e2e tests in
-`packages/http` — but `NOT_STARTED` on read, and therefore not yet
-`END_TO_END_COMPLETE` by the definition above. Nothing in the project is
-`END_TO_END_COMPLETE` yet — that only becomes possible once Milestone 8
-(frontend) and Milestone 9 (public domain + human walkthrough) exist.
+**not merely because it is reachable via HTTP either.** Every
+MVP-required backend capability — Physician auth, Patient/Procedure
+Type/Surgery/Control (Milestones 1–4), Resident (Milestone 5), Research
+Study (Milestone 6), and the `api` security baseline (Milestone 7) — is
+now `TECHNICALLY_COMPLETE`: real HTTP, real auth, real persistence,
+proven by e2e tests in `packages/http` against a real Railway Postgres
+instance. Nothing in the project is `END_TO_END_COMPLETE` yet — that
+only becomes possible once Milestone 8 (frontend) and Milestone 9
+(public domain + human walkthrough) exist.
 
 ---
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: none — Milestones 1–3 are complete; Milestones 4–9 are fully planned and approved (including the frontend framework decision), awaiting implementation authorization**
+> **CURRENT MILESTONE: none — Milestones 1–7 are complete and merged into `main`; Milestone 8 (frontend) is next, fully planned and approved, awaiting implementation authorization**
 
-Milestones 1, 2, and 3 are complete (see their entries above and
-Historical Progress below). Read/Query, Resident, Research, a real
-frontend (Next.js App Router, BFF pattern), a security baseline, and
-public reachability are all confirmed MVP-required by explicit product
-decision (see MVP Definition above). No milestone from 4–9 is blocked on
-an open product or framework decision anymore. Milestones 4, 5, 6, and 7
-have no technical prerequisite beyond Milestones 1–3 and may begin as
-soon as implementation is authorized, running in parallel with each
-other (see Dependency Graph). Milestone 8 needs Milestones 4–6 for full
-MVP coverage and Milestone 7 for the private-network path to `api`.
-Milestone 9 needs Milestones 4–8 complete.
+Milestones 1 through 7 are complete (see their entries above and
+Historical Progress below): the full core loop plus read/query,
+Resident, Research, and the `api` security baseline are all
+`TECHNICALLY_COMPLETE` — real HTTP, real auth, real persistence, proven
+against a real Railway Postgres instance, with the full workspace
+quality gate (lint, format-check, typecheck, test — 81 Domain + 97
+Application + 45 Infrastructure + 23 HTTP tests) green. What remains is
+the frontend (Milestone 8) and public reachability + human validation
+(Milestone 9).
 
 ---
 
 ## Next Milestone
 
-**Milestone 4 — Read/Query for the core loop.** See its full entry
-above. Recommended as the immediate next milestone: no open decision
-blocks it, smallest scope, lowest risk, and it closes the gap identified
-as most acutely missing (a physician's ability to review what they've
-already recorded). Milestones 5, 6, and 7 have equally no blocker and
-may be started in parallel if resourced separately — see Dependency
-Graph.
+**Milestone 8 — Minimal physician-facing frontend (Next.js App Router,
+BFF).** See its full entry above. Its hard prerequisite (Milestone 4)
+and soft prerequisites (Milestones 5–6, for full MVP-workflow coverage)
+are all satisfied; Milestone 7 (the `api` security baseline it depends
+on for the private-network path) is also complete. No open decision
+blocks it — the frontend technology and BFF pattern were confirmed
+before Milestones 4–7 began. This is now the sole remaining path to an
+MVP a physician can actually use.
 
 ---
 
@@ -957,10 +1013,11 @@ Graph.
   physician for every authorship branch (since `Surgery.recordControl`'s
   resident-authored branch has no tenant parameter at all). Both are now
   implemented and tested — recorded here as a pattern to watch for in
-  future milestones, not as an open risk. **The same pattern must be
-  re-verified for Resident (Milestone 5) and Research (Milestone 6)** —
-  each new Application operation should be checked for the same class of
-  gap before being considered done.
+  future milestones, not as an open risk. This pattern was re-verified
+  during Milestones 5 and 6: `removeResidentFromSurgery` and every
+  Research Study operation each check the relevant tenant explicitly
+  wherever the underlying Domain method has no parameter to do so
+  itself — no unaddressed gap of this class was found.
 - **`PrismaSurgeryRepository.save()` participant-persistence lost-update
   risk (deferred, not a Milestone 2 defect).** `save()` replaces the
   persisted `SurgeryParticipant` rows with `deleteMany` + `createMany`
@@ -982,12 +1039,13 @@ Graph.
 - HTTP framework and authentication mechanism were resolved (Fastify;
   email + password with PostgreSQL-backed server-side sessions) and
   implemented in Milestone 3 — no longer an open risk.
-- **Resident and Research both need new Prisma tables/migrations**, not
-  purely Application-layer wiring — a naive reading of "the Domain
-  already exists" could understate Milestones 5–6's actual scope.
-- **CORS/cookie strategy depends on the frontend hosting topology**
-  (same-origin BFF vs. cross-origin), still open — see MVP Definition
-  "Unknown/open" and Milestone 7/8.
+- Resident and Research each needed new Prisma tables/migrations, not
+  purely Application-layer wiring — both are now implemented (Milestones
+  5–6) with `residents`/`research_studies`/`research_study_surgeries`
+  tables in place.
+- CORS/cookie strategy is resolved by the confirmed BFF hosting topology
+  (Next.js `web` calls `api` server-to-server; the browser never talks
+  to `api` directly) — no longer open.
 
 ---
 
@@ -1048,8 +1106,13 @@ rather than leaving the resolved question listed here as still open.
 
 ## Historical Progress
 
-| Milestone                                                           | Status    | Completion evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Milestone 1 — Complete the core clinical Application capability set | COMPLETED | `registerPatient`, `registerProcedureType`, `registerSurgery`, `recordControl`, `modifyControl` implemented in `packages/application/src`; 79 Domain + 30 Application tests passing; full workspace quality gate (lint, format-check, typecheck, test) green                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Milestone 2 — Real persistence for the core loop                    | COMPLETED | `packages/infrastructure` added with a Prisma schema for Physician/Patient/ProcedureType/Surgery/Control (+ `SurgeryParticipant`, no Resident table); `PrismaPatientRepository`/`PrismaProcedureTypeRepository`/`PrismaSurgeryRepository` implement the existing Application ports unchanged; `Surgery.reconstitute(...)` added to Domain as the sole hydration mechanism; all five Milestone 1 operations run against real repositories (no fakes) and pass against a real Postgres instance on Railway; 80 Domain + 30 Application + 17 Infrastructure tests passing; full workspace quality gate green                                                                                                                                                                                                                                                                                                                                                                                                 |
-| Milestone 3 — Minimal reachable surface (HTTP + auth)               | COMPLETED | `packages/http` (Fastify) added with `POST /physicians`, `POST /sessions`, `DELETE /sessions`, and the five Milestone 1 operations behind a `requireAuth` preHandler resolving physicianId only from the session cookie; `registerPhysician`/`login`/`logout` added to `packages/application` with `PhysicianRepository`/`PhysicianCredentialRepository`/`PasswordHasher`/`SessionRepository` ports; `PrismaPhysicianRepository`/`PrismaPhysicianCredentialRepository`/`PrismaSessionRepository`/`BcryptPasswordHasher` added to `packages/infrastructure`; `PhysicianCredential`/`Session` Prisma models added (case-insensitive email uniqueness via a normalized unique index, no `citext`); e2e tests (real HTTP, real bcrypt, real session cookie, real Postgres) cover registration, login success/failure, session expiry, logout, unauthenticated rejection, and cross-tenant rejection; 80 Domain + 40 Application + 31 Infrastructure + 8 HTTP tests passing; full workspace quality gate green |
+| Milestone                                                                                        | Status    | Completion evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Milestone 1 — Complete the core clinical Application capability set                              | COMPLETED | `registerPatient`, `registerProcedureType`, `registerSurgery`, `recordControl`, `modifyControl` implemented in `packages/application/src`; 79 Domain + 30 Application tests passing; full workspace quality gate (lint, format-check, typecheck, test) green                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Milestone 2 — Real persistence for the core loop                                                 | COMPLETED | `packages/infrastructure` added with a Prisma schema for Physician/Patient/ProcedureType/Surgery/Control (+ `SurgeryParticipant`, no Resident table); `PrismaPatientRepository`/`PrismaProcedureTypeRepository`/`PrismaSurgeryRepository` implement the existing Application ports unchanged; `Surgery.reconstitute(...)` added to Domain as the sole hydration mechanism; all five Milestone 1 operations run against real repositories (no fakes) and pass against a real Postgres instance on Railway; 80 Domain + 30 Application + 17 Infrastructure tests passing; full workspace quality gate green                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Milestone 3 — Minimal reachable surface (HTTP + auth)                                            | COMPLETED | `packages/http` (Fastify) added with `POST /physicians`, `POST /sessions`, `DELETE /sessions`, and the five Milestone 1 operations behind a `requireAuth` preHandler resolving physicianId only from the session cookie; `registerPhysician`/`login`/`logout` added to `packages/application` with `PhysicianRepository`/`PhysicianCredentialRepository`/`PasswordHasher`/`SessionRepository` ports; `PrismaPhysicianRepository`/`PrismaPhysicianCredentialRepository`/`PrismaSessionRepository`/`BcryptPasswordHasher` added to `packages/infrastructure`; `PhysicianCredential`/`Session` Prisma models added (case-insensitive email uniqueness via a normalized unique index, no `citext`); e2e tests (real HTTP, real bcrypt, real session cookie, real Postgres) cover registration, login success/failure, session expiry, logout, unauthenticated rejection, and cross-tenant rejection; 80 Domain + 40 Application + 31 Infrastructure + 8 HTTP tests passing; full workspace quality gate green |
+| Milestone 4 — Read/Query for the core loop                                                       | COMPLETED | `findByPhysicianId` added to `PatientRepository`/`ProcedureTypeRepository`/`SurgeryRepository` with Prisma implementations; `GET /patients`, `GET /procedure-types`, `GET /surgeries` (list) and `GET /patients/:id`, `GET /procedure-types/:id`, `GET /surgeries/:id` (get, including full Control history) added to `packages/http`, each enforcing tenant scoping with 404 (not 403) on a foreign resource; e2e tests prove list + get for all three resources plus cross-tenant 404 for each; no Domain changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Milestone 5 — Resident capability (vertical slice)                                               | COMPLETED | `registerResident` and `removeResidentFromSurgery` added to `packages/application`; `residents` Prisma model + migration and `PrismaResidentRepository` added; HTTP routes `POST /residents`, `GET /residents`, `GET /residents/:id`, `POST /surgeries/:id/residents`, `DELETE /surgeries/:id/residents/:residentId` added; e2e test proves register → assign → record-control-as-resident → removal-rejected-after-participation → removal-allowed-before-participation, plus cross-tenant rejection; no Domain changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Milestone 6 — Research capability (vertical slice)                                               | COMPLETED | ~11 Application operations added, each a thin wrapper over the existing `research-study.ts` Domain methods; `research_studies` and `research_study_surgeries` Prisma models added (bridge table has no FK to `surgeries`, mirroring `SurgeryParticipant`); `PrismaResearchStudyRepository` added; 8 HTTP routes added for the full lifecycle; `ResearchStudy.reconstitute(...)` added to `packages/domain` during integration review, mirroring `Surgery.reconstitute`, so hydration no longer replays transition-guard methods against persisted rows; e2e test exercises the full lifecycle (create, edit, add/remove surgeries, DRAFT → IN_PROGRESS → COMPLETED → reopen → IN_PROGRESS, rejecting edits while COMPLETED) plus cross-tenant rejection                                                                                                                                                                                                                                                   |
+| Milestone 7 — API security & operational hardening                                               | COMPLETED | Fastify JSON-schema validation added on every route; `@fastify/rate-limit` added on `POST /sessions`/`POST /physicians`, keyed by forwarded client IP (`X-Forwarded-For`/`X-Real-IP`, not raw TCP source IP); `@fastify/helmet` added for security headers; `GET /health` route added; structured logging enabled via Fastify's built-in Pino logger; a Fastify AJV `removeAdditional` bug affecting `recordControl`'s discriminated `author` union was found and fixed (`removeAdditional: false`) during integration; e2e tests prove malformed-body rejection, per-forwarded-IP rate-limit triggering, and `/health` 200                                                                                                                                                                                                                                                                                                                                                                               |
+| **Milestones 4–7 integration** — merged in sequence into `main` from four parallel git worktrees | COMPLETED | Full workspace quality gate (lint, format-check, typecheck, test) green with all four milestones combined: 81 Domain + 97 Application + 45 Infrastructure + 23 HTTP tests passing against a real Railway Postgres instance; `prisma migrate status` confirms no drift across all migrations                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |

@@ -68,3 +68,76 @@ export {
   type AddSurgeryToResearchStudyOutput,
   type AddSurgeryToResearchStudyDeps,
 } from "./research-study/add-surgery-to-research-study.js";
+export {
+  createResearchStudy,
+  type CreateResearchStudyInput,
+  type CreateResearchStudyOutput,
+  type CreateResearchStudyDeps,
+} from "./research-study/create-research-study.js";
+export {
+  updateHypothesis,
+  type UpdateHypothesisInput,
+  type UpdateHypothesisOutput,
+  type UpdateHypothesisDeps,
+} from "./research-study/update-hypothesis.js";
+export {
+  updateResults,
+  type UpdateResultsInput,
+  type UpdateResultsOutput,
+  type UpdateResultsDeps,
+} from "./research-study/update-results.js";
+export {
+  updateAnalysis,
+  type UpdateAnalysisInput,
+  type UpdateAnalysisOutput,
+  type UpdateAnalysisDeps,
+} from "./research-study/update-analysis.js";
+export {
+  updateConclusion,
+  type UpdateConclusionInput,
+  type UpdateConclusionOutput,
+  type UpdateConclusionDeps,
+} from "./research-study/update-conclusion.js";
+export {
+  removeSurgeryFromResearchStudy,
+  type RemoveSurgeryFromResearchStudyInput,
+  type RemoveSurgeryFromResearchStudyOutput,
+  type RemoveSurgeryFromResearchStudyDeps,
+} from "./research-study/remove-surgery-from-research-study.js";
+export {
+  moveResearchStudyToInProgress,
+  type MoveResearchStudyToInProgressInput,
+  type MoveResearchStudyToInProgressOutput,
+  type MoveResearchStudyToInProgressDeps,
+} from "./research-study/move-research-study-to-in-progress.js";
+export {
+  completeResearchStudy,
+  type CompleteResearchStudyInput,
+  type CompleteResearchStudyOutput,
+  type CompleteResearchStudyDeps,
+} from "./research-study/complete-research-study.js";
+export {
+  reopenResearchStudy,
+  type ReopenResearchStudyInput,
+  type ReopenResearchStudyOutput,
+  type ReopenResearchStudyDeps,
+} from "./research-study/reopen-research-study.js";
+export {
+  deleteResearchStudy,
+  type DeleteResearchStudyInput,
+  type DeleteResearchStudyOutput,
+  type DeleteResearchStudyDeps,
+} from "./research-study/delete-research-study.js";
+export {
+  listResearchStudies,
+  type ListResearchStudiesInput,
+  type ListResearchStudiesOutput,
+  type ListResearchStudiesDeps,
+  type ResearchStudySummary,
+} from "./research-study/list-research-studies.js";
+export {
+  getResearchStudy,
+  type GetResearchStudyInput,
+  type GetResearchStudyOutput,
+  type GetResearchStudyDeps,
+} from "./research-study/get-research-study.js";

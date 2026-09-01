@@ -25,11 +25,12 @@ model Physician {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  patients       Patient[]
-  procedureTypes ProcedureType[]
-  surgeries      Surgery[]
-  credential     PhysicianCredential?
-  sessions       Session[]
+  patients        Patient[]
+  procedureTypes  ProcedureType[]
+  surgeries       Surgery[]
+  credential      PhysicianCredential?
+  sessions        Session[]
+  researchStudies ResearchStudy[]
 
   @@map("physicians")
 }
@@ -160,4 +161,41 @@ model SurgeryParticipant {
 
   @@id([surgeryId, residentId])
   @@map("surgery_participants")
+}
+
+// ResearchStudy is its own aggregate (Milestone 6), referencing Surgeries
+// only by id via the ResearchStudySurgery bridge table below — never
+// embedding Surgery. Text fields are nullable because the domain
+// attributes are optional; `status` mirrors ResearchStudyStatus exactly
+// ("DRAFT" | "IN_PROGRESS" | "COMPLETED").
+model ResearchStudy {
+  id          String   @id
+  physicianId String
+  hypothesis  String?
+  results     String?
+  analysis    String?
+  conclusion  String?
+  status      String   @default("DRAFT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  physician Physician               @relation(fields: [physicianId], references: [id])
+  surgeries ResearchStudySurgery[]
+
+  @@index([physicianId])
+  @@map("research_studies")
+}
+
+// Persists ResearchStudy.surgeryIds — a Set<string> of Surgery ids the
+// aggregate references but never embeds (see ResearchStudy above).
+// Mirrors SurgeryParticipant's shape exactly: a plain bridge table with no
+// independent entity or rules of its own.
+model ResearchStudySurgery {
+  researchStudyId String
+  surgeryId       String
+
+  researchStudy ResearchStudy @relation(fields: [researchStudyId], references: [id])
+
+  @@id([researchStudyId, surgeryId])
+  @@map("research_study_surgeries")
 }

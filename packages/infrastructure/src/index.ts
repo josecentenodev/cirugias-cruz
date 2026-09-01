@@ -6,3 +6,4 @@ export { PrismaPhysicianRepository } from "./physician/prisma-physician-reposito
 export { PrismaPhysicianCredentialRepository } from "./physician/prisma-physician-credential-repository.js";
 export { PrismaSessionRepository } from "./physician/prisma-session-repository.js";
 export { BcryptPasswordHasher } from "./physician/bcrypt-password-hasher.js";
+export { PrismaResearchStudyRepository } from "./research-study/prisma-research-study-repository.js";

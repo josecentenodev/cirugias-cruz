@@ -3,6 +3,7 @@ import cookie from "@fastify/cookie";
 import type { AppDeps } from "./deps.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerCoreLoopRoutes } from "./routes/core-loop.js";
+import { registerResearchStudyRoutes } from "./routes/research-study.js";
 
 /**
  * Assembles the Fastify app. Nothing Fastify-shaped is exported from
@@ -17,6 +18,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
 
   registerAuthRoutes(app, deps);
   registerCoreLoopRoutes(app, deps);
+  registerResearchStudyRoutes(app, deps);
 
   return app;
 }

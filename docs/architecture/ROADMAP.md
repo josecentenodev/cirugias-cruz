@@ -1046,6 +1046,24 @@ MVP a physician can actually use.
 - CORS/cookie strategy is resolved by the confirmed BFF hosting topology
   (Next.js `web` calls `api` server-to-server; the browser never talks
   to `api` directly) — no longer open.
+- **Milestone 8 architectural design is complete** —
+  `docs/architecture/milestone-8-design.md` turns
+  `frontend-architecture-discovery.md`'s decisions into a concrete
+  design (BFF↔`api` boundary, session propagation via a `web`-owned
+  cookie relaying `api`'s session id, Server/Client Component rules,
+  error handling for 401/404/domain-400 — `api` never returns 403 — DTOs/
+  mappers, testing strategy), validated against the real M1–M7 routes
+  rather than assumed. A companion review,
+  `docs/architecture/m4-m7-conformance-review.md`, checked M4–M7's actual
+  implementation against their own documented Scope/DoD and found two
+  small gaps recommended to fix **before** Milestone 8 starts consuming
+  this API: (1) `resident.ts`/`research-study.ts` routes have no
+  request-body JSON-schema validation, so a malformed body can 500
+  instead of the clean 400 Milestone 7's DoD claims; (2) `GET /residents`/
+  `GET /residents/:id` call `ResidentRepository` directly from HTTP
+  instead of through a `listResidents`/`getResident` Application
+  operation, unlike every other resource. Neither is a behavior bug on
+  any tested path — both are recorded here as pending, not yet applied.
 
 ---
 

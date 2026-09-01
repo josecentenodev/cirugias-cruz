@@ -6,6 +6,7 @@ import {
   InMemoryPhysicianCredentialRepository,
   InMemoryPhysicianRepository,
   InMemoryProcedureTypeRepository,
+  InMemoryResearchStudyRepository,
   InMemoryResidentRepository,
   InMemorySessionRepository,
   InMemorySurgeryRepository,
@@ -29,6 +30,7 @@ function buildTestDeps(): AppDeps {
     procedureTypeRepository: new InMemoryProcedureTypeRepository(),
     surgeryRepository: new InMemorySurgeryRepository(),
     residentRepository: new InMemoryResidentRepository(),
+    researchStudyRepository: new InMemoryResearchStudyRepository(),
   };
 }
 

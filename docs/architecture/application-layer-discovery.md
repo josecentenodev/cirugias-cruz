@@ -489,3 +489,99 @@ Each `Control` passed in is still built via `Control.create`, which does
 re-run Control's own field-shape validation — this is harmless (the data
 was already valid when first written) and acts as an incidental
 corruption check, not a required part of the hydration contract.
+
+### 7.1 Milestone 6 addendum — `ResearchStudy.reconstitute` applies the same criteria
+
+`ResearchStudy.reconstitute(...)` (`packages/domain/src/research/research-study.ts`)
+was added during Milestone 6's integration review, for the same reason
+and checked against the same criteria as §7 above — recorded here rather
+than re-derived, per the re-verification requested when M4–M7 were
+reviewed against this document.
+
+- **What it replaced**: `PrismaResearchStudyRepository`'s original
+  hydration path rebuilt a study by calling `ResearchStudy.create()` and
+  then replaying `addSurgery()` once per persisted row, followed by
+  `moveToInProgress()`/`complete()` to walk the status back up to
+  whatever it was persisted as. This is exactly the anti-pattern §7
+  documents `Surgery.reconstitute` was introduced to avoid: re-running
+  transition-guard business checks against data that was already valid
+  when it was first written.
+- **Same distinction as `create` vs. `reconstitute` for Surgery**:
+  `ResearchStudy.create` answers "is this a valid _new_ study" (always
+  starts `DRAFT`, empty `surgeryIds_`); `reconstitute` answers "rebuild
+  the study this already-validated record describes" — it sets
+  `status_` directly and populates `surgeryIds_` from the persisted list,
+  without calling `addSurgery`/`moveToInProgress`/`complete` at all.
+- **No persistence logic hidden in Domain**: `reconstitute`'s parameter
+  shape is built entirely from primitives and `ResearchStudyStatus`
+  (a type Domain already owns) — nothing Prisma-shaped, no repository
+  concept, no row-mapping logic. `PrismaResearchStudyRepository`'s own
+  `reconstitute()` helper function still does the row→params mapping
+  itself, exactly as `PrismaSurgeryRepository` already does for
+  `Surgery.reconstitute` — this was verified by reading both repository
+  files directly, not assumed from the naming similarity.
+- **Aggregate boundary unchanged**: `reconstitute` does not add a second
+  load/save path, does not expose `surgeryIds_` for external mutation
+  beyond what `addSurgery`/`removeSurgery` already allow, and the
+  COMPLETED-immutability invariant is proven to hold identically on a
+  reconstituted instance (`research-study.test.ts`'s own reconstitute
+  test asserts `updateConclusion` still throws and `reopen` still
+  succeeds on a reconstituted `COMPLETED` study).
+
+## 8. Milestone 4–7 addendum — the Domain→wire-shape convention
+
+`docs/architecture/m4-m7-conformance-review.md` §2.3 found two different
+answers, across the milestones reviewed, to "who converts a Domain
+entity into the JSON `packages/http` sends back":
+
+- **Patient / ProcedureType / Surgery / Resident** (Milestones 1–5, the
+  latter after its own §2.2 fix): the Application operation returns the
+  raw Domain entity (`Patient`, `Surgery`, `Resident`, …) unchanged;
+  `packages/http` owns a dedicated `serializePatient`/`serializeSurgery`/
+  `toResidentDto` function per resource that reads the entity's public
+  getters and produces a plain object.
+- **Research Study** (Milestone 6): the Application operation
+  (`getResearchStudy`/`listResearchStudies`) returns an already-flattened
+  plain type (`ResearchStudySummary`) directly; `packages/http` passes it
+  through untouched.
+
+**Decision: keep both. No refactor was made to either.** This is not the
+kind of inconsistency this project corrects by making everything match —
+here is why, checked against the three questions this addendum was asked
+to answer:
+
+- **Is it a real duplication risk?** No. Each resource's Domain→wire
+  mapping exists in exactly one place — inside its own vertical, not
+  copied across two locations for the same resource the way §2.2's
+  Resident-read bypass was. Nothing here can silently drift out of sync
+  with itself. Compare this to §2.2, which was a genuine duplication (the
+  same tenant-check logic existed in two places) and _was_ corrected.
+- **Is it an architectural boundary that needs fixing before the
+  frontend depends on it?** No — checked directly against
+  `docs/architecture/milestone-8-design.md` §6, which was written
+  assuming exactly this kind of per-resource variation exists: each
+  `features/<slice>/dtos.ts`/`mappers.ts` pair is defined against
+  whatever shape that resource's own `api` route actually returns, not
+  against one assumed-uniform contract. The frontend design already
+  absorbs this without any change.
+- **Would unifying it be worth the risk?** No, on either direction.
+  Rewriting Research Study to match the four-resource majority would
+  mean reintroducing Domain-shape knowledge into `packages/http` for a
+  resource where it was deliberately kept out — a step backward against
+  this document's own stated goal (§4.1/§4.2: HTTP is translation-only).
+  Rewriting the four majority resources to match Research Study would
+  touch `core-loop.ts`/`resident.ts` and their passing test suites for a
+  purely cosmetic gain, with no defect motivating it — exactly the kind
+  of change the product owner asked not to make "simplemente para
+  conseguir uniformidad."
+
+**What is decided, for new work going forward**: new Application read
+operations should return an already-flattened, wire-shaped type (the
+Research Study convention), not a raw Domain entity — this keeps
+`packages/http` free of any Domain-getter knowledge for the resource
+going forward, which is the stricter reading of "HTTP is
+translation-only" this document already commits to. **This is
+prospective only.** It does not obligate a rewrite of
+Patient/ProcedureType/Surgery/Resident's existing, working, tested
+serialization — those stay exactly as they are unless a real defect
+(not an aesthetic one) is found in them.

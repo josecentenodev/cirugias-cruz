@@ -9,6 +9,12 @@
 > the documented architecture on paths nothing exercised (e.g. a
 > malformed request body with no schema to reject it). This review exists
 > to close that gap. No code was changed to produce this document.
+>
+> **Update (post-review fix pass, before Milestone 8 implementation
+> began)**: findings 2.1 and 2.2 have been corrected; this document is
+> kept as the historical record of what was found and how it was fixed,
+> not edited to hide that the gaps existed. See each finding's own
+> "Resolution" note below, and §4 for the updated disposition.
 
 ---
 
@@ -87,6 +93,20 @@ would get a 500 with no actionable detail, which Milestone 8's error
 design (see the companion `milestone-8-design.md`, §7) explicitly wants
 to avoid having to special-case.
 
+**Resolution**: `resident.ts` (`registerResidentBodySchema` + params
+schemas on every route) and `research-study.ts` (a shared
+`researchStudyTextFieldsBodySchema` for the create/PATCH bodies —
+intentionally with no `required` array, since every text field is
+optional at the Domain level — plus `addSurgeryBodySchema`,
+`statusBodySchema`, and params schemas on every route) now declare
+schemas mirroring `core-loop.ts`'s existing style. The exact repro case
+(`POST /research-studies` with no body at all) and seven other malformed-
+input cases across both files are covered by new tests in
+`packages/http/src/e2e/security.test.ts` ("Request validation" describe
+block), each asserting `400`, not `500`. Verified: `grep -c "schema:"
+packages/http/src/routes/*.ts` now shows `resident.ts:5` and
+`research-study.ts:7` (all previously 0).
+
 ### 2.2 — Resident read routes bypass the Application layer (MEDIUM)
 
 **Established pattern** (Milestone 4, `core-loop.ts`): `GET /patients`,
@@ -135,36 +155,46 @@ before Milestone 8 builds a `features/residents/queries.ts` that will
 assume (reasonably) that every read goes through Application the same
 way Patient/ProcedureType/Surgery do.
 
-### 2.3 — Two different conventions for "who converts a Domain entity to a wire shape" (MEDIUM — decision needed, not a defect)
+**Resolution**: `listResidents`/`getResident` were added to
+`packages/application/src/resident/` — mirroring `listPatients`/
+`getPatient` field-for-field, including the same `NotFoundError`
+"doesn't exist or belongs to another tenant" check. `resident.ts` now
+calls these instead of `deps.residentRepository` directly; `AppDeps`
+required no change (`residentRepository` was already there, the
+Application operations just now sit between the route and it, as with
+every other resource). New Application-level unit tests
+(`list-residents.test.ts`, `get-resident.test.ts`) prove the
+orchestration responsibility now lives in Application, mirroring
+`list-patients.test.ts`/`get-patient.test.ts` exactly; the existing
+`resident.test.ts` e2e suite (already covering list/get + cross-tenant 404) continues to pass unchanged, proving the fix is behavior-preserving.
 
-Three different answers currently exist in `main` for the same question:
+### 2.3 — Two different conventions for "who converts a Domain entity to a wire shape" (MEDIUM at the time — resolved as a deliberate decision, not a refactor)
 
-| Milestone                             | Application returns                                                                       | HTTP does                                                                                  |
-| ------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| M1–M4 (Patient/ProcedureType/Surgery) | the raw Domain entity (`Patient`, `Surgery`, …)                                           | a dedicated `serializePatient`/`serializeSurgery`/… function converts getters → plain JSON |
-| M5 (Resident)                         | `{ residentId }` on write; nothing on read (HTTP calls the repository directly — see 2.2) | a `toResidentDto` function in `resident.ts` converts the raw entity                        |
-| M6 (Research Study)                   | an already-flattened DTO (`ResearchStudySummary`) on both read and write                  | passed straight through, untouched                                                         |
+At review time, three different answers existed for the same question
+across M1–M6 (see the original three-row comparison this section used
+to show). **After 2.2's fix, M5 (Resident) now goes through
+`listResidents`/`getResident` returning a raw Domain entity, exactly
+like Patient/ProcedureType/Surgery** — so the actual count is now two
+conventions, not three:
 
-All three produce correct, working JSON today — this is not a bug. But
-it means "does Application or HTTP own the Domain→wire mapping" has been
-answered three different ways by three different implementers, with no
-recorded decision saying which is canonical. That matters specifically
-for Milestone 8, because a BFF frontend consuming this API has to build
-its own DTO/mapper layer regardless (see `milestone-8-design.md`, §6) —
-and that layer will be simpler and more uniform if the API it's
-consuming picks one convention.
+| Resources                                           | Application returns                               | HTTP does                                                                               |
+| --------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Patient / ProcedureType / Surgery / Resident (M1–5) | the raw Domain entity                             | a dedicated `serializePatient`/`serializeSurgery`/`toResidentDto` function per resource |
+| Research Study (M6)                                 | an already-flattened DTO (`ResearchStudySummary`) | passed straight through, untouched                                                      |
 
-**Recommendation**: not urgent enough to block Milestone 8 — the
-frontend's own mapper layer can absorb the inconsistency (each
-`features/<slice>/mappers.ts` just maps whatever shape `api` actually
-returns, once, per resource). But record this as a deliberate,
-not-yet-closed decision for a future small cleanup: **the recommended
-canonical direction is Application returns plain, already-serializable
-DTOs** (M6's approach), not raw Domain entities (M1–M4's approach) —
-because it means `packages/http`'s job is unambiguously translation-only
-(HTTP <-> transport concerns: status codes, cookies, headers), with zero
-Domain-shape knowledge, which is the rule
-`application-layer-discovery.md` already states as the goal.
+**Decision (see `application-layer-discovery.md` §8 for the full
+reasoning)**: keep both — no refactor was made to either side. This is
+not a duplication risk (each resource's mapping lives in exactly one
+place, not copied), and `milestone-8-design.md` §6 already assumes and
+absorbs per-resource variation in its DTO/mapper layer, so nothing about
+Milestone 8 was blocked by leaving this as-is. Rewriting either
+direction — the four-resource majority to match Research Study, or
+Research Study to match the majority — would have been a refactor
+motivated purely by uniformity, with no defect to justify it, which was
+explicitly out of scope for this fix pass. **What was decided is
+prospective only**: new Application read operations going forward should
+return an already-flattened DTO (Research Study's convention), not a raw
+Domain entity — see `application-layer-discovery.md` §8 for why.
 
 ### 2.4 — Research Study status-transition routing lives in HTTP, not Application (LOW — acceptable as documented, but was undocumented)
 
@@ -253,17 +283,29 @@ isn't re-litigated:
 
 ## 4. Disposition
 
-Findings 2.1 and 2.2 are recommended as two small, mechanical fix
-commits — no design change, no test rewrite, purely closing gaps against
-already-agreed rules — to land **before** Milestone 8 begins consuming
-this API, so Milestone 8 is built against the API `ROADMAP.md` already
-claims exists, not against the API that actually exists today. Finding
-2.3 is a recorded-but-deferred decision (no action required for
-Milestone 8 to proceed — the frontend's mapper layer absorbs it).
-Findings 2.4 and 2.5 require no code change, only the documentation this
-review itself provides.
+**All actionable findings are now resolved.** Findings 2.1 and 2.2 were
+fixed as small, mechanical commits — no design change beyond what each
+finding's own Recommendation already specified, no existing test
+rewritten (only extended) — closing the gap between `ROADMAP.md`'s
+claimed M7 Definition of Done and the code, before Milestone 8 begins
+consuming this API. Finding 2.3 was resolved as a deliberate,
+documented decision (`application-layer-discovery.md` §8) rather than a
+refactor — both conventions stay, a direction is recorded for new work.
+Findings 2.4 and 2.5 required no code change, only the documentation
+this review itself provides — confirmed still accurate after the 2.1/2.2
+fixes (neither route file's status-routing or 403-free error model
+changed).
+
+**Verification after the fixes**: full workspace quality gate (lint,
+format-check, typecheck) green; 81 Domain + 102 Application + 45
+Infrastructure + 31 HTTP tests passing (259 total) — Infrastructure and
+HTTP against a real Railway Postgres instance. Application gained 5
+tests (`list-residents.test.ts`, `get-resident.test.ts`); HTTP gained 8
+(`security.test.ts`'s new "Request validation" cases for
+`resident.ts`/`research-study.ts`); Domain and Infrastructure are
+unchanged, as expected — neither finding touched those layers.
 
 This review does not change any milestone's `COMPLETED` status in
-`ROADMAP.md` — that is a call for the product owner, not something this
-document decides unilaterally. See `ROADMAP.md`'s Risks and Unknowns
-section for the pointer to this review.
+`ROADMAP.md` — that remains a call for the product owner, not something
+this document decides unilaterally. See `ROADMAP.md`'s Risks and
+Unknowns section for the pointer to this review.

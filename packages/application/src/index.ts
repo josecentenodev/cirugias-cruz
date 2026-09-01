@@ -94,6 +94,16 @@ export {
   type RegisterResidentOutput,
   type RegisterResidentDeps,
 } from "./resident/register-resident.js";
+export {
+  listResidents,
+  type ListResidentsInput,
+  type ListResidentsDeps,
+} from "./resident/list-residents.js";
+export {
+  getResident,
+  type GetResidentInput,
+  type GetResidentDeps,
+} from "./resident/get-resident.js";
 
 export type { ResearchStudyRepository } from "./research-study/research-study-repository.js";
 export {

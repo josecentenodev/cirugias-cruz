@@ -42,6 +42,57 @@ interface StatusBody {
 }
 
 /**
+ * Structural (shape/type) validation only, per docs/architecture/ROADMAP.md
+ * Milestone 7 — rejects malformed payloads (including a missing/empty
+ * body) before Application ever sees them. Business invariants (e.g.
+ * "hypothesis" has no non-empty rule in Domain) stay owned by Domain and
+ * are not duplicated here. Every field here is optional at the Domain
+ * level (see ResearchStudy.create/updateHypothesis etc.), so `required`
+ * is intentionally empty on the text-field bodies — the schema's job is
+ * only to guarantee the body itself is a well-formed object (rejecting
+ * a missing/non-object body — see
+ * docs/architecture/m4-m7-conformance-review.md §2.1 for the concrete
+ * 500 this closes), and that any field present has the right type.
+ */
+const researchStudyTextFieldsBodySchema = {
+  type: "object",
+  properties: {
+    hypothesis: { type: "string" },
+    results: { type: "string" },
+    analysis: { type: "string" },
+    conclusion: { type: "string" },
+  },
+} as const;
+
+const addSurgeryBodySchema = {
+  type: "object",
+  required: ["surgeryId"],
+  properties: {
+    surgeryId: { type: "string" },
+  },
+} as const;
+
+const statusBodySchema = {
+  type: "object",
+  required: ["to"],
+  properties: {
+    to: { type: "string" },
+  },
+} as const;
+
+const researchStudyIdParamsSchema = {
+  type: "object",
+  required: ["id"],
+  properties: { id: { type: "string" } },
+} as const;
+
+const researchStudySurgeryParamsSchema = {
+  type: "object",
+  required: ["id", "surgeryId"],
+  properties: { id: { type: "string" }, surgeryId: { type: "string" } },
+} as const;
+
+/**
  * Research Study routes. Every route is requireAuth-protected and takes
  * tenant identity only from `request.physicianId` (set by requireAuth from
  * the session cookie) — never from the request body/params/query.
@@ -54,26 +105,32 @@ interface StatusBody {
  *   - current COMPLETED,   to "IN_PROGRESS" -> reopen
  * Any other { current, to } combination is rejected as a bad request
  * before any Domain method is called — the client never selects a method
- * name directly, only the state it wants to reach.
+ * name directly, only the state it wants to reach. This routing lives
+ * here deliberately (not a Domain-rule duplication — see
+ * docs/architecture/m4-m7-conformance-review.md §2.4).
  */
 export function registerResearchStudyRoutes(app: FastifyInstance, deps: AppDeps): void {
   const auth = { preHandler: requireAuth(deps.sessionRepository) };
 
-  app.post<{ Body: CreateResearchStudyBody }>("/research-studies", auth, async (request, reply) => {
-    try {
-      const output = await createResearchStudy(deps)({
-        physicianId: request.physicianId as string,
-        id: randomUUID(),
-        hypothesis: request.body.hypothesis,
-        results: request.body.results,
-        analysis: request.body.analysis,
-        conclusion: request.body.conclusion,
-      });
-      return await reply.code(201).send(output);
-    } catch (error) {
-      return replyForError(error, reply);
-    }
-  });
+  app.post<{ Body: CreateResearchStudyBody }>(
+    "/research-studies",
+    { ...auth, schema: { body: researchStudyTextFieldsBodySchema } },
+    async (request, reply) => {
+      try {
+        const output = await createResearchStudy(deps)({
+          physicianId: request.physicianId as string,
+          id: randomUUID(),
+          hypothesis: request.body.hypothesis,
+          results: request.body.results,
+          analysis: request.body.analysis,
+          conclusion: request.body.conclusion,
+        });
+        return await reply.code(201).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
 
   app.get("/research-studies", auth, async (request, reply) => {
     try {
@@ -86,21 +143,28 @@ export function registerResearchStudyRoutes(app: FastifyInstance, deps: AppDeps)
     }
   });
 
-  app.get<{ Params: { id: string } }>("/research-studies/:id", auth, async (request, reply) => {
-    try {
-      const output = await getResearchStudy(deps)({
-        physicianId: request.physicianId as string,
-        researchStudyId: request.params.id,
-      });
-      return await reply.code(200).send(output);
-    } catch (error) {
-      return replyForError(error, reply);
-    }
-  });
+  app.get<{ Params: { id: string } }>(
+    "/research-studies/:id",
+    { ...auth, schema: { params: researchStudyIdParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await getResearchStudy(deps)({
+          physicianId: request.physicianId as string,
+          researchStudyId: request.params.id,
+        });
+        return await reply.code(200).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
 
   app.patch<{ Params: { id: string }; Body: UpdateResearchStudyBody }>(
     "/research-studies/:id",
-    auth,
+    {
+      ...auth,
+      schema: { params: researchStudyIdParamsSchema, body: researchStudyTextFieldsBodySchema },
+    },
     async (request, reply) => {
       try {
         const physicianId = request.physicianId as string;
@@ -145,7 +209,7 @@ export function registerResearchStudyRoutes(app: FastifyInstance, deps: AppDeps)
 
   app.post<{ Params: { id: string }; Body: AddSurgeryBody }>(
     "/research-studies/:id/surgeries",
-    auth,
+    { ...auth, schema: { params: researchStudyIdParamsSchema, body: addSurgeryBodySchema } },
     async (request, reply) => {
       try {
         const output = await addSurgeryToResearchStudy(deps)({
@@ -162,7 +226,7 @@ export function registerResearchStudyRoutes(app: FastifyInstance, deps: AppDeps)
 
   app.delete<{ Params: { id: string; surgeryId: string } }>(
     "/research-studies/:id/surgeries/:surgeryId",
-    auth,
+    { ...auth, schema: { params: researchStudySurgeryParamsSchema } },
     async (request, reply) => {
       try {
         const output = await removeSurgeryFromResearchStudy(deps)({
@@ -179,7 +243,7 @@ export function registerResearchStudyRoutes(app: FastifyInstance, deps: AppDeps)
 
   app.post<{ Params: { id: string }; Body: StatusBody }>(
     "/research-studies/:id/status",
-    auth,
+    { ...auth, schema: { params: researchStudyIdParamsSchema, body: statusBodySchema } },
     async (request, reply) => {
       try {
         const physicianId = request.physicianId as string;
@@ -214,15 +278,19 @@ export function registerResearchStudyRoutes(app: FastifyInstance, deps: AppDeps)
     },
   );
 
-  app.delete<{ Params: { id: string } }>("/research-studies/:id", auth, async (request, reply) => {
-    try {
-      const output = await deleteResearchStudy(deps)({
-        physicianId: request.physicianId as string,
-        researchStudyId: request.params.id,
-      });
-      return await reply.code(200).send(output);
-    } catch (error) {
-      return replyForError(error, reply);
-    }
-  });
+  app.delete<{ Params: { id: string } }>(
+    "/research-studies/:id",
+    { ...auth, schema: { params: researchStudyIdParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await deleteResearchStudy(deps)({
+          physicianId: request.physicianId as string,
+          researchStudyId: request.params.id,
+        });
+        return await reply.code(200).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
 }

@@ -116,6 +116,138 @@ describe("Request validation", () => {
 
     expect(response.statusCode).toBe(400);
   });
+
+  async function loginNewPhysician(app: Awaited<ReturnType<typeof buildApp>>): Promise<string> {
+    const payload = newPhysicianPayload();
+    const registerResponse = await app.inject({ method: "POST", url: "/physicians", payload });
+    expect(registerResponse.statusCode).toBe(201);
+
+    const loginResponse = await app.inject({
+      method: "POST",
+      url: "/sessions",
+      payload: { email: payload.email, password: payload.password },
+    });
+    return loginResponse.cookies.find((c) => c.name === "session_id")?.value as string;
+  }
+
+  // Regression coverage for docs/architecture/m4-m7-conformance-review.md
+  // §2.1: resident.ts and research-study.ts had zero request-body JSON
+  // schemas, so a missing/malformed body reached `request.body.<field>`
+  // directly and threw an uncaught TypeError, which `replyForError` could
+  // only translate as a 500 — not the clean 400 Milestone 7's Definition
+  // of Done requires. These prove the fix: every route in both files now
+  // validates its body/params before the handler runs.
+  it("rejects a POST /research-studies request with no body at all with a clean 400, not a 500", async () => {
+    const app = await buildApp(buildTestDeps());
+    const sessionId = await loginNewPhysician(app);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/research-studies",
+      cookies: { session_id: sessionId },
+      // deliberately no `payload` — reproduces the exact missing-body case
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("rejects a malformed POST /research-studies body (wrong field type) with a clean 400", async () => {
+    const app = await buildApp(buildTestDeps());
+    const sessionId = await loginNewPhysician(app);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/research-studies",
+      cookies: { session_id: sessionId },
+      payload: { hypothesis: { nested: "object, not a string" } }, // AJV coerces number->string, but not object->string
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("rejects a malformed PATCH /research-studies/:id body with a clean 400", async () => {
+    const app = await buildApp(buildTestDeps());
+    const sessionId = await loginNewPhysician(app);
+
+    const response = await app.inject({
+      method: "PATCH",
+      url: "/research-studies/some-id",
+      cookies: { session_id: sessionId },
+      payload: { conclusion: { not: "a string" } },
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("rejects a POST /research-studies/:id/surgeries request missing surgeryId with a clean 400", async () => {
+    const app = await buildApp(buildTestDeps());
+    const sessionId = await loginNewPhysician(app);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/research-studies/some-id/surgeries",
+      cookies: { session_id: sessionId },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("rejects a POST /research-studies/:id/status request with an invalid body shape with a clean 400", async () => {
+    const app = await buildApp(buildTestDeps());
+    const sessionId = await loginNewPhysician(app);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/research-studies/some-id/status",
+      cookies: { session_id: sessionId },
+      // deliberately no `payload` — `to` is required
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("rejects a POST /residents request with no body at all with a clean 400, not a 500", async () => {
+    const app = await buildApp(buildTestDeps());
+    const sessionId = await loginNewPhysician(app);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/residents",
+      cookies: { session_id: sessionId },
+      // deliberately no `payload`
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("rejects a malformed POST /residents body (missing required fields) with a clean 400", async () => {
+    const app = await buildApp(buildTestDeps());
+    const sessionId = await loginNewPhysician(app);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/residents",
+      cookies: { session_id: sessionId },
+      payload: { firstName: "Only a first name" },
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
+
+  it("rejects a POST /surgeries/:id/residents request missing residentId with a clean 400", async () => {
+    const app = await buildApp(buildTestDeps());
+    const sessionId = await loginNewPhysician(app);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/surgeries/some-id/residents",
+      cookies: { session_id: sessionId },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(400);
+  });
 });
 
 describe("Rate limiting on POST /sessions, keyed by forwarded client IP", () => {

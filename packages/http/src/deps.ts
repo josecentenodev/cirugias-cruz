@@ -4,6 +4,7 @@ import type {
   PhysicianRepository,
   ProcedureTypeRepository,
   PasswordHasher,
+  ResidentRepository,
   SessionRepository,
   SurgeryRepository,
 } from "@cirugias-cruz/application";
@@ -22,4 +23,5 @@ export interface AppDeps {
   patientRepository: PatientRepository;
   procedureTypeRepository: ProcedureTypeRepository;
   surgeryRepository: SurgeryRepository;
+  residentRepository: ResidentRepository;
 }

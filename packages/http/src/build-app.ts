@@ -6,6 +6,7 @@ import type { AppDeps } from "./deps.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerCoreLoopRoutes } from "./routes/core-loop.js";
 import { registerHealthRoute } from "./routes/health.js";
+import { registerResidentRoutes } from "./routes/resident.js";
 import { forwardedClientIp } from "./shared/rate-limit-key.js";
 
 /**
@@ -40,6 +41,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   registerHealthRoute(app);
   registerAuthRoutes(app, deps);
   registerCoreLoopRoutes(app, deps);
+  registerResidentRoutes(app, deps);
 
   return app;
 }

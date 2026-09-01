@@ -42,6 +42,12 @@ export {
   type ModifyControlOutput,
   type ModifyControlDeps,
 } from "./surgery/modify-control.js";
+export {
+  removeResidentFromSurgery,
+  type RemoveResidentFromSurgeryInput,
+  type RemoveResidentFromSurgeryOutput,
+  type RemoveResidentFromSurgeryDeps,
+} from "./surgery/remove-resident-from-surgery.js";
 
 export type { PhysicianRepository } from "./physician/physician-repository.js";
 export type {
@@ -60,6 +66,12 @@ export { login, type LoginInput, type LoginDeps } from "./physician/login.js";
 export { logout, type LogoutInput, type LogoutDeps } from "./physician/logout.js";
 
 export type { ResidentRepository } from "./resident/resident-repository.js";
+export {
+  registerResident,
+  type RegisterResidentInput,
+  type RegisterResidentOutput,
+  type RegisterResidentDeps,
+} from "./resident/register-resident.js";
 
 export type { ResearchStudyRepository } from "./research-study/research-study-repository.js";
 export {

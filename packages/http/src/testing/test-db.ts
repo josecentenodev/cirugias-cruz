@@ -15,6 +15,17 @@ export async function cleanupPhysician(physicianId: string): Promise<void> {
     await testPrisma.control.deleteMany({ where: { surgeryId: { in: surgeryIds } } });
     await testPrisma.surgery.deleteMany({ where: { id: { in: surgeryIds } } });
   }
+  const researchStudies = await testPrisma.researchStudy.findMany({
+    where: { physicianId },
+    select: { id: true },
+  });
+  const researchStudyIds = researchStudies.map((s) => s.id);
+  if (researchStudyIds.length > 0) {
+    await testPrisma.researchStudySurgery.deleteMany({
+      where: { researchStudyId: { in: researchStudyIds } },
+    });
+    await testPrisma.researchStudy.deleteMany({ where: { id: { in: researchStudyIds } } });
+  }
   await testPrisma.patient.deleteMany({ where: { physicianId } });
   await testPrisma.procedureType.deleteMany({ where: { physicianId } });
   await testPrisma.resident.deleteMany({ where: { physicianId } });

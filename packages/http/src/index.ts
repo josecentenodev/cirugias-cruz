@@ -4,6 +4,7 @@ import {
   PrismaPhysicianCredentialRepository,
   PrismaPhysicianRepository,
   PrismaProcedureTypeRepository,
+  PrismaResearchStudyRepository,
   PrismaResidentRepository,
   PrismaSessionRepository,
   PrismaSurgeryRepository,
@@ -23,6 +24,7 @@ export function buildDeps(): AppDeps {
     procedureTypeRepository: new PrismaProcedureTypeRepository(prisma),
     surgeryRepository: new PrismaSurgeryRepository(prisma),
     residentRepository: new PrismaResidentRepository(prisma),
+    researchStudyRepository: new PrismaResearchStudyRepository(prisma),
   };
 }
 

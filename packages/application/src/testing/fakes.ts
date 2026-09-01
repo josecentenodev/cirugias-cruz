@@ -83,8 +83,19 @@ export class InMemoryResearchStudyRepository implements ResearchStudyRepository 
     return Promise.resolve(this.studies.get(id) ?? null);
   }
 
+  findByPhysicianId(physicianId: string): Promise<ResearchStudy[]> {
+    return Promise.resolve(
+      [...this.studies.values()].filter((study) => study.physicianId === physicianId),
+    );
+  }
+
   save(study: ResearchStudy): Promise<void> {
     this.studies.set(study.id, study);
+    return Promise.resolve();
+  }
+
+  delete(id: string): Promise<void> {
+    this.studies.delete(id);
     return Promise.resolve();
   }
 }

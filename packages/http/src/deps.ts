@@ -4,6 +4,7 @@ import type {
   PhysicianRepository,
   ProcedureTypeRepository,
   PasswordHasher,
+  ResearchStudyRepository,
   ResidentRepository,
   SessionRepository,
   SurgeryRepository,
@@ -24,4 +25,5 @@ export interface AppDeps {
   procedureTypeRepository: ProcedureTypeRepository;
   surgeryRepository: SurgeryRepository;
   residentRepository: ResidentRepository;
+  researchStudyRepository: ResearchStudyRepository;
 }

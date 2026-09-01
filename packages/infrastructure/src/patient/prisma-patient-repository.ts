@@ -17,17 +17,12 @@ export class PrismaPatientRepository implements PatientRepository {
       return null;
     }
 
-    return Patient.create({
-      id: row.id,
-      physicianId: row.physicianId,
-      firstName: row.firstName,
-      lastName: row.lastName,
-      phone: row.phone,
-      email: row.email,
-      dateOfBirth: row.dateOfBirth,
-      metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
-      observations: row.observations ?? undefined,
-    });
+    return toPatient(row);
+  }
+
+  async findByPhysicianId(physicianId: string): Promise<Patient[]> {
+    const rows = await this.prisma.patient.findMany({ where: { physicianId } });
+    return rows.map(toPatient);
   }
 
   async save(patient: Patient): Promise<void> {
@@ -55,4 +50,28 @@ export class PrismaPatientRepository implements PatientRepository {
       },
     });
   }
+}
+
+function toPatient(row: {
+  id: string;
+  physicianId: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  dateOfBirth: Date;
+  metadata: Prisma.JsonValue | null;
+  observations: string | null;
+}): Patient {
+  return Patient.create({
+    id: row.id,
+    physicianId: row.physicianId,
+    firstName: row.firstName,
+    lastName: row.lastName,
+    phone: row.phone,
+    email: row.email,
+    dateOfBirth: row.dateOfBirth,
+    metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
+    observations: row.observations ?? undefined,
+  });
 }

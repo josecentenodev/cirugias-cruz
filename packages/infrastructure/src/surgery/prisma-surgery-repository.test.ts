@@ -7,49 +7,84 @@ const PHYSICIAN_ID = "infra-test-physician-surgery";
 const PATIENT_ID = "infra-test-patient-surgery";
 const PROCEDURE_TYPE_ID = "infra-test-procedure-type-surgery";
 const SURGERY_ID = "infra-test-surgery-1";
+const OTHER_PHYSICIAN_ID = "infra-test-m4-physician-surgery-other";
+const OTHER_PATIENT_ID = "infra-test-m4-patient-surgery-other";
+const OTHER_PROCEDURE_TYPE_ID = "infra-test-m4-procedure-type-surgery-other";
+const SURGERY_ID_2 = "infra-test-m4-surgery-2";
+const OTHER_SURGERY_ID = "infra-test-m4-surgery-other";
 
 async function seedPatientAndProcedureType(): Promise<void> {
-  await testPrisma.patient.upsert({
-    where: { id: PATIENT_ID },
-    create: {
-      id: PATIENT_ID,
-      physicianId: PHYSICIAN_ID,
-      firstName: "Ana",
-      lastName: "García",
-      phone: "555-0101",
-      email: "ana@example.com",
-      dateOfBirth: new Date("1990-05-15"),
-    },
-    update: {},
-  });
-  await testPrisma.procedureType.upsert({
-    where: { id: PROCEDURE_TYPE_ID },
-    create: {
-      id: PROCEDURE_TYPE_ID,
-      physicianId: PHYSICIAN_ID,
-      name: "Pterigión",
-    },
-    update: {},
-  });
+  await Promise.all([
+    testPrisma.patient.upsert({
+      where: { id: PATIENT_ID },
+      create: {
+        id: PATIENT_ID,
+        physicianId: PHYSICIAN_ID,
+        firstName: "Ana",
+        lastName: "García",
+        phone: "555-0101",
+        email: "ana@example.com",
+        dateOfBirth: new Date("1990-05-15"),
+      },
+      update: {},
+    }),
+    testPrisma.procedureType.upsert({
+      where: { id: PROCEDURE_TYPE_ID },
+      create: {
+        id: PROCEDURE_TYPE_ID,
+        physicianId: PHYSICIAN_ID,
+        name: "Pterigión",
+      },
+      update: {},
+    }),
+  ]);
 }
 
 describe("PrismaSurgeryRepository", () => {
   const repository = new PrismaSurgeryRepository(testPrisma);
 
   beforeAll(async () => {
-    await seedPhysician(PHYSICIAN_ID);
-    await seedPatientAndProcedureType();
-  });
+    await Promise.all([seedPhysician(PHYSICIAN_ID), seedPhysician(OTHER_PHYSICIAN_ID)]);
+    await Promise.all([
+      seedPatientAndProcedureType(),
+      testPrisma.patient.upsert({
+        where: { id: OTHER_PATIENT_ID },
+        create: {
+          id: OTHER_PATIENT_ID,
+          physicianId: OTHER_PHYSICIAN_ID,
+          firstName: "Otro",
+          lastName: "Físico",
+          phone: "555-0104",
+          email: "otro-surgery@example.com",
+          dateOfBirth: new Date("1975-01-01"),
+        },
+        update: {},
+      }),
+      testPrisma.procedureType.upsert({
+        where: { id: OTHER_PROCEDURE_TYPE_ID },
+        create: { id: OTHER_PROCEDURE_TYPE_ID, physicianId: OTHER_PHYSICIAN_ID, name: "Otro" },
+        update: {},
+      }),
+    ]);
+  }, 30000);
 
   afterEach(async () => {
-    await cleanupSurgery(SURGERY_ID);
-  });
+    await Promise.all([
+      cleanupSurgery(SURGERY_ID),
+      cleanupSurgery(SURGERY_ID_2),
+      cleanupSurgery(OTHER_SURGERY_ID),
+    ]);
+  }, 30000);
 
   afterAll(async () => {
-    await testPrisma.patient.deleteMany({ where: { id: PATIENT_ID } });
-    await testPrisma.procedureType.deleteMany({ where: { id: PROCEDURE_TYPE_ID } });
-    await cleanupPhysician(PHYSICIAN_ID);
-  });
+    await Promise.all([
+      testPrisma.patient.deleteMany({ where: { id: PATIENT_ID } }),
+      testPrisma.procedureType.deleteMany({ where: { id: PROCEDURE_TYPE_ID } }),
+      testPrisma.patient.deleteMany({ where: { id: OTHER_PATIENT_ID } }),
+      testPrisma.procedureType.deleteMany({ where: { id: OTHER_PROCEDURE_TYPE_ID } }),
+    ]);
+    await Promise.all([cleanupPhysician(PHYSICIAN_ID), cleanupPhysician(OTHER_PHYSICIAN_ID)]);
+  }, 30000);
 
   it("returns null when the surgery does not exist", async () => {
     await expect(repository.findById("does-not-exist")).resolves.toBeNull();
@@ -188,5 +223,49 @@ describe("PrismaSurgeryRepository", () => {
 
     expect(secondRow.createdAt).toEqual(firstRow.createdAt);
     expect(secondRow.updatedAt.getTime()).toBeGreaterThan(firstRow.updatedAt.getTime());
+  });
+
+  it("findByPhysicianId returns only the physician's own surgeries, with full Control history", async () => {
+    const surgery1 = Surgery.create({
+      id: SURGERY_ID,
+      physicianId: PHYSICIAN_ID,
+      patientId: PATIENT_ID,
+      procedureTypeId: PROCEDURE_TYPE_ID,
+      performedAt: new Date("2026-01-10"),
+    });
+    surgery1.recordControl({
+      id: "control-1",
+      observations: "obs",
+      recordedAt: new Date("2026-01-11"),
+      author: { type: "physician", physicianId: PHYSICIAN_ID },
+    });
+    await repository.save(surgery1);
+
+    await repository.save(
+      Surgery.create({
+        id: SURGERY_ID_2,
+        physicianId: PHYSICIAN_ID,
+        patientId: PATIENT_ID,
+        procedureTypeId: PROCEDURE_TYPE_ID,
+        performedAt: new Date("2026-02-01"),
+      }),
+    );
+
+    await repository.save(
+      Surgery.create({
+        id: OTHER_SURGERY_ID,
+        physicianId: OTHER_PHYSICIAN_ID,
+        patientId: OTHER_PATIENT_ID,
+        procedureTypeId: OTHER_PROCEDURE_TYPE_ID,
+        performedAt: new Date("2026-01-15"),
+      }),
+    );
+
+    const found = await repository.findByPhysicianId(PHYSICIAN_ID);
+
+    expect(found.map((s) => s.id).sort()).toEqual([SURGERY_ID, SURGERY_ID_2].sort());
+    const withControl = found.find((s) => s.id === SURGERY_ID);
+    expect(withControl?.controls).toHaveLength(1);
+    expect(withControl?.controls[0]?.observations).toBe("obs");
   });
 });

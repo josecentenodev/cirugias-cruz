@@ -10,11 +10,23 @@
 > not exist yet. This is the design to build Milestone 8 against, in the
 > same relationship `application-layer-discovery.md` had to Milestone 1.
 >
-> Read alongside `m4-m7-conformance-review.md` — two small fixes it
-> recommends (request-body schemas on `resident.ts`/`research-study.ts`,
-> `listResidents`/`getResident` Application operations) should land
-> before this design is implemented, so Milestone 8 is built against the
-> API as documented, not against a gap in it.
+> Read alongside `m4-m7-conformance-review.md` — its two actionable
+> findings (request-body schemas on `resident.ts`/`research-study.ts`;
+> `listResidents`/`getResident` Application operations) have since
+> landed, so this design is now checked against the API as it actually
+> is, not against a documented gap in it. See the discovery-pass note
+> below for the re-verification.
+>
+> **Discovery-pass update (post M4–M7 fix pass, before implementation
+> authorization)**: re-checked against the now-stabilized backend — no
+> section below needed a substantive change; the two corrections applied
+> are noted inline where they occur (§8's Resident flow, mainly cosmetic
+> — the endpoints and response shapes did not change, only which layer
+> handles the request). A dedicated security review of §3's `web_session`
+> design (relaying `api`'s own session id in a `web`-owned cookie) was
+> requested given this product handles clinical data — see
+> `docs/architecture/milestone-8-session-security-review.md` for that
+> review, done before any implementation is authorized.
 
 ---
 
@@ -130,7 +142,13 @@ not need to — `api` is never called from the browser. Concretely:
    browser. The Server Action reads `session_id` out of that response
    (via the `fetch` `Response`'s headers — Next.js's server-side `fetch`
    gives access to raw headers, unlike a browser `fetch`) and stores it
-   server-side.
+   server-side. **Required (see
+   `milestone-8-session-security-review.md` §3.4): if no valid session
+   id can be extracted from `api`'s response — a missing/malformed
+   `Set-Cookie`, not merely a `401` — the Server Action must treat this
+   as an authentication failure, exactly like a rejected credential, and
+   must never call `setSessionCookie` with an empty or undefined value.
+   Fail closed, not open.**
 2. **Where "server-side" means, concretely**: `web` sets its own cookie
    on the browser — `web_session`, `httpOnly`, `sameSite: "lax"`,
    `secure` in production, same expiry as `api`'s session — whose value
@@ -149,7 +167,15 @@ not need to — `api` is never called from the browser. Concretely:
    read for this purpose.
 4. **Logout**: a Server Action calls `DELETE /sessions` on `api`
    (forwarding `web_session`'s value so `api` can invalidate the right
-   row), then clears `web_session` on the browser.
+   row), then clears `web_session` on the browser. **Required (see
+   `milestone-8-session-security-review.md` §3.3): `web_session` must be
+   cleared on the browser unconditionally, even if the `DELETE /sessions`
+   call to `api` fails (e.g. a transient network error) — a physician
+   must never see "logged out" while the underlying `api` session stays
+   silently valid. Log a failed invalidation server-side (never surfaced
+   to the physician — logout must always visibly succeed from their
+   side) so an orphaned session can be found rather than relying solely
+   on its 24h natural expiry.**
 
 **`lib/session.ts`** owns this, and is the only file that touches
 Next.js's `cookies()` for session purposes:
@@ -462,7 +488,7 @@ code looks the same regardless of which slice it belongs to.
    │           ├── record a Control (inline)     POST  /surgeries/:id/controls
    │           └── modify a Control (inline)     PATCH /surgeries/:id/controls/:controlId
    │
-   ├── /residents                              GET  /residents            *(needs finding 2.2's fix)*
+   ├── /residents                              GET  /residents
    │     └── /residents/new                     POST /residents
    │           # assign/remove a Resident on a Surgery happens on the
    │           # Surgery detail page (POST/DELETE .../residents), not
@@ -477,18 +503,16 @@ code looks the same regardless of which slice it belongs to.
                └── delete (DRAFT only)              DELETE /research-studies/:id
 ```
 
-**Two corrections against the flow the user sketched, found by checking
-real endpoints rather than assuming the tree:**
+**One correction against the flow the user sketched, found by checking
+real endpoints rather than assuming the tree** (a second correction,
+about `GET /residents`/`GET /residents/:id` routing through Application
+via `listResidents`/`getResident` rather than calling
+`ResidentRepository` directly, was found at the same time and has since
+been fixed — see `m4-m7-conformance-review.md` §2.2 — so it no longer
+needs calling out as a caveat here; `features/residents/queries.ts` can
+be written against the API as it exists today):
 
-1. **`Residents/List` needs finding 2.2's fix landed first** — today,
-   `GET /residents`/`GET /residents/:id` work (they're implemented,
-   just via the layering shortcut in `resident.ts`), so this is not
-   blocking, but Milestone 8's `features/residents/queries.ts` should be
-   written against the corrected `listResidents`/`getResident`
-   Application-backed routes, not the current ad hoc ones, to avoid
-   building against an interface that's about to change shape (even if
-   the wire response itself won't).
-2. **Assigning/removing a Resident on a Surgery is not a Resident-slice
+1. **Assigning/removing a Resident on a Surgery is not a Resident-slice
    page** — the actual endpoints are `POST /surgeries/:id/residents` and
    `DELETE /surgeries/:id/residents/:residentId`, i.e. this is Surgery
    data, scoped to a specific Surgery. The navigable flow reflects that:
@@ -561,15 +585,34 @@ inherits, not reinvents, that boundary.
 
 Per the explicit standing rule (MVP ≠ disposable implementation), each
 item below was checked against this design, not assumed safe by
-default.
+default. **The session-relay mechanism itself (§3) received a dedicated,
+deeper review given this product handles clinical data — see
+`milestone-8-session-security-review.md`.** Verdict: architecturally
+approved; four small, concrete requirements from that review are folded
+into §3 above (fail-closed login/logout handling) and this section
+(the `secure`-flag deployment-configuration item below). The summary
+points below restate the parts of that review most relevant to this
+section's checklist format; the dedicated review has the full reasoning,
+including the alternative (session-id indirection) that was considered
+and correctly rejected.
 
 - **Session cookie (`web_session`)**: `httpOnly` (JS on the page can
   never read it — mitigates XSS exfiltration of the session), `secure`
-  in production (never sent over plain HTTP), `sameSite: "lax"` (the
-  same baseline CSRF mitigation `api`'s own `session_id` cookie already
-  uses — see §11.1 for why this is sufficient here too), matching
-  expiry to `api`'s own session lifetime (no independent, longer-lived
-  `web` session that outlives the `api` session it's relaying).
+  in production (never sent over plain HTTP — **but this depends on
+  every publicly-reachable Railway environment actually setting
+  `NODE_ENV=production` at deploy time, not merely on the code being
+  correct; confirm this as a deployment checklist item, not an assumed
+  fact — see `milestone-8-session-security-review.md` §3.5**),
+  `sameSite: "lax"` (the same baseline CSRF mitigation `api`'s own
+  `session_id` cookie already uses — see §11.1 for why this is
+  sufficient here too), matching expiry to `api`'s own session lifetime
+  (no independent, longer-lived `web` session that outlives the `api`
+  session it's relaying). Its value is a bearer-equivalent credential —
+  identical in blast radius to exposing `api`'s own session cookie
+  directly (confirmed, not a new risk the relay introduces — see
+  `milestone-8-session-security-review.md` §3.1) — treat it with that
+  sensitivity in any future logging/observability work (see "Clinical
+  data in logs" below).
 - **CSRF**: Server Actions have a **built-in** CSRF protection in
   Next.js (an origin/host check on the framework-generated Action ID,
   enforced automatically, not something Milestone 8 has to implement) —

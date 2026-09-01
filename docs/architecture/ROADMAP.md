@@ -1077,6 +1077,29 @@ MVP a physician can actually use.
   read operations going forward. Full workspace quality gate green after
   the fixes: 81 Domain + 102 Application + 45 Infrastructure + 31 HTTP
   tests (259 total).
+- **Milestone 8's design has been re-verified against the stabilized
+  backend, and its session mechanism has passed a dedicated security
+  review — implementation is not yet authorized.** After the M4–M7 fix
+  pass above, `milestone-8-design.md` was re-checked against the actual
+  API (not the documented gaps that existed before the fix pass); two
+  small staleness notes in its §8 navigable-flow section were corrected
+  (cosmetic — the endpoints didn't change). Separately,
+  `milestone-8-session-security-review.md` gives a dedicated review of
+  §3's `web_session` design (relaying `api`'s own session id in a
+  `web`-owned cookie), requested explicitly given this product handles
+  clinical data. **Verdict: architecturally approved** — the mechanism
+  introduces no new exposure beyond what `api`'s own session cookie
+  already carries, and the plausible alternative (`web` minting its own
+  indirection token instead of relaying `api`'s) was evaluated and
+  correctly rejected as adding complexity without a security benefit in
+  this architecture. Four small, concrete requirements from that review
+  are now folded into `milestone-8-design.md` §3/§11 (fail-closed
+  login/logout handling; confirming the `secure` cookie flag's
+  correctness is a deployment-configuration checklist item, not an
+  assumed fact) — none of them change the mechanism itself. **This does
+  not authorize Milestone 8 implementation** — that remains a separate,
+  explicit go-ahead from the product owner, still pending as of this
+  entry.
 
 ---
 

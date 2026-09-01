@@ -53,6 +53,17 @@ export class InMemoryResidentRepository implements ResidentRepository {
   findById(id: string): Promise<Resident | null> {
     return Promise.resolve(this.residents.get(id) ?? null);
   }
+
+  findByPhysicianId(physicianId: string): Promise<Resident[]> {
+    return Promise.resolve(
+      [...this.residents.values()].filter((resident) => resident.physicianId === physicianId),
+    );
+  }
+
+  save(resident: Resident): Promise<void> {
+    this.residents.set(resident.id, resident);
+    return Promise.resolve();
+  }
 }
 
 export class InMemoryResearchStudyRepository implements ResearchStudyRepository {

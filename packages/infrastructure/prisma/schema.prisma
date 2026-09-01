@@ -28,6 +28,7 @@ model Physician {
   patients       Patient[]
   procedureTypes ProcedureType[]
   surgeries      Surgery[]
+  residents      Resident[]
   credential     PhysicianCredential?
   sessions       Session[]
 
@@ -104,6 +105,28 @@ model ProcedureType {
 
   @@index([physicianId])
   @@map("procedure_types")
+}
+
+// Mirrors Patient exactly (see Milestone 5). Resident is a plain Entity
+// with no child state and no Resident<->Patient relationship (see
+// resident.ts) — every field Resident.create() accepts is exactly what's
+// stored.
+model Resident {
+  id          String   @id
+  physicianId String
+  firstName   String
+  lastName    String
+  phone       String
+  email       String
+  dateOfBirth DateTime
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  physician Physician @relation(fields: [physicianId], references: [id])
+
+  @@index([physicianId])
+  @@map("residents")
 }
 
 model Surgery {

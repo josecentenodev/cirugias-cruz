@@ -18,6 +18,10 @@ export async function cleanupPatient(patientId: string): Promise<void> {
   await testPrisma.patient.deleteMany({ where: { id: patientId } });
 }
 
+export async function cleanupResident(residentId: string): Promise<void> {
+  await testPrisma.resident.deleteMany({ where: { id: residentId } });
+}
+
 export async function cleanupProcedureType(procedureTypeId: string): Promise<void> {
   await testPrisma.procedureType.deleteMany({ where: { id: procedureTypeId } });
 }

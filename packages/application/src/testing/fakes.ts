@@ -37,6 +37,12 @@ export class InMemorySurgeryRepository implements SurgeryRepository {
     return Promise.resolve(this.surgeries.get(id) ?? null);
   }
 
+  findByPhysicianId(physicianId: string): Promise<Surgery[]> {
+    return Promise.resolve(
+      [...this.surgeries.values()].filter((surgery) => surgery.physicianId === physicianId),
+    );
+  }
+
   save(surgery: Surgery): Promise<void> {
     this.surgeries.set(surgery.id, surgery);
     return Promise.resolve();
@@ -94,6 +100,12 @@ export class InMemoryPatientRepository implements PatientRepository {
     return Promise.resolve(this.patients.get(id) ?? null);
   }
 
+  findByPhysicianId(physicianId: string): Promise<Patient[]> {
+    return Promise.resolve(
+      [...this.patients.values()].filter((patient) => patient.physicianId === physicianId),
+    );
+  }
+
   save(patient: Patient): Promise<void> {
     this.patients.set(patient.id, patient);
     return Promise.resolve();
@@ -109,6 +121,14 @@ export class InMemoryProcedureTypeRepository implements ProcedureTypeRepository 
 
   findById(id: string): Promise<ProcedureType | null> {
     return Promise.resolve(this.procedureTypes.get(id) ?? null);
+  }
+
+  findByPhysicianId(physicianId: string): Promise<ProcedureType[]> {
+    return Promise.resolve(
+      [...this.procedureTypes.values()].filter(
+        (procedureType) => procedureType.physicianId === physicianId,
+      ),
+    );
   }
 
   save(procedureType: ProcedureType): Promise<void> {

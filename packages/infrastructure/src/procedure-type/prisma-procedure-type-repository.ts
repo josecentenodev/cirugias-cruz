@@ -16,13 +16,12 @@ export class PrismaProcedureTypeRepository implements ProcedureTypeRepository {
       return null;
     }
 
-    return ProcedureType.create({
-      id: row.id,
-      physicianId: row.physicianId,
-      name: row.name,
-      description: row.description ?? undefined,
-      technique: row.technique ?? undefined,
-    });
+    return toProcedureType(row);
+  }
+
+  async findByPhysicianId(physicianId: string): Promise<ProcedureType[]> {
+    const rows = await this.prisma.procedureType.findMany({ where: { physicianId } });
+    return rows.map(toProcedureType);
   }
 
   async save(procedureType: ProcedureType): Promise<void> {
@@ -42,4 +41,20 @@ export class PrismaProcedureTypeRepository implements ProcedureTypeRepository {
       },
     });
   }
+}
+
+function toProcedureType(row: {
+  id: string;
+  physicianId: string;
+  name: string;
+  description: string | null;
+  technique: string | null;
+}): ProcedureType {
+  return ProcedureType.create({
+    id: row.id,
+    physicianId: row.physicianId,
+    name: row.name,
+    description: row.description ?? undefined,
+    technique: row.technique ?? undefined,
+  });
 }

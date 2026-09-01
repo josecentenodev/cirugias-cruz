@@ -7,6 +7,12 @@ export {
   type RegisterPatientOutput,
   type RegisterPatientDeps,
 } from "./patient/register-patient.js";
+export {
+  listPatients,
+  type ListPatientsInput,
+  type ListPatientsDeps,
+} from "./patient/list-patients.js";
+export { getPatient, type GetPatientInput, type GetPatientDeps } from "./patient/get-patient.js";
 
 export type { ProcedureTypeRepository } from "./procedure-type/procedure-type-repository.js";
 export {
@@ -15,6 +21,16 @@ export {
   type RegisterProcedureTypeOutput,
   type RegisterProcedureTypeDeps,
 } from "./procedure-type/register-procedure-type.js";
+export {
+  listProcedureTypes,
+  type ListProcedureTypesInput,
+  type ListProcedureTypesDeps,
+} from "./procedure-type/list-procedure-types.js";
+export {
+  getProcedureType,
+  type GetProcedureTypeInput,
+  type GetProcedureTypeDeps,
+} from "./procedure-type/get-procedure-type.js";
 
 export type { SurgeryRepository } from "./surgery/surgery-repository.js";
 export {
@@ -23,6 +39,12 @@ export {
   type RegisterSurgeryOutput,
   type RegisterSurgeryDeps,
 } from "./surgery/register-surgery.js";
+export {
+  listSurgeries,
+  type ListSurgeriesInput,
+  type ListSurgeriesDeps,
+} from "./surgery/list-surgeries.js";
+export { getSurgery, type GetSurgeryInput, type GetSurgeryDeps } from "./surgery/get-surgery.js";
 export {
   assignResidentToSurgery,
   type AssignResidentToSurgeryInput,

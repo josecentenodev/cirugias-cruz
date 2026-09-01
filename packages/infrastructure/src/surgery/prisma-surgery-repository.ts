@@ -20,22 +20,15 @@ export class PrismaSurgeryRepository implements SurgeryRepository {
       return null;
     }
 
-    const controls: ControlAttributes[] = row.controls.map((control) => ({
-      id: control.id,
-      observations: control.observations,
-      recordedAt: control.recordedAt,
-      author: toControlAuthor(control),
-    }));
+    return toSurgery(row);
+  }
 
-    return Surgery.reconstitute({
-      id: row.id,
-      physicianId: row.physicianId,
-      patientId: row.patientId,
-      procedureTypeId: row.procedureTypeId,
-      performedAt: row.performedAt,
-      controls,
-      participatingResidentIds: row.participants.map((participant) => participant.residentId),
+  async findByPhysicianId(physicianId: string): Promise<Surgery[]> {
+    const rows = await this.prisma.surgery.findMany({
+      where: { physicianId },
+      include: { controls: true, participants: true },
     });
+    return rows.map(toSurgery);
   }
 
   async save(surgery: Surgery): Promise<void> {
@@ -80,6 +73,40 @@ export class PrismaSurgeryRepository implements SurgeryRepository {
       }),
     ]);
   }
+}
+
+function toSurgery(row: {
+  id: string;
+  physicianId: string;
+  patientId: string;
+  procedureTypeId: string;
+  performedAt: Date;
+  controls: {
+    id: string;
+    observations: string;
+    recordedAt: Date;
+    authorType: string;
+    authorPhysicianId: string | null;
+    authorResidentId: string | null;
+  }[];
+  participants: { residentId: string }[];
+}): Surgery {
+  const controls: ControlAttributes[] = row.controls.map((control) => ({
+    id: control.id,
+    observations: control.observations,
+    recordedAt: control.recordedAt,
+    author: toControlAuthor(control),
+  }));
+
+  return Surgery.reconstitute({
+    id: row.id,
+    physicianId: row.physicianId,
+    patientId: row.patientId,
+    procedureTypeId: row.procedureTypeId,
+    performedAt: row.performedAt,
+    controls,
+    participatingResidentIds: row.participants.map((participant) => participant.residentId),
+  });
 }
 
 function toControlAuthor(control: {

@@ -220,17 +220,18 @@ reasoning and Milestone 8 for its scope.
 > "usable by a physician through the product" are no longer treated as
 > equivalent — see Progress Measurement below.
 
-| Capability                                                               | Domain | Application             | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                                           |
-| ------------------------------------------------------------------------ | ------ | ----------------------- | ----------- | --------- | -------- | --- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Physician registration + authentication                                  | N/A    | ✅                      | ✅          | ✅        | N/A      | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                                                                |
-| Patient (register + retrieve)                                            | ✅     | ✅                      | ✅          | ✅        | ❌       | ❌  | ❌        | Write technically complete; read not started — Milestone 4                                                                               |
-| Procedure Type (register + retrieve)                                     | ✅     | ✅                      | ✅          | ✅        | ❌       | ❌  | ❌        | Same as above — Milestone 4                                                                                                              |
-| Surgery + Control history (register/record/modify + retrieve)            | ✅     | ✅                      | ✅          | ✅        | ❌       | ❌  | ❌        | Write technically complete; read not started (`GET /surgeries/:id` needs only a route — the aggregate already loads fully) — Milestone 4 |
-| Resident (register, assign/remove on Surgery, retrieve)                  | ✅     | ⚠️ (assign only)        | ❌          | ⚠️        | ❌       | ❌  | ❌        | No `residents` table exists yet; registration/removal/read not started — Milestone 5                                                     |
-| Research Study (create, edit, manage universe, full lifecycle, retrieve) | ✅     | ⚠️ (1 of ~9 operations) | ❌          | ⚠️        | ❌       | ❌  | ❌        | No persistence exists yet; only `addSurgeryToResearchStudy` is wired — Milestone 6                                                       |
-| Security baseline (validation, rate limiting, headers, CORS)             | N/A    | N/A                     | N/A         | ❌        | N/A      | N/A | N/A       | Not started — Milestone 7                                                                                                                |
-| Public reachability                                                      | N/A    | N/A                     | N/A         | N/A       | N/A      | N/A | ❌        | No public domain attached — Milestone 9                                                                                                  |
-| Platform Admin visibility                                                | ❌     | ❌                      | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                                       |
+| Capability                                                                | Domain | Application             | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                                           |
+| ------------------------------------------------------------------------- | ------ | ----------------------- | ----------- | --------- | -------- | --- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Physician registration + authentication                                   | N/A    | ✅                      | ✅          | ✅        | N/A      | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                                                                |
+| Patient (register + retrieve)                                             | ✅     | ✅                      | ✅          | ✅        | ❌       | ❌  | ❌        | Write technically complete; read not started — Milestone 4                                                                               |
+| Procedure Type (register + retrieve)                                      | ✅     | ✅                      | ✅          | ✅        | ❌       | ❌  | ❌        | Same as above — Milestone 4                                                                                                              |
+| Surgery + Control history (register/record/modify + retrieve)             | ✅     | ✅                      | ✅          | ✅        | ❌       | ❌  | ❌        | Write technically complete; read not started (`GET /surgeries/:id` needs only a route — the aggregate already loads fully) — Milestone 4 |
+| Resident (register, assign/remove on Surgery, retrieve)                   | ✅     | ⚠️ (assign only)        | ❌          | ⚠️        | ❌       | ❌  | ❌        | No `residents` table exists yet; registration/removal/read not started — Milestone 5                                                     |
+| Research Study (create, edit, manage universe, full lifecycle, retrieve)  | ✅     | ⚠️ (1 of ~9 operations) | ❌          | ⚠️        | ❌       | ❌  | ❌        | No persistence exists yet; only `addSurgeryToResearchStudy` is wired — Milestone 6                                                       |
+| `api` security baseline (validation, forwarded-IP rate limiting, headers) | N/A    | N/A                     | N/A         | ❌        | N/A      | N/A | N/A       | Not started — Milestone 7                                                                                                                |
+| `web` security baseline (headers/CSP, client-IP forwarding)               | N/A    | N/A                     | N/A         | N/A       | N/A      | ❌  | N/A       | Not started — Milestone 8 (`web` doesn't exist yet)                                                                                      |
+| Public reachability                                                       | N/A    | N/A                     | N/A         | N/A       | N/A      | N/A | ❌        | No public domain attached — Milestone 9                                                                                                  |
+| Platform Admin visibility                                                 | ❌     | ❌                      | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                                       |
 
 **Nothing is Human-E2E complete yet.** The core loop's write path is
 proven end-to-end at the HTTP/Postgres level (Milestones 1–3), but
@@ -614,11 +615,15 @@ the two new tables. HTTP e2e for the full lifecycle.
 
 ---
 
-### Milestone 7 — Security & operational hardening
+### Milestone 7 — API security & operational hardening
 
-**Objective**: the deployed system is safe to expose publicly, with a
-security baseline appropriate for a clinical-data product — not a
-temporary or shortcut one, per explicit product decision.
+**Objective**: `api` (`packages/http`) has a security baseline
+appropriate for a clinical-data product as **defense-in-depth** — not
+because `api` itself will be publicly exposed (it won't be — only `web`
+gets a public domain, see Milestone 9) but because "private network
+only" is a network-boundary control, not a substitute for the
+application itself being robust. Not a temporary or shortcut baseline,
+per explicit product decision.
 
 **Why it exists**: verified gaps, confirmed by direct inspection of
 `packages/http`: zero request-body validation on any route, no rate
@@ -628,42 +633,54 @@ structured logging, no health check.
 **Prerequisites**: none technical — orthogonal to Milestones 4–6 and can
 proceed in parallel with all of them.
 
-**Scope** — **revised now that the frontend decision is confirmed**
-(Next.js App Router, BFF pattern, `packages/web` is `api`'s only client;
-see `docs/architecture/frontend-architecture-discovery.md`): request
-validation (Fastify JSON-schema on every route body/params); rate
+**Scope** (revised — two tension points resolved during the
+post-decision documentation review, see Risks and Unknowns): request
+validation (Fastify JSON-schema on every route body/params — this is
+**structural/shape validation only**: "is this a well-formed request,"
+not a re-implementation of Domain business rules like "Patient requires
+a non-empty firstName," which stays exactly where it already is, in
+Domain — schema validation duplicating a Domain invariant would be the
+kind of duplication this milestone must avoid, not introduce); rate
 limiting (`@fastify/rate-limit`) on `POST /sessions` and
-`POST /physicians` at minimum; security headers (`@fastify/helmet` or
-equivalent); `GET /health` route + `deploy.healthcheckPath` on the
-Railway service for `api`; structured logging (enable Fastify's logger
-or wire Pino, currently fully disabled); confirm HTTPS is enforced
-end-to-end once `web`'s public domain exists (Milestone 9). **CORS is
-not required by default**: since `web`'s server calls `api`
-server-to-server (ideally over Railway's private network), the browser
-never talks to `api` directly, so no public CORS policy is needed unless
-Planning Decision 2 (below) is resolved toward also exposing `api`
-publicly — in which case a strict, non-wildcard CORS policy scoped to
-`web`'s origin becomes in-scope here.
+`POST /physicians`, **keyed by the real client IP forwarded from `web`
+in a trusted header** (e.g. `X-Forwarded-For`/`X-Real-IP`), not by raw
+TCP source IP — see the rate-limiting tension note below for why this
+distinction is load-bearing, not stylistic; security headers
+(`@fastify/helmet` or equivalent) on `api`'s own responses; `GET /health`
+route + `deploy.healthcheckPath` on the Railway service for `api`;
+structured logging (enable Fastify's logger or wire Pino, currently
+fully disabled). **CORS is not required**: `web`'s server calls `api`
+server-to-server, the browser never talks to `api` directly (see
+Planning Decision 1 for the one scenario that would reopen this).
 
 **Explicitly out of scope**: authentication mechanism changes (email +
 password + session is decided, not reopened); a WAF/DDoS-mitigation
 service (no evidence of need at current scale); regulatory/compliance
-certification work (a separate, still-open decision).
+certification work (a separate, still-open decision); **verifying that
+`web` can actually reach `api` over the private network** — `web`
+doesn't exist yet at this point in the plan, so that verification
+correctly belongs in Milestone 8, not here (see that milestone's
+Definition of Done). This milestone only needs to leave `api` in a state
+where that connection is possible: no public domain required to
+function, and its Railway private DNS name (`${{http.RAILWAY_PRIVATE_DOMAIN}}`
+in Railway's variable-reference syntax) is exactly what Milestone 8 will
+consume.
 
-**Deliverables**: validation schemas on every route; rate-limit + helmet
-plugins configured; health check route; structured logging enabled; a
-private-network path confirmed working between `web` and `api`.
+**Deliverables**: validation schemas on every route; rate-limit (keyed
+by forwarded client IP) + helmet plugins configured; health check route;
+structured logging enabled.
 
 **Definition of Done**: a malformed request body returns a clean 400
-(not a 500); repeated failed logins are throttled; response headers
-include the standard security set; `/health` returns 200 and is wired as
-the Railway health check; `web` can reach `api` over the private network
-without `api` needing a public domain.
+(not a 500); repeated failed login attempts from the same real client IP
+are throttled even though they all arrive at `api` from `web`'s single
+Railway-internal address; response headers include the standard
+security set; `/health` returns 200 and is wired as the Railway health
+check; `api` has no public domain attached and does not need one to
+pass its own tests.
 
 **Measurable completion criteria**: an HTTP test suite proving each of
-the above (malformed-body rejection, rate-limit triggering, `/health`
-200), plus a manual/scripted check that `api` is unreachable from the
-public internet once it has no domain attached.
+the above (malformed-body rejection, rate-limit triggering per forwarded
+IP — not collectively for all callers, `/health` 200).
 
 **Dependencies**: none.
 
@@ -709,7 +726,16 @@ list + create + assign/remove on a surgery; Research Study list + create
 
 - edit + lifecycle actions — each as a Server-Component read path plus a
   Server-Action write path, per the pattern in
-  `frontend-architecture-discovery.md` §5.
+  `frontend-architecture-discovery.md` §5. **Two items that belong here
+  specifically because `web`, not `api`, is the actual public-facing
+  surface** (moved from Milestone 7 during the post-decision documentation
+  review — see Risks and Unknowns): (a) security headers/CSP for `web`
+  itself (Next.js `headers()`/middleware — `api`'s Milestone-7 headers
+  don't cover `web`'s own responses, they're a different HTTP surface);
+  (b) Server Actions forward the real client IP to `api` in a trusted
+  header (e.g. `X-Forwarded-For`), so Milestone 7's per-client rate
+  limiting on `api` keys correctly instead of collapsing every physician
+  into `web`'s single Railway-internal source address.
 
 **Explicitly out of scope**: Platform Admin UI; any visual design system
 beyond what's needed for usability; mobile-native apps; any client-side
@@ -717,22 +743,26 @@ state-management library (React Query, Redux, Zustand, etc.) for data a
 Server Component can fetch directly.
 
 **Deliverables**: a deployable frontend application (`packages/web`),
-wired to the real API over the private network.
+wired to `api` over the private network; `web`'s own security headers;
+client-IP forwarding to `api`.
 
 **Definition of Done**: every MVP-required backend capability from
 Milestones 1–6 has a corresponding, reachable screen; a person
 unfamiliar with the API can complete the full workflow using only the
 UI; the "as little client-side React as possible" rule is actually
 observed — no route's data-fetching path uses a client-side data library
-where a Server Component would do.
+where a Server Component would do; **`web` is verified able to reach
+`api` over Railway's private network** (this is the first point in the
+plan where that connection can actually be tested — `web` doesn't exist
+before this milestone).
 
 **Measurable completion criteria**: a scripted (e.g. Playwright)
 browser-level walkthrough of the full workflow passes against a real
 deployment.
 
 **Dependencies**: Milestone 4 (hard); Milestones 5–6 (soft — needed for
-full MVP coverage); Milestone 7 (private-network path to `api` must
-work).
+full MVP coverage); Milestone 7 (`api` must be ready to accept
+private-network traffic and forwarded-IP-keyed rate limiting).
 
 **Testing strategy**: genuine browser-level E2E tests belong here for
 the first time — not duplicating the HTTP e2e tests already proving
@@ -892,6 +922,22 @@ Graph.
 
 ## Risks and Unknowns
 
+- **Two tension points found and resolved during the post-decision
+  documentation review that followed confirming Next.js/BFF** (not
+  Milestone defects — the plan was updated before either was
+  implemented): (1) Milestone 7 originally claimed it would "confirm a
+  private-network path between `web` and `api` works" as part of its own
+  Definition of Done, despite `packages/web` not existing until Milestone
+  8 — a real sequencing contradiction, now fixed by moving that specific
+  verification into Milestone 8 and leaving Milestone 7 responsible only
+  for what's verifiable with `api` alone. (2) Naive IP-based rate
+  limiting on `api`'s `/sessions`/`/physicians` routes would be
+  ineffective once the BFF pattern is live: every request reaches `api`
+  from `web`'s single Railway-internal address, so rate-limiting by raw
+  source IP would throttle all physicians collectively instead of
+  individual attackers — now fixed by keying rate limiting on a real
+  client IP that `web` forwards in a trusted header (Milestone 8) and
+  `api` trusts and rate-limits on (Milestone 7).
 - Milestone 1 closed the gap where Application operations did not cover
   the Domain's own stated core purpose (postoperative follow-up /
   `recordControl`) — a real, evidence-based gap, not a stylistic

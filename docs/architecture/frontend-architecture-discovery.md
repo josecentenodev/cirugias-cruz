@@ -95,6 +95,19 @@ surface. This is a leaning, not yet a closed decision — see
 item this creates (whether `api` should ever also be reachable publicly,
 e.g. for a future mobile client).
 
+**Consequence for rate limiting (found during the post-decision
+documentation review, not obvious from the BFF decision alone)**: once
+every request to `api` arrives from `web`'s single Railway-internal
+address, rate limiting `api`'s login/registration routes by raw TCP
+source IP stops distinguishing between physicians — it would throttle
+everyone collectively the moment any one of them fails a login a few
+times. `web` must forward the real client IP to `api` in a trusted
+header (e.g. `X-Forwarded-For`), and `api`'s rate limiter must key on
+that forwarded value, not the connection's source address. This is
+`api`'s responsibility to enforce correctly (Milestone 7) and `web`'s
+responsibility to supply correctly (Milestone 8) — neither milestone is
+complete without the other half.
+
 ## 4. Why "as little client-side React as possible"
 
 This was an explicit product-owner instruction, not a Next.js-specific

@@ -53,6 +53,48 @@ export class ResearchStudy {
     );
   }
 
+  /**
+   * Rebuilds a ResearchStudy already known to be valid — from persisted
+   * state — including its `status` and its full `surgeryIds` set. This
+   * is the same distinction `Surgery.reconstitute` establishes (see
+   * docs/architecture/application-layer-discovery.md §7): `create()` is
+   * the validating entry point for a *new* study, always starting in
+   * DRAFT with an empty surgery universe; `reconstitute()` is the trusted
+   * hydration path a repository uses to rebuild an existing one exactly
+   * as persisted, without re-running `create()`'s own checks and without
+   * replaying `addSurgery`/`moveToInProgress`/`complete` — those methods
+   * exist to validate *new* transitions a caller is making now, not to
+   * re-derive a state that was already validated once, on write. No
+   * repository or persistence concept is referenced here; this stays
+   * plain Domain, taking only the shapes ResearchStudy already exposes.
+   */
+  static reconstitute(params: {
+    id: string;
+    physicianId: string;
+    hypothesis?: string;
+    results?: string;
+    analysis?: string;
+    conclusion?: string;
+    status: ResearchStudyStatus;
+    surgeryIds: string[];
+  }): ResearchStudy {
+    const study = new ResearchStudy(
+      params.id,
+      params.physicianId,
+      params.hypothesis,
+      params.results,
+      params.analysis,
+      params.conclusion,
+    );
+
+    study.status_ = params.status;
+    for (const surgeryId of params.surgeryIds) {
+      study.surgeryIds_.add(surgeryId);
+    }
+
+    return study;
+  }
+
   get id(): string {
     return this.id_;
   }

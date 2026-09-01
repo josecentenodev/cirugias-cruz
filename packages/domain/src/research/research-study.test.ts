@@ -227,4 +227,27 @@ describe("ResearchStudy", () => {
     const inProgress = createInProgressStudy();
     expect(() => inProgress.reopen(PHYSICIAN_ID)).toThrow();
   });
+
+  it("reconstitutes a study with its existing status and surgery universe, without re-running creation or transition checks", () => {
+    const study = ResearchStudy.reconstitute({
+      id: "study-1",
+      physicianId: PHYSICIAN_ID,
+      hypothesis: "H",
+      results: "R",
+      analysis: "A",
+      conclusion: "C",
+      status: "COMPLETED",
+      surgeryIds: ["surgery-1", "surgery-2"],
+    });
+
+    expect(study.status).toBe("COMPLETED");
+    expect(study.surgeryIds).toEqual(["surgery-1", "surgery-2"]);
+    expect(study.hypothesis).toBe("H");
+
+    // Reconstituted state behaves exactly like state built through the
+    // normal domain methods: the COMPLETED-is-immutable invariant still
+    // applies.
+    expect(() => study.updateConclusion("New", PHYSICIAN_ID)).toThrow();
+    expect(() => study.reopen(PHYSICIAN_ID)).not.toThrow();
+  });
 });

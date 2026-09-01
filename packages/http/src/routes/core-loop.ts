@@ -45,6 +45,95 @@ interface ModifyControlBody {
 }
 
 /**
+ * Structural (shape/type) validation only, per docs/architecture/ROADMAP.md
+ * Milestone 7 — rejects malformed payloads before Application ever sees
+ * them. Business invariants (non-empty names, valid dates as domain
+ * concepts, etc.) remain owned by Domain (`Person.create`, `Surgery`,
+ * `Control`, ...) and are not duplicated here.
+ */
+const registerPatientBodySchema = {
+  type: "object",
+  required: ["firstName", "lastName", "phone", "email", "dateOfBirth"],
+  properties: {
+    firstName: { type: "string" },
+    lastName: { type: "string" },
+    phone: { type: "string" },
+    email: { type: "string" },
+    dateOfBirth: { type: "string" },
+    metadata: { type: "object" },
+    observations: { type: "string" },
+  },
+} as const;
+
+const registerProcedureTypeBodySchema = {
+  type: "object",
+  required: ["name"],
+  properties: {
+    name: { type: "string" },
+    description: { type: "string" },
+    technique: { type: "string" },
+  },
+} as const;
+
+const registerSurgeryBodySchema = {
+  type: "object",
+  required: ["patientId", "procedureTypeId", "performedAt"],
+  properties: {
+    patientId: { type: "string" },
+    procedureTypeId: { type: "string" },
+    performedAt: { type: "string" },
+  },
+} as const;
+
+const controlAuthorSchema = {
+  type: "object",
+  oneOf: [
+    {
+      type: "object",
+      required: ["type"],
+      properties: { type: { const: "physician" } },
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      required: ["type", "residentId"],
+      properties: { type: { const: "resident" }, residentId: { type: "string" } },
+      additionalProperties: false,
+    },
+  ],
+} as const;
+
+const recordControlBodySchema = {
+  type: "object",
+  required: ["observations", "recordedAt", "author"],
+  properties: {
+    observations: { type: "string" },
+    recordedAt: { type: "string" },
+    author: controlAuthorSchema,
+  },
+} as const;
+
+const modifyControlBodySchema = {
+  type: "object",
+  properties: {
+    observations: { type: "string" },
+    recordedAt: { type: "string" },
+  },
+} as const;
+
+const surgeryIdParamsSchema = {
+  type: "object",
+  required: ["surgeryId"],
+  properties: { surgeryId: { type: "string" } },
+} as const;
+
+const controlParamsSchema = {
+  type: "object",
+  required: ["surgeryId", "controlId"],
+  properties: { surgeryId: { type: "string" }, controlId: { type: "string" } },
+} as const;
+
+/**
  * The Milestone 1 operations, reached over HTTP. Every handler here does
  * exactly one thing beyond translation: take `request.physicianId` — set
  * only by `requireAuth` from the authenticated session — as the tenant
@@ -54,28 +143,32 @@ interface ModifyControlBody {
 export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): void {
   const auth = { preHandler: requireAuth(deps.sessionRepository) };
 
-  app.post<{ Body: RegisterPatientBody }>("/patients", auth, async (request, reply) => {
-    try {
-      const output = await registerPatient(deps)({
-        physicianId: request.physicianId as string,
-        id: randomUUID(),
-        firstName: request.body.firstName,
-        lastName: request.body.lastName,
-        phone: request.body.phone,
-        email: request.body.email,
-        dateOfBirth: new Date(request.body.dateOfBirth),
-        metadata: request.body.metadata,
-        observations: request.body.observations,
-      });
-      return await reply.code(201).send(output);
-    } catch (error) {
-      return replyForError(error, reply);
-    }
-  });
+  app.post<{ Body: RegisterPatientBody }>(
+    "/patients",
+    { ...auth, schema: { body: registerPatientBodySchema } },
+    async (request, reply) => {
+      try {
+        const output = await registerPatient(deps)({
+          physicianId: request.physicianId as string,
+          id: randomUUID(),
+          firstName: request.body.firstName,
+          lastName: request.body.lastName,
+          phone: request.body.phone,
+          email: request.body.email,
+          dateOfBirth: new Date(request.body.dateOfBirth),
+          metadata: request.body.metadata,
+          observations: request.body.observations,
+        });
+        return await reply.code(201).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
 
   app.post<{ Body: RegisterProcedureTypeBody }>(
     "/procedure-types",
-    auth,
+    { ...auth, schema: { body: registerProcedureTypeBodySchema } },
     async (request, reply) => {
       try {
         const output = await registerProcedureType(deps)({
@@ -92,24 +185,31 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
     },
   );
 
-  app.post<{ Body: RegisterSurgeryBody }>("/surgeries", auth, async (request, reply) => {
-    try {
-      const output = await registerSurgery(deps)({
-        physicianId: request.physicianId as string,
-        id: randomUUID(),
-        patientId: request.body.patientId,
-        procedureTypeId: request.body.procedureTypeId,
-        performedAt: new Date(request.body.performedAt),
-      });
-      return await reply.code(201).send(output);
-    } catch (error) {
-      return replyForError(error, reply);
-    }
-  });
+  app.post<{ Body: RegisterSurgeryBody }>(
+    "/surgeries",
+    { ...auth, schema: { body: registerSurgeryBodySchema } },
+    async (request, reply) => {
+      try {
+        const output = await registerSurgery(deps)({
+          physicianId: request.physicianId as string,
+          id: randomUUID(),
+          patientId: request.body.patientId,
+          procedureTypeId: request.body.procedureTypeId,
+          performedAt: new Date(request.body.performedAt),
+        });
+        return await reply.code(201).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
 
   app.post<{ Params: { surgeryId: string }; Body: RecordControlBody }>(
     "/surgeries/:surgeryId/controls",
-    auth,
+    {
+      ...auth,
+      schema: { params: surgeryIdParamsSchema, body: recordControlBodySchema },
+    },
     async (request, reply) => {
       try {
         const output = await recordControl(deps)({
@@ -129,7 +229,10 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
 
   app.patch<{ Params: { surgeryId: string; controlId: string }; Body: ModifyControlBody }>(
     "/surgeries/:surgeryId/controls/:controlId",
-    auth,
+    {
+      ...auth,
+      schema: { params: controlParamsSchema, body: modifyControlBodySchema },
+    },
     async (request, reply) => {
       try {
         const output = await modifyControl(deps)({

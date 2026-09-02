@@ -221,7 +221,7 @@ reasoning and Milestone 8 for its scope.
 | Physician registration + authentication                                   | N/A    | ✅          | ✅          | ✅        | N/A      | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                      |
 | Patient (register + retrieve)                                             | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, in progress) — no public deployment/human walkthrough yet (Milestone 9) |
 | Procedure Type (register + retrieve)                                      | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, in progress) — no public deployment/human walkthrough yet (Milestone 9) |
-| Surgery + Control history (register/record/modify + retrieve)             | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                      |
+| Surgery + Control history (register/record/modify + retrieve)             | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, in progress) — no public deployment/human walkthrough yet (Milestone 9) |
 | Resident (register, assign/remove on Surgery, retrieve)                   | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                      |
 | Research Study (create, edit, manage universe, full lifecycle, retrieve)  | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                      |
 | `api` security baseline (validation, forwarded-IP rate limiting, headers) | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                         |
@@ -823,16 +823,16 @@ the first time — not duplicating the HTTP e2e tests already proving
 backend correctness, but proving the UI correctly drives that
 already-proven backend.
 
-**Status**: `IN_PROGRESS` — two vertical slices (Authentication +
-Patients, then Procedure Type) are built and verified, following
-exactly the design in `docs/architecture/milestone-8-design.md` with no
-undocumented architectural deviation. **Not yet done**: Surgery +
-Control, Resident, and Research Study are not built — this milestone's
-DoD ("every MVP-required backend capability... has a corresponding,
-reachable screen") is not met until they are. `web` has not been
-deployed to Railway, so "verified able to reach `api` over Railway's
-private network" is also not yet checked — only local `web` ↔ local
-`api` has been proven.
+**Status**: `IN_PROGRESS` — three vertical slices (Authentication +
+Patients, Procedure Type, then Surgery + Control) are built and
+verified, following exactly the design in
+`docs/architecture/milestone-8-design.md` with no undocumented
+architectural deviation. **Not yet done**: Resident and Research Study
+are not built — this milestone's DoD ("every MVP-required backend
+capability... has a corresponding, reachable screen") is not met until
+they are. `web` has not been deployed to Railway, so "verified able to
+reach `api` over Railway's private network" is also not yet checked —
+only local `web` ↔ local `api` has been proven.
 
 Concretely, what exists in `packages/web` today:
 
@@ -858,6 +858,30 @@ Concretely, what exists in `packages/web` today:
   technique). `getProcedureType` was deliberately not added to
   `features/procedure-types/queries.ts` since nothing calls it, matching
   Roadmap Maintenance Rule 8 (no unnecessary abstraction).
+- The Surgery + Control vertical slice: list, detail (full Control
+  history), registration, recording a Control, and modifying one inline
+  — the aggregate's internal state (`controls`, `participatingResidentIds`)
+  arrives nested in one `GET /surgeries/:id` response and is rendered
+  as one unit, never as independent CRUD resources, matching
+  `packages/domain`'s own rule that Control has no existence outside its
+  owning Surgery. `features/surgeries/queries.ts` has no `getControl` —
+  there is no such endpoint, by design (see
+  `application-layer-discovery.md` §1.3). Recording/modifying a Control
+  uses Server Actions bound with `.bind(null, surgeryId[, controlId])` —
+  the standard Next.js pattern for passing context a submitted form
+  itself never carries. `ControlRow.tsx`'s inline edit toggle
+  (`useState`) is the one place in this slice with meaningfully local
+  UI state, justifying its Client Component boundary; the surrounding
+  list, and the surgery's own fields, stay a Server Component. The "New
+  Surgery" form's Patient/Procedure Type dropdowns, and the detail
+  page's patient/procedure-type name resolution, reuse
+  `features/patients/queries.ts`/`features/procedure-types/queries.ts`
+  unchanged — no new `api` call was introduced for either. Recording a
+  Control as a resident is scoped to `Surgery.participatingResidentIds`
+  only (never a free-text id) and is disabled with an explanatory note
+  when that list is empty — which it is for any surgery built purely
+  through this UI today, since assigning a Resident to a Surgery is the
+  next vertical slice's own work, not duplicated or half-built here.
 - The typed error contract from the design (`ApiAuthError`/
   `ApiNotFoundError`/`ApiDomainError`/`ApiUnexpectedError`), wired
   end-to-end: a missing patient renders via `not-found.tsx`
@@ -868,20 +892,42 @@ Concretely, what exists in `packages/web` today:
   Input, Label, Card, Table, Alert) built on plain semantic HTML with
   `class-variance-authority`, not Base UI — see "Deviations and
   decisions made during implementation" below for why.
-- 59 tests (`lib/`, `features/auth/`, `features/patients/`,
-  `features/procedure-types/`, `proxy.ts`) plus real, manual browser
-  walkthroughs against a locally-running `api` and real (test-data,
-  since cleaned up) Postgres rows — for Patients: login, register a
-  patient, view it in the list and its own detail page, a nonexistent
-  patient id correctly rendering `not-found.tsx`, logout, and confirming
-  an unauthenticated request to `/patients` redirects to `/login`; for
-  Procedure Type: empty-state, registering one with all fields and one
-  with only the required `name`, confirming the list shows both
-  correctly (including the "—" placeholder for the two omitted optional
-  fields). Not a substitute for Milestone 8's own eventual scripted
-  Playwright walkthrough (still `NOT_STARTED`, tracked in this
-  milestone's Measurable completion criteria) — this was manual
-  verification during implementation, not the deliverable itself.
+- 87 tests (`lib/`, `features/auth/`, `features/patients/`,
+  `features/procedure-types/`, `features/surgeries/`, `proxy.ts`) plus
+  real, manual browser walkthroughs against a locally-running `api` and
+  real (test-data, since cleaned up) Postgres rows — for Patients:
+  login, register a patient, view it in the list and its own detail
+  page, a nonexistent patient id correctly rendering `not-found.tsx`,
+  logout, and confirming an unauthenticated request to `/patients`
+  redirects to `/login`; for Procedure Type: empty-state, registering
+  one with all fields and one with only the required `name`, confirming
+  the list shows both correctly (including the "—" placeholder for the
+  two omitted optional fields); for Surgery + Control: registering a
+  surgery against real Patient/ProcedureType dropdowns, viewing its
+  detail page with correctly-resolved names, recording a Control as the
+  physician, editing that Control inline, confirming the list's control
+  count, and a nonexistent surgery id correctly rendering
+  `not-found.tsx`. This walkthrough caught and led to fixing a real
+  timezone bug (below) that no unit test alone would have surfaced. Not
+  a substitute for Milestone 8's own eventual scripted Playwright
+  walkthrough (still `NOT_STARTED`, tracked in this milestone's
+  Measurable completion criteria) — this was manual verification during
+  implementation, not the deliverable itself.
+- **Bug found and fixed during this slice's manual verification**:
+  `toControlView`'s `recordedAtInputValue` (the value pre-filling a
+  Control's inline edit `datetime-local` input) was originally built
+  from `date.toISOString()` — UTC. A `datetime-local` input carries no
+  timezone at all: the browser displays and resubmits its value as
+  literal wall-clock digits, so pre-filling it from a UTC-formatted
+  string caused a no-op edit (open, change nothing, save) to silently
+  shift the Control's recorded time by the viewer's UTC offset — caught
+  by testing the edit flow in the browser, not by any unit test, since
+  the original unit test asserted the same (wrong) UTC-based value the
+  mapper produced rather than the round-trip property that actually
+  matters. Fixed by building the value from the `Date` object's own
+  local getters instead, and a new test now asserts the round-trip
+  property directly (unchanged edit ⇒ unchanged `recordedAtInputValue`)
+  rather than a hardcoded, timezone-dependent string.
 
 **Deviations and decisions made during implementation** (none reopen an
 existing architectural decision — see Roadmap Maintenance Rule 8):
@@ -1031,7 +1077,7 @@ only becomes possible once Milestone 8 (frontend) and Milestone 9
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: 8 — Minimal physician-facing frontend (Next.js App Router, BFF). `IN_PROGRESS`: Authentication + Patients and Procedure Type are built and verified; Surgery + Control, Resident, and Research Study are not.**
+> **CURRENT MILESTONE: 8 — Minimal physician-facing frontend (Next.js App Router, BFF). `IN_PROGRESS`: Authentication + Patients, Procedure Type, and Surgery + Control are built and verified; Resident and Research Study are not.**
 
 Milestones 1 through 7 are complete (see their entries above and
 Historical Progress below): the full core loop plus read/query,
@@ -1044,30 +1090,32 @@ M4–M7 conformance-review fixes (see the Risks and Unknowns entry above
 and `docs/architecture/m4-m7-conformance-review.md`).
 
 Milestone 8 is now `IN_PROGRESS` — see its full entry above for exactly
-what exists in `packages/web` today (59 passing tests; lint,
+what exists in `packages/web` today (87 passing tests; lint,
 format-check, and typecheck all green workspace-wide) and what does not
-yet. It is **not** complete: only two of five vertical slices
-(Authentication + Patients, Procedure Type) are built, `web` has not
-been deployed to Railway, and Milestone 8's own Definition of Done
-requires every MVP-required backend capability to have a reachable
-screen. What remains is the other three vertical slices (Surgery +
-Control, Resident, Research Study), then public reachability and human
-validation (Milestone 9).
+yet. It is **not** complete: only three of five vertical slices
+(Authentication + Patients, Procedure Type, Surgery + Control) are
+built, `web` has not been deployed to Railway, and Milestone 8's own
+Definition of Done requires every MVP-required backend capability to
+have a reachable screen. What remains is Resident and Research Study,
+then public reachability and human validation (Milestone 9).
 
 ---
 
 ## Next Milestone
 
 **Still Milestone 8** — continue building the remaining vertical slices
-(Surgery + Control, Resident, Research Study), each following the same
-pattern the Authentication + Patients and Procedure Type slices already
-proved out (`features/<slice>/{queries,actions,dtos,mappers,schemas,components}`,
+(Resident, then Research Study), each following the same pattern the
+three built slices already proved out
+(`features/<slice>/{queries,actions,dtos,mappers,schemas,components}`,
 Server Components for reads, Server Actions for writes, the same typed
-error contract). No open decision blocks any of them — the pattern is
-proven, not merely designed. Once all five slices exist and `web` is
-deployed to Railway with its private-network path to `api` verified,
-Milestone 8's Definition of Done is met and Milestone 9 (public domain +
-human validation) becomes the next milestone.
+error contract). No open decision blocks either of them — the pattern
+is proven, not merely designed, including for an Aggregate with
+internal state (Surgery/Control), which Resident's own
+assign/remove-on-a-surgery actions will reuse directly. Once all five
+slices exist and `web` is deployed to Railway with its private-network
+path to `api` verified, Milestone 8's Definition of Done is met and
+Milestone 9 (public domain + human validation) becomes the next
+milestone.
 
 ---
 

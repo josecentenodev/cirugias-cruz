@@ -24,6 +24,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <Link href="/procedure-types" className="text-muted-foreground hover:text-foreground">
               Procedure types
             </Link>
+            <Link href="/surgeries" className="text-muted-foreground hover:text-foreground">
+              Surgeries
+            </Link>
             <form action={logoutAction}>
               <button type="submit" className="text-muted-foreground hover:text-foreground">
                 Log out

@@ -18,10 +18,12 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 ### Completed
 
-- **Domain discovery** — `docs/domain/DOMAIN.md` plus 12 ADRs in
+- **Domain discovery** — `docs/domain/DOMAIN.md` plus 14 ADRs in
   `docs/decisions/` cover tenancy, actors, Physician email-based
-  identification (ADR 0012), and the confirmed business rules for
-  Patient, Resident, Surgery, Control, ProcedureType, and ResearchStudy.
+  identification (ADR 0012), the HTTP framework (Fastify, ADR 0013), the
+  frontend framework and BFF pattern (Next.js App Router, ADR 0014), and
+  the confirmed business rules for Patient, Resident, Surgery, Control,
+  ProcedureType, and ResearchStudy.
 - **Domain model** — implemented in `packages/domain`, framework/
   infrastructure-independent, covering every currently-confirmed rule.
 - **Domain tests** — verified passing, covering the confirmed invariants
@@ -61,12 +63,12 @@ gets corrected — it is not meant to be treated as fixed once written.
   `build.buildCommand` explicitly target `@cirugias-cruz/http` and
   `@cirugias-cruz/infrastructure` via `pnpm --filter`, since setting
   `source.rootDirectory` to a subpackage broke workspace detection —
-  see the note under "Hosting platform" below). `deploy.preDeployCommand`
-  runs `prisma migrate deploy` before each deploy, per the mechanism
-  README.md already documented. `DATABASE_URL` (private-network
-  reference to the `Postgres` service) and `NODE_ENV=production` are set
-  on the service. No public domain is attached yet — the service is only
-  reachable on Railway's private network for now.
+  see "Hosting platform" below and `deployment-railway.md`).
+  `deploy.preDeployCommand` runs `prisma migrate deploy` before each
+  deploy. `DATABASE_URL` (private-network reference to the `Postgres`
+  service) and `NODE_ENV=production` are set on the service. No public
+  domain is attached yet — the service is only reachable on Railway's
+  private network for now.
 
 ### Partially completed
 
@@ -90,27 +92,16 @@ gets corrected — it is not meant to be treated as fixed once written.
 ### Hosting platform
 
 **Railway is the confirmed, permanent hosting platform for this
-project** — not an open option. See `README.md`'s "🚂 Railway" section
-for the full topology (shared monorepo, per-service build/start
-commands, PostgreSQL as a Railway-managed service, migrations via the
-Pre-Deploy Command). The `cirugias-cruz` service now builds and deploys
-successfully from `main`. **One deviation from the originally-assumed
-approach, worth recording as durable knowledge**: setting
-`source.rootDirectory` to a subpackage (`packages/http`) broke Railpack's
-pnpm-workspace detection — it stopped seeing the root `pnpm-workspace.yaml`
-and fell back to plain `npm`, which can't resolve the `workspace:*`
-protocol. The working configuration instead leaves `rootDirectory` at the
-repo root and sets explicit, `pnpm --filter`-scoped commands:
-`build.buildCommand: "pnpm --filter @cirugias-cruz/infrastructure run prisma:generate"`,
-`deploy.preDeployCommand: "pnpm --filter @cirugias-cruz/infrastructure exec prisma migrate deploy"`,
-`deploy.startCommand: "pnpm --filter @cirugias-cruz/http run start"`. A
-second, unrelated fix was required along the way: `tsx` (which runs
-`packages/http`'s `start` script directly against TypeScript source) had
-to move from `devDependencies` to `dependencies`, because Railpack prunes
-devDependencies from the final runtime image — and the `pnpm-lock.yaml`
-regeneration that change requires must be committed in the same change,
-or `pnpm install --frozen-lockfile` fails the build (this actually
-happened once mid-fix and is recorded here so it isn't rediscovered).
+project** — not an open option. The full topology, per-service
+build/start/pre-deploy commands, environment variables, and the
+non-obvious gotchas (Root Directory must stay at the repo root or
+Railpack's pnpm-workspace detection breaks; `tsx` must be a runtime
+`dependency`; the lockfile must be regenerated in the same change) are
+consolidated in
+[`deployment-railway.md`](deployment-railway.md), with the config itself
+versioned in `railway.api.json` / `railway.web.json` at the repo root.
+The `api` service (`cirugias-cruz`) builds and deploys successfully from
+`main`; `web` is not created on Railway yet (Milestone 8/9).
 
 ### Explicitly deferred
 

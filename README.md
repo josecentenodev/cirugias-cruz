@@ -4,6 +4,30 @@
 
 ---
 
+> ## 📌 Estado actual
+>
+> Este README describe la **visión y los principios** del proyecto. El
+> estado de desarrollo real, milestone por milestone, vive en
+> [`docs/architecture/ROADMAP.md`](docs/architecture/ROADMAP.md) — ese es
+> el documento a consultar antes de empezar cualquier trabajo.
+>
+> Resumen a la fecha de esta edición:
+>
+> - **Backend (Milestones 1–7): completo.** Dominio, Application,
+>   persistencia Prisma/PostgreSQL, HTTP (Fastify) + autenticación
+>   (email + contraseña, sesiones server-side en PostgreSQL), read/query,
+>   Residentes, Investigación y hardening de seguridad de `api` — todo
+>   probado end-to-end contra una instancia real de PostgreSQL en Railway.
+> - **`api` (`packages/http`) se despliega y ejecuta en Railway** desde
+>   `main`. Sin dominio público todavía (solo red privada).
+> - **Frontend (`packages/web`, Milestone 8): en curso.** Next.js App
+>   Router en patrón BFF. Construido el primer slice (Autenticación +
+>   Pacientes); faltan Procedure Type, Cirugía + Control, Residentes e
+>   Investigación. `web` aún no está desplegado en Railway.
+> - **Dominio público + validación humana (Milestone 9): no iniciado.**
+
+---
+
 ## 🧭 Sobre el proyecto
 
 Este proyecto nace con un objetivo concreto:
@@ -154,36 +178,37 @@ La utilización de TypeScript no implica compartir indiscriminadamente todo el c
 
 # 🏗️ Stack tecnológico
 
-| Área            | Tecnología / decisión       |
-| --------------- | --------------------------- |
-| Lenguaje        | **TypeScript**              |
-| Runtime backend | **Node.js**                 |
-| Base de datos   | **PostgreSQL**              |
-| ORM             | **Prisma**                  |
-| Monorepo        | **pnpm Workspaces**         |
-| Modelado        | **Domain-Driven Design**    |
-| Desarrollo      | **Test-Driven Development** |
-| Infraestructura | **Railway**                 |
+| Área            | Tecnología / decisión                                                                                                         |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Lenguaje        | **TypeScript**                                                                                                                |
+| Runtime backend | **Node.js**                                                                                                                   |
+| Base de datos   | **PostgreSQL**                                                                                                                |
+| ORM             | **Prisma**                                                                                                                    |
+| Monorepo        | **pnpm Workspaces**                                                                                                           |
+| Modelado        | **Domain-Driven Design**                                                                                                      |
+| Desarrollo      | **Test-Driven Development**                                                                                                   |
+| Infraestructura | **Railway**                                                                                                                   |
+| Frontend        | **Next.js (App Router), patrón BFF** — ADR [0014](docs/decisions/0014-frontend-nextjs-app-router-bff.md)                      |
+| Framework HTTP  | **Fastify** — ADR [0013](docs/decisions/0013-http-framework-fastify.md)                                                       |
+| Autenticación   | **Email + contraseña, sesiones server-side en PostgreSQL** — ADR [0012](docs/decisions/0012-physician-identified-by-email.md) |
 
 ### Frontend
 
-La tecnología concreta del frontend todavía no está definida.
-
-Se han considerado alternativas como:
-
-- Angular
-- React
-- Astro
-
-La elección queda deliberadamente pendiente.
+Decidido: **Next.js con App Router**, en el paquete `packages/web`,
+ejecutado como **Backend-For-Frontend (BFF)** — el navegador solo habla
+con `web`, nunca directamente con `api`. Server Components por defecto;
+Client Components (`"use client"`) solo para formularios y componentes
+hoja genuinamente interactivos. Ver
+[`docs/architecture/frontend-architecture-discovery.md`](docs/architecture/frontend-architecture-discovery.md),
+[`docs/architecture/milestone-8-design.md`](docs/architecture/milestone-8-design.md)
+y ADR [0014](docs/decisions/0014-frontend-nextjs-app-router-bff.md).
 
 ### Backend HTTP
 
-Node.js será el runtime del backend.
-
-El framework HTTP todavía está pendiente de definición.
-
-La elección del framework no deberá introducir dependencias en el dominio.
+Decidido: **Fastify**, en el paquete `packages/http`. La elección no
+introdujo dependencias en el dominio — `packages/http` depende de
+Application/Domain/Infrastructure, nunca al revés. Ver ADR
+[0013](docs/decisions/0013-http-framework-fastify.md).
 
 ---
 
@@ -327,7 +352,8 @@ El proyecto utilizará el modelo de **shared monorepo** de Railway.
 
 El repositorio será tratado desde su raíz para permitir que los servicios puedan acceder a los paquetes compartidos del workspace.
 
-No se considerará `apps/api` ni `apps/web` como repositorios aislados.
+No se considerará `packages/http` ni `packages/web` como repositorios aislados: el **Root Directory** de cada servicio de Railway es la raíz del repositorio. Apuntar el Root Directory a un subpaquete rompe la detección del `pnpm-workspace.yaml` por parte de Railpack (cae a `npm`, que no resuelve el protocolo `workspace:*`) — ver
+[`docs/architecture/deployment-railway.md`](docs/architecture/deployment-railway.md).
 
 Railway permite definir comandos específicos de build y start para cada servicio dentro de un shared monorepo. Además, su importación automática de monorepos JavaScript soporta pnpm y puede configurar comandos específicos de workspace.
 
@@ -337,39 +363,34 @@ Esto permite mantener el repositorio unificado mientras cada aplicación se desp
 
 # 🚀 Servicios de Railway
 
-La infraestructura inicial estará compuesta por:
+La infraestructura estará compuesta por:
 
-### Web Service
+### Web Service (`web`)
 
-Servicio encargado de ejecutar la aplicación frontend.
+Servicio que ejecuta el frontend Next.js: `packages/web`. Como corre en
+patrón BFF, es el **único** servicio con dominio público. Llama a `api`
+por la red privada de Railway (`API_BASE_URL`, variable server-only).
+Todavía no está creado en Railway (Milestone 8/9).
 
-apps/web
+### API Service (`cirugias-cruz` / `api`)
 
-### API Service
+Servicio que ejecuta el backend Fastify: `packages/http`. Usa los
+paquetes compartidos del workspace: `packages/domain`,
+`packages/application`, `packages/infrastructure`. **No necesita dominio
+público** — solo es alcanzable desde `web` por la red privada. Ya
+desplegado y en ejecución desde `main`.
 
-Servicio encargado de ejecutar el backend.
+### PostgreSQL (`Postgres`)
 
-apps/api
+Servicio de base de datos administrado por Railway. `api` recibe
+`DATABASE_URL` como **variable de referencia** al servicio `Postgres`
+(`${{Postgres.DATABASE_URL}}`), sobre la red privada — nunca una cadena
+de conexión hardcodeada.
 
-Este servicio utilizará los paquetes compartidos necesarios:
-
-packages/domain
-
-packages/application
-
-packages/infrastructure
-
-### PostgreSQL
-
-Servicio de base de datos proporcionado por Railway.
-
-PostgreSQL
-
-La conexión del API con PostgreSQL utilizará una referencia a:
-
-DATABASE_URL
-
-proporcionada por el servicio PostgreSQL de Railway.
+La configuración concreta de cada servicio (Root Directory, comandos de
+build/start, Pre-Deploy, watch paths, health check) está versionada en
+`railway.api.json` y `railway.web.json`, y explicada en
+[`docs/architecture/deployment-railway.md`](docs/architecture/deployment-railway.md).
 
 ---
 
@@ -385,11 +406,19 @@ Los patrones deberán contemplar tanto el código propio de cada aplicación com
 
 # 🛠️ Railway Build & Start
 
-Cada servicio desplegable tendrá sus propios comandos de build y start.
+Cada servicio desplegable tiene sus propios comandos de build y start,
+versionados como configuración-como-código (`railway.api.json`,
+`railway.web.json`). Resumen actual:
 
-Esto permite que Railway construya y ejecute cada aplicación dentro del contexto del monorepo.
+| Servicio | Build                                                             | Start                                         | Pre-Deploy                                                               | Health        |
+| -------- | ----------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------ | ------------- |
+| `api`    | `pnpm --filter @cirugias-cruz/infrastructure run prisma:generate` | `pnpm --filter @cirugias-cruz/http run start` | `pnpm --filter @cirugias-cruz/infrastructure exec prisma migrate deploy` | `/health`     |
+| `web`    | `pnpm --filter @cirugias-cruz/web run build`                      | `pnpm --filter @cirugias-cruz/web run start`  | —                                                                        | — (pendiente) |
 
-Railway soporta explícitamente comandos de start personalizados para desplegar múltiples proyectos desde un mismo monorepo.
+Notas de despliegue no obvias (Root Directory en la raíz, `tsx` movido a
+`dependencies` porque Railpack poda `devDependencies`, el lockfile debe
+regenerarse en el mismo commit): ver
+[`docs/architecture/deployment-railway.md`](docs/architecture/deployment-railway.md).
 
 ---
 
@@ -435,17 +464,19 @@ Las decisiones relacionadas con seguridad, privacidad, auditoría, backups, obse
 
 # 🎨 Frontend
 
-La tecnología concreta del frontend todavía no está definida.
+Decidido: **Next.js con App Router** (`packages/web`), ejecutado como
+**Backend-For-Frontend**. El navegador solo habla con `web`; `web` habla
+con `api` servidor-a-servidor por la red privada de Railway. Server
+Components por defecto; Client Components solo para formularios y
+componentes hoja interactivos; lecturas en Server Components, escrituras
+vía Server Actions. Sin librería de estado de cliente (React Query,
+Redux, Zustand) para datos que un Server Component puede traer directo.
 
-Se han considerado alternativas como:
+Ver ADR [0014](docs/decisions/0014-frontend-nextjs-app-router-bff.md),
+[`docs/architecture/frontend-architecture-discovery.md`](docs/architecture/frontend-architecture-discovery.md)
+y [`docs/architecture/milestone-8-design.md`](docs/architecture/milestone-8-design.md).
 
-- Angular
-- React
-- Astro
-
-La elección queda deliberadamente pendiente.
-
-El requisito fundamental es que la tecnología de frontend no condicione el dominio ni los casos de uso.
+El requisito fundamental sigue siendo que la tecnología de frontend no condicione el dominio ni los casos de uso.
 
 La experiencia visual tendrá como principios:
 
@@ -467,11 +498,11 @@ El dashboard será el principal punto de entrada después del login y proporcion
 
 # 🔌 Backend
 
-Node.js será el runtime del backend.
+Node.js es el runtime del backend. El framework HTTP es **Fastify**
+(`packages/http`) — ver ADR
+[0013](docs/decisions/0013-http-framework-fastify.md).
 
-El framework HTTP todavía está pendiente de definición.
-
-La implementación deberá mantener una separación clara entre:
+La implementación mantiene una separación clara entre:
 
 Domain
 
@@ -521,13 +552,22 @@ Los tests end-to-end podrán incorporarse posteriormente cuando exista una neces
 
 # 📚 Documentación
 
-Las decisiones relevantes del proyecto serán documentadas en:
+La documentación del proyecto vive en:
 
+```
 docs/
+├── domain/          # DOMAIN.md — descubrimiento del dominio
+├── decisions/       # ADRs numerados (0001–0014)
+└── architecture/    # ROADMAP.md + documentos de arquitectura y diseño
+                     #   (application-layer, frontend, milestone-8,
+                     #    deployment-railway, revisiones de conformidad)
+```
 
-└── decisions/
+`docs/architecture/ROADMAP.md` es el artefacto de planificación vivo: se
+consulta antes de empezar cualquier trabajo y se actualiza a medida que
+los milestones avanzan.
 
-Esto permitirá conservar el contexto de las decisiones técnicas y de producto a medida que el proyecto evolucione.
+Esto permite conservar el contexto de las decisiones técnicas y de producto a medida que el proyecto evolucione.
 
 Las decisiones importantes no deberán depender exclusivamente del conocimiento de una persona.
 
@@ -557,28 +597,31 @@ El proyecto comienza deliberadamente con un alcance reducido.
 - [x] pnpm Workspaces.
 - [x] Shared monorepo compatible con Railway.
 - [x] Railway como plataforma de infraestructura.
-- [x] Web como Railway Service.
-- [x] API como Railway Service.
 - [x] PostgreSQL como Railway Service.
-- [x] Watch Paths para los servicios.
+- [x] API (`packages/http`) como Railway Service, desplegado desde `main`.
 - [x] Prisma migrations mediante Pre-Deploy Command.
+- [x] Framework HTTP del backend: **Fastify** (ADR 0013).
+- [x] Framework de frontend: **Next.js App Router, patrón BFF** (ADR 0014).
+- [x] Sistema de autenticación: email + contraseña + sesión server-side en PostgreSQL (ADR 0012).
+- [x] Modelo de dominio: descubierto en `docs/domain/DOMAIN.md` + ADRs 0001–0014.
+- [x] Casos de uso: implementados en `packages/application` (core loop, read/query, Residentes, Investigación).
+- [x] Modelo de persistencia: esquema Prisma en `packages/infrastructure`.
+- [x] Configuración de Railway versionada (`railway.api.json`, `railway.web.json`).
 
 ### Pendiente
 
-- [ ] Framework de frontend.
-- [ ] Framework HTTP del backend.
-- [ ] Sistema de autenticación.
+- [ ] Web (`packages/web`) como Railway Service + dominio público (Milestone 8/9).
+- [ ] Watch Paths configurados en el dashboard de cada servicio (definidos en los `railway.*.json`, falta aplicarlos).
 - [ ] Diseño definitivo de la UI.
-- [ ] Modelo de dominio detallado.
-- [ ] Casos de uso detallados.
-- [ ] Modelo de persistencia detallado.
+- [ ] Modelo de CustomFields / mediciones clínicas estructuradas (bloqueado por consulta con el médico — ADR 0005).
 - [ ] Estrategia de notificaciones.
 - [ ] Almacenamiento de archivos.
 - [ ] Observabilidad.
 - [ ] CI/CD.
 - [ ] Estrategia de backups y recuperación.
-- [ ] Seguridad y auditoría.
+- [ ] Seguridad y auditoría más allá del baseline del Milestone 7.
 - [ ] Requisitos regulatorios y de cumplimiento.
+- [ ] Platform Admin.
 
 Los elementos pendientes no representan problemas por resolver inmediatamente.
 

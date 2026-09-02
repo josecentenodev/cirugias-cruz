@@ -21,7 +21,7 @@ One GitHub repo (`cirugias-cruz`) → one Railway project (`cirugias-cruz`),
 ```
 Railway project: cirugias-cruz
 ├── api        (packages/http, Fastify)      — private network only
-├── web        (packages/web, Next.js BFF)   — the only public service   [not created yet]
+├── web        (packages/web, Next.js BFF)   — the only public service
 └── Postgres   (Railway-managed PostgreSQL)  — private network only
 ```
 
@@ -29,21 +29,58 @@ Railway project: cirugias-cruz
   network. `api` talks to `Postgres` over the private network. Only `web`
   gets a public domain — see ADR
   [0014](../decisions/0014-frontend-nextjs-app-router-bff.md).
-- Config-as-code lives in the repo: `railway.api.json`, `railway.web.json`
-  (repo root). Each service's **Config-as-code path** setting must point
-  at its file (a single `railway.json` cannot serve both, since both
-  services build from the repo root).
+- `railway.api.json`/`railway.web.json` (repo root) remain the
+  **documented reference** for each service's intended build/deploy
+  commands. They are **not wired up as Railway's actual Config-as-code
+  file** — see "Config-as-code is deprecated on this project" below;
+  discovered while creating the `web` service (Milestone 8 closure).
 
 ---
 
-## Service settings (dashboard — not expressible in `railway.*.json`)
+## Config-as-code is deprecated on this project
 
-| Setting             | `api`               | `web`                               |
-| ------------------- | ------------------- | ----------------------------------- |
-| Root Directory      | **repo root** (`/`) | **repo root** (`/`)                 |
-| Config-as-code path | `railway.api.json`  | `railway.web.json`                  |
-| Builder             | Railpack            | Railpack                            |
-| Public domain       | none (private only) | Railway domain and/or custom domain |
+Railway's public API now rejects `railwayConfigFile` (the field behind
+the dashboard's "Config-as-code path" setting) with: _"Config as Code
+(railway.json / railway.toml) is deprecated. Use Infrastructure as Code
+(.railway/railway.ts) instead."_ This means `railway.api.json`/
+`railway.web.json` are **not** read by Railway at build/deploy time on
+this project, despite being named after the convention and despite
+`api`'s own working deployment appearing to match them field-for-field.
+
+What actually configures each service today: the same values, set
+**directly on the service instance** (`buildCommand`, `startCommand`,
+`watchPatterns`, `restartPolicyType`/`restartPolicyMaxRetries`, `builder`)
+via `railway api` (the GraphQL `serviceInstanceUpdate` mutation) or the
+dashboard's own "Settings" tab — not via a referenced file. `api`'s
+working deployment was already configured this way; `web`'s was set up
+identically when its service was created (Milestone 8 closure).
+
+`railway.api.json`/`railway.web.json` are kept in the repo anyway as the
+single source of truth for what those settings _should_ be — a person
+(or agent) provisioning a fresh environment reads the file and applies
+its values by hand (CLI or dashboard), rather than relying on Railway to
+pick the file up automatically. If Railway's Infrastructure-as-Code
+(`.railway/railway.ts`) is adopted later, that would be the place to
+actually re-attach these files programmatically — tracked as an Open
+item below, not decided here.
+
+## Service settings
+
+**Real Railway service names differ from this doc's role names** — the
+`api` role is actually a service literally named `cirugias-cruz` (its
+original name, predating this doc's `api`/`web` role vocabulary); `web`
+is actually named `web`. This matters concretely: a reference variable
+must name the real service (`${{cirugias-cruz.RAILWAY_PRIVATE_DOMAIN}}`,
+not `${{api.RAILWAY_PRIVATE_DOMAIN}}` — the latter silently resolves to
+an empty string, since no service is named `api`). Discovered while
+setting `web`'s `API_BASE_URL` (Milestone 8 closure).
+
+| Setting        | `api` (Railway name: `cirugias-cruz`)                                                           | `web`                               |
+| -------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------- |
+| Root Directory | **repo root** (`/`)                                                                             | **repo root** (`/`)                 |
+| Build/start    | set directly on the service instance — see "Config-as-code is deprecated on this project" above | same                                |
+| Builder        | Railpack                                                                                        | Railpack                            |
+| Public domain  | none (private only)                                                                             | Railway domain (`*.up.railway.app`) |
 
 ### Why Root Directory is the repo root, not `packages/http` / `packages/web`
 
@@ -69,12 +106,12 @@ Configured in [`../../railway.api.json`](../../railway.api.json).
 
 ### Variables
 
-| Variable       | Value                        | Notes                                                                                                  |
-| -------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` | Reference variable to the `Postgres` service, private network. Never a hardcoded connection string.    |
-| `NODE_ENV`     | `production`                 | Drives the `secure` flag on the session cookie (`packages/http/src/shared/session-cookie.ts`).         |
-| `PORT`         | injected by Railway          | `packages/http/src/index.ts` reads `process.env.PORT` (falls back to `3000`) and listens on `0.0.0.0`. |
-| `LOG_LEVEL`    | optional                     | Defaults to `info` (`build-app.ts`).                                                                   |
+| Variable       | Value                        | Notes                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` | Reference variable to the `Postgres` service, private network. Never a hardcoded connection string.                                                                                                                                                                                                                                                                                                                     |
+| `NODE_ENV`     | `production`                 | Drives the `secure` flag on the session cookie (`packages/http/src/shared/session-cookie.ts`).                                                                                                                                                                                                                                                                                                                          |
+| `PORT`         | `3000` (explicit)            | `packages/http/src/index.ts` reads `process.env.PORT` (falls back to `3000`) and listens on `0.0.0.0`. Set explicitly (rather than left to Railway's ambient injection) so `web` can reference it cross-service (`${{cirugias-cruz.PORT}}` — Railway only exposes a service's own variables for `${{service.VAR}}` reference resolution, not arbitrary ambient env vars another service happens to receive at runtime). |
+| `LOG_LEVEL`    | optional                     | Defaults to `info` (`build-app.ts`).                                                                                                                                                                                                                                                                                                                                                                                    |
 
 ### Migrations
 
@@ -99,9 +136,12 @@ already assume.
 
 ---
 
-## `web` service (not created yet — Milestone 8/9)
+## `web` service
 
-Configured in [`../../railway.web.json`](../../railway.web.json).
+**Created and deployed — Milestone 8 closure** (`web-production-c686b1.up.railway.app`).
+Configured directly on the service instance (see "Config-as-code is
+deprecated on this project" above); [`../../railway.web.json`](../../railway.web.json)
+remains the documented reference for what those settings should be.
 
 | Phase        | Command                                                                                       |
 | ------------ | --------------------------------------------------------------------------------------------- |
@@ -116,13 +156,17 @@ Configured in [`../../railway.web.json`](../../railway.web.json).
 workspace package. Its watch list is just `packages/web/**` plus the root
 lockfile/workspace/config files.
 
-### Variables (intended)
+### Variables (as actually configured)
 
-| Variable       | Value                                                  | Notes                                                                                                                                                                                                             |
-| -------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `API_BASE_URL` | `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}` | **Server-only.** Never `NEXT_PUBLIC_` — that would inline `api`'s private address into the browser bundle (`packages/web/next.config.ts` documents this). Read in `packages/web/src/lib/api-client.ts`.           |
-| `NODE_ENV`     | `production`                                           | Drives the `secure` flag on `web`'s `web_session` cookie (`packages/web/src/lib/session.ts`). A deployment-checklist item per `milestone-8-session-security-review.md` — verify it is actually set, don't assume. |
-| `PORT`         | injected by Railway                                    | **Known issue:** `packages/web/package.json`'s `start` script is `next start -p 3001`, which ignores Railway's `PORT`. Change to `next start` (Next.js honours `PORT`) before the first `web` deploy.             |
+| Variable       | Value                                                                      | Notes                                                                                                                                                                                                                                                                                                                                                     |
+| -------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `API_BASE_URL` | `http://${{cirugias-cruz.RAILWAY_PRIVATE_DOMAIN}}:${{cirugias-cruz.PORT}}` | **Server-only.** Never `NEXT_PUBLIC_` — that would inline `api`'s private address into the browser bundle (`packages/web/next.config.ts` documents this). Read in `packages/web/src/lib/api-client.ts`. Note the real service name (`cirugias-cruz`, not `api`) — see "Service settings" above. Resolves to `http://cirugias-cruz.railway.internal:3000`. |
+| `NODE_ENV`     | `production`                                                               | Drives the `secure` flag on `web`'s `web_session` cookie (`packages/web/src/lib/session.ts`) — verified set and effective (a fresh login over HTTPS round-tripped the cookie correctly; `document.cookie` reads empty in the browser, confirming `HttpOnly`).                                                                                             |
+
+**Resolved**: `packages/web/package.json`'s `start` script was
+`next start -p 3001`, which ignored Railway's injected `PORT`. Changed to
+`next start` (Next.js honours `PORT` on its own) before the first `web`
+deploy — the fix this doc had already flagged as required.
 
 ---
 
@@ -149,4 +193,13 @@ For a pre-production / staging environment, create a separate Railway
 - Whether `api` ever needs a public domain / CORS surface (leans
   private-only given the BFF pattern).
 - CI/CD (no pipeline yet — deploys are triggered by pushes to `main`).
-- `web`'s public domain and the human end-to-end walkthrough — Milestone 9.
+- `web` has a Railway-provided domain (`*.up.railway.app`); a custom
+  domain and the human end-to-end walkthrough remain Milestone 9.
+- `web`'s health check: none yet (`web` exposes no `/healthz`-style
+  route). Not blocking — Railway falls back to container-health only —
+  but worth adding before relying on Railway's own rollout gating.
+- Re-attaching `railway.api.json`/`railway.web.json` as actual
+  Infrastructure-as-Code (`.railway/railway.ts`) once that migration
+  path is worth taking on — see "Config-as-code is deprecated on this
+  project" above. Not urgent: the settings are already applied and
+  documented, just not auto-synced from the file.

@@ -12,6 +12,12 @@ import type { NextConfig } from "next";
  */
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Don't advertise the framework in every response — a minor
+  // fingerprinting surface with no upside. Actual security headers
+  // (CSP, etc.) are set per-request in `src/proxy.ts`
+  // (`lib/security-headers.ts`), not here — `headers()` in this file
+  // can't generate the per-request nonce a strict CSP needs.
+  poweredByHeader: false,
 };
 
 export default nextConfig;

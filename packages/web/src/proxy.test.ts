@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, type NextResponse } from "next/server";
 import { proxy } from "./proxy.js";
 
 function request(path: string, cookie?: string): NextRequest {
@@ -38,5 +38,42 @@ describe("proxy (route protection)", () => {
     const response = proxy(request("/patients", "web_session=stale-or-invalid-value"));
 
     expect(response.headers.get("location")).toBeNull();
+  });
+});
+
+describe("proxy (security headers)", () => {
+  it("sets a Content-Security-Policy with a fresh nonce on a pass-through response", () => {
+    const response = proxy(request("/patients", "web_session=abc-123"));
+
+    const csp = response.headers.get("Content-Security-Policy");
+    expect(csp).toContain("default-src 'self'");
+    expect(csp).toMatch(/script-src 'self' 'nonce-[^']+' 'strict-dynamic'/);
+  });
+
+  it("uses a different nonce on every request", () => {
+    const first = proxy(request("/patients", "web_session=abc-123"));
+    const second = proxy(request("/patients", "web_session=abc-123"));
+
+    const nonceOf = (response: NextResponse) =>
+      /nonce-([^']+)/.exec(response.headers.get("Content-Security-Policy") ?? "")?.[1];
+
+    expect(nonceOf(first)).toBeTruthy();
+    expect(nonceOf(first)).not.toBe(nonceOf(second));
+  });
+
+  it("applies the same security headers to a redirect response, not only pass-through ones", () => {
+    const response = proxy(request("/patients"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("Content-Security-Policy")).toContain("default-src 'self'");
+    expect(response.headers.get("X-Frame-Options")).toBe("DENY");
+  });
+
+  it("sets the other baseline headers (nosniff, referrer policy, permissions policy)", () => {
+    const response = proxy(request("/login"));
+
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(response.headers.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
+    expect(response.headers.get("Permissions-Policy")).toContain("camera=()");
   });
 });

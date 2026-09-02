@@ -218,14 +218,15 @@ reasoning and Milestone 8 for its scope.
 
 | Capability                                                                | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                 |
 | ------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | ---------------------------------------------------------------------------------------------- |
-| Physician registration + authentication                                   | N/A    | ✅          | ✅          | ✅        | N/A      | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                      |
+| Physician authentication (login/logout)                                   | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, in progress) — no public deployment/human walkthrough yet (Milestone 9) |
+| Physician self-registration                                               | N/A    | ✅          | ✅          | ✅        | N/A      | ❌  | ❌        | Not part of Milestone 8's documented Scope (no signup screen); reachable via `api` only        |
 | Patient (register + retrieve)                                             | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, in progress) — no public deployment/human walkthrough yet (Milestone 9) |
 | Procedure Type (register + retrieve)                                      | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, in progress) — no public deployment/human walkthrough yet (Milestone 9) |
 | Surgery + Control history (register/record/modify + retrieve)             | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, in progress) — no public deployment/human walkthrough yet (Milestone 9) |
 | Resident (register, assign/remove on Surgery, retrieve)                   | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, in progress) — no public deployment/human walkthrough yet (Milestone 9) |
-| Research Study (create, edit, manage universe, full lifecycle, retrieve)  | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                      |
+| Research Study (create, edit, manage universe, full lifecycle, retrieve)  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, in progress) — no public deployment/human walkthrough yet (Milestone 9) |
 | `api` security baseline (validation, forwarded-IP rate limiting, headers) | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                         |
-| `web` security baseline (headers/CSP, client-IP forwarding)               | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | N/A       | Not started — Milestone 8 (`web` doesn't exist yet)                                            |
+| `web` security baseline (headers/CSP, client-IP forwarding)               | N/A    | N/A         | N/A         | N/A       | N/A      | ⚠️  | N/A       | Client-IP forwarding done; `web`'s own security headers/CSP still outstanding — Milestone 8    |
 | Public reachability                                                       | N/A    | N/A         | N/A         | N/A       | N/A      | N/A | ❌        | No public domain attached — Milestone 9                                                        |
 | Platform Admin visibility                                                 | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                             |
 
@@ -823,16 +824,17 @@ the first time — not duplicating the HTTP e2e tests already proving
 backend correctness, but proving the UI correctly drives that
 already-proven backend.
 
-**Status**: `IN_PROGRESS` — four vertical slices (Authentication +
-Patients, Procedure Type, Surgery + Control, then Resident) are built
-and verified, following exactly the design in
+**Status**: `IN_PROGRESS` — all five vertical slices (Authentication +
+Patients, Procedure Type, Surgery + Control, Resident, then Research
+Study) are built and verified, following exactly the design in
 `docs/architecture/milestone-8-design.md` with no undocumented
-architectural deviation. **Not yet done**: Research Study is not
-built — this milestone's DoD ("every MVP-required backend capability...
-has a corresponding, reachable screen") is not met until it is. `web`
-has not been deployed to Railway, so "verified able to reach `api` over
-Railway's private network" is also not yet checked — only local `web`
-↔ local `api` has been proven.
+architectural deviation. Every MVP-required backend capability from
+Milestones 1–6 now has a corresponding, reachable screen. **Not yet
+done**: `web` has not been deployed to Railway, so "verified able to
+reach `api` over Railway's private network" is not yet checked — only
+local `web` ↔ local `api` has been proven — and the scripted Playwright
+walkthrough (this milestone's Measurable completion criteria) has not
+been run. Both remain before Milestone 8 can be marked `COMPLETED`.
 
 Concretely, what exists in `packages/web` today:
 
@@ -899,6 +901,35 @@ Concretely, what exists in `packages/web` today:
   (ADR 0010's participation-preservation rule) and shown inline next to
   that resident's row — verified directly in the browser walkthrough
   below, not assumed from the backend's own passing tests alone.
+- The Research Study vertical slice: list, detail, registration, an
+  inline-editable set of the four text fields (hypothesis/results/
+  analysis/conclusion — `ResearchStudyFieldsForm.tsx`, same toggle
+  pattern as `ControlRow.tsx`), lifecycle transitions
+  (`StatusActions.tsx` renders exactly one button for the study's
+  _current_ status — `api`'s own `POST /research-studies/:id/status`
+  route remains the sole authority on which `{ current, to }`
+  combination is legal, this button never picks a Domain method by
+  name), and managing the study's surgery universe (add/remove — both
+  Server Actions live in `features/research-studies/actions.ts`, not
+  `features/surgeries/actions.ts`, mirroring `api` itself:
+  `addSurgeryToResearchStudy`/`removeSurgeryFromResearchStudy` are
+  `packages/application/src/research-study/` operations, on
+  ResearchStudy's own aggregate). `ResearchStudy` deliberately
+  references Surgeries only by id (`packages/domain/src/research/
+research-study.ts`), so resolving a `surgeryId` to a display label
+  reuses `features/surgeries/mappers.ts`'s `toSurgeryListView` plus
+  `listPatients()`/`listProcedureTypes()` — the same presentation-layer
+  join `app/(dashboard)/surgeries/page.tsx` already performs, no new
+  `api` call introduced. The "Edit" button, the surgery-removal button,
+  and the add-surgery form are all hidden once a study is `COMPLETED`
+  (a presentation convenience only — `api`'s own
+  `ResearchStudy.assertModifiable` remains the actual enforcement,
+  confirmed in the browser walkthrough below by driving a study through
+  its full lifecycle: DRAFT → edit → add a surgery → IN_PROGRESS →
+  COMPLETED (edit/remove controls disappear) → reopen → IN_PROGRESS
+  (they reappear) → remove the surgery → delete the study). The delete
+  button is likewise only rendered while `status === "DRAFT"`, per
+  `ResearchStudy.assertCanBeDeletedBy`.
 - The typed error contract from the design (`ApiAuthError`/
   `ApiNotFoundError`/`ApiDomainError`/`ApiUnexpectedError`), wired
   end-to-end: a missing patient renders via `not-found.tsx`
@@ -909,9 +940,10 @@ Concretely, what exists in `packages/web` today:
   Input, Label, Card, Table, Alert) built on plain semantic HTML with
   `class-variance-authority`, not Base UI — see "Deviations and
   decisions made during implementation" below for why.
-- 104 tests (`lib/`, `features/auth/`, `features/patients/`,
+- 131 tests (`lib/`, `features/auth/`, `features/patients/`,
   `features/procedure-types/`, `features/surgeries/`,
-  `features/residents/`, `proxy.ts`) plus real, manual browser
+  `features/residents/`, `features/research-studies/`, `proxy.ts`) plus
+  real, manual browser
   walkthroughs against a locally-running `api` and real (test-data,
   since cleaned up) Postgres rows — for Patients: login, register a
   patient, view it in the list and its own detail page, a nonexistent
@@ -934,10 +966,17 @@ Concretely, what exists in `packages/web` today:
   correctly in the Control history), then confirming removal is
   correctly **rejected inline** once they've participated — `api`'s own
   ADR-0010 invariant, shown verbatim in the UI, not a client-side
-  pre-check. Not a substitute for Milestone 8's own eventual scripted
-  Playwright walkthrough (still `NOT_STARTED`, tracked in this
-  milestone's Measurable completion criteria) — this was manual
-  verification during implementation, not the deliverable itself.
+  pre-check; for Research Study: registering a blank study (every field
+  is genuinely optional at the Domain level), editing its fields inline,
+  adding a real surgery (label correctly resolved through Surgery's own
+  Patient/ProcedureType name resolution), driving it DRAFT → IN_PROGRESS
+  → COMPLETED → reopen → IN_PROGRESS, confirming the Edit/Remove/Delete
+  affordances correctly appear and disappear at each status, removing
+  the surgery, and deleting a separate DRAFT study end-to-end. Not a
+  substitute for Milestone 8's own eventual scripted Playwright
+  walkthrough (still `NOT_STARTED`, tracked in this milestone's
+  Measurable completion criteria) — this was manual verification during
+  implementation, not the deliverable itself.
 - **Bug found and fixed during this slice's manual verification**:
   `toControlView`'s `recordedAtInputValue` (the value pre-filling a
   Control's inline edit `datetime-local` input) was originally built
@@ -953,6 +992,27 @@ Concretely, what exists in `packages/web` today:
   local getters instead, and a new test now asserts the round-trip
   property directly (unchanged edit ⇒ unchanged `recordedAtInputValue`)
   rather than a hardcoded, timezone-dependent string.
+- **Bug found and fixed during the Research Study slice's manual
+  verification**: `features/research-studies/queries.ts`'s
+  `listResearchStudies` originally assumed `GET /research-studies`
+  returns a bare array, like every other `list*` query in this
+  codebase. It doesn't — `packages/http/src/routes/research-study.ts`
+  sends its `ListResearchStudiesOutput` object as-is
+  (`{ researchStudies: [...] }`), unlike `/patients`/`/surgeries`/etc.,
+  which explicitly serialize to a bare array
+  (`patients.map(serializePatient)` in `core-loop.ts`). This surfaced
+  immediately as a rendering crash (`studies.map is not a function`) the
+  first time the Research Studies list page was opened in the browser —
+  no unit test caught it beforehand, since the test itself mocked the
+  same (wrong) bare-array assumption the code made. Fixed by unwrapping
+  the envelope inside `listResearchStudies` itself, so every other
+  caller keeps the same `Promise<ResearchStudyDto[]>` shape every other
+  feature's `list*` query already returns; the mismatched wire shape is
+  now documented on `ListResearchStudiesResponse` in `dtos.ts`. This is
+  the second slice in a row where the mandatory browser walkthrough
+  caught a real defect no unit test alone would have (see the timezone
+  bug above) — reinforcing why it stays a required step, not an optional
+  one, before any slice is considered done.
 
 **Deviations and decisions made during implementation** (none reopen an
 existing architectural decision — see Roadmap Maintenance Rule 8):
@@ -1117,7 +1177,7 @@ only becomes possible once Milestone 8 (frontend) and Milestone 9
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: 8 — Minimal physician-facing frontend (Next.js App Router, BFF). `IN_PROGRESS`: Authentication + Patients, Procedure Type, Surgery + Control, and Resident are built and verified; Research Study is not.**
+> **CURRENT MILESTONE: 8 — Minimal physician-facing frontend (Next.js App Router, BFF). `IN_PROGRESS`: all five vertical slices (Authentication + Patients, Procedure Type, Surgery + Control, Resident, Research Study) are built and verified; `web`'s own security headers, Railway deployment, and the scripted Playwright walkthrough are not.**
 
 Milestones 1 through 7 are complete (see their entries above and
 Historical Progress below): the full core loop plus read/query,
@@ -1130,33 +1190,44 @@ M4–M7 conformance-review fixes (see the Risks and Unknowns entry above
 and `docs/architecture/m4-m7-conformance-review.md`).
 
 Milestone 8 is now `IN_PROGRESS` — see its full entry above for exactly
-what exists in `packages/web` today (104 passing tests; lint,
+what exists in `packages/web` today (131 passing tests; lint,
 format-check, and typecheck all green workspace-wide) and what does not
-yet. It is **not** complete: only four of five vertical slices
-(Authentication + Patients, Procedure Type, Surgery + Control, Resident)
-are built, `web` has not been deployed to Railway, and Milestone 8's own
-Definition of Done requires every MVP-required backend capability to
-have a reachable screen. What remains is Research Study, then public
+yet. It is **not** complete: all five vertical slices (Authentication +
+Patients, Procedure Type, Surgery + Control, Resident, Research Study)
+are now built, meeting the "every MVP-required backend capability has a
+reachable screen" half of the Definition of Done — but `web`'s own
+security headers/CSP (Milestone 8's Scope item (a), still outstanding),
+`web`'s deployment to Railway, and the scripted Playwright walkthrough
+are not done yet. What remains is exactly those three, then public
 reachability and human validation (Milestone 9).
 
 ---
 
 ## Next Milestone
 
-**Still Milestone 8** — build the last vertical slice, Research Study,
-following the same pattern the four built slices already proved out
-(`features/<slice>/{queries,actions,dtos,mappers,schemas,components}`,
-Server Components for reads, Server Actions for writes, the same typed
-error contract). No open decision blocks it — Research Study's own
-lifecycle (`DRAFT ⇄ IN_PROGRESS ⇄ COMPLETED`, ADR 0006) is the one
-remaining shape not yet exercised by this frontend (Surgery/Control
-already proved the "Aggregate with internal state" pattern; Resident
-already proved cross-feature composition — reusing another slice's
-`queries.ts` and putting a write action in the aggregate that actually
-owns it). Once all five slices exist and `web` is deployed to Railway
-with its private-network path to `api` verified, Milestone 8's
-Definition of Done is met and Milestone 9 (public domain + human
-validation) becomes the next
+**Still Milestone 8** — all five vertical slices are now built and
+manually verified. What remains, in the order the design already
+implies:
+
+1. **`web`'s own security headers/CSP** — Milestone 8's Scope item (a)
+   (moved here from Milestone 7 specifically because `web`, not `api`,
+   is the actual public-facing surface; see Risks and Unknowns) has not
+   been implemented in any of the five slices. Client-IP forwarding
+   (item (b)) is done (`lib/client-ip.ts`, wired through
+   `authed-api-request.ts`); the headers/CSP half is not. No open design
+   question blocks it — `milestone-8-design.md` §11 already names the
+   mechanism (Next.js `headers()`/config), this is implementation work.
+2. **Deploy `web` to Railway**, with its private-network path to `api`
+   verified — the first point in the plan this connection can actually
+   be tested, since `web` didn't exist before Milestone 8.
+3. **A scripted (Playwright) browser-level walkthrough** of the full
+   workflow against that real deployment — Milestone 8's own Measurable
+   completion criteria, not yet started; the manual browser
+   verification performed during each slice's implementation was real
+   but is explicitly not a substitute for this.
+
+Once all three are done, Milestone 8's Definition of Done is met and
+Milestone 9 (public domain + human validation) becomes the next
 milestone.
 
 ---

@@ -30,6 +30,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <Link href="/residents" className="text-muted-foreground hover:text-foreground">
               Residents
             </Link>
+            <Link href="/research-studies" className="text-muted-foreground hover:text-foreground">
+              Research studies
+            </Link>
             <form action={logoutAction}>
               <button type="submit" className="text-muted-foreground hover:text-foreground">
                 Log out

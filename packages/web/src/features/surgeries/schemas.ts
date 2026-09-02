@@ -49,3 +49,10 @@ export const modifyControlSchema = z.object({
 });
 
 export type ModifyControlInput = z.infer<typeof modifyControlSchema>;
+
+/** Mirrors `api`'s own body for `POST /surgeries/:id/residents` — just which resident, required. */
+export const assignResidentSchema = z.object({
+  residentId: z.string().trim().min(1, "Select a resident"),
+});
+
+export type AssignResidentInput = z.infer<typeof assignResidentSchema>;

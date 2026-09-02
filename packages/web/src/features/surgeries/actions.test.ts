@@ -16,8 +16,13 @@ redirectMock.mockImplementation((path: string) => {
   throw new FakeRedirectSignal(path);
 });
 
-const { modifyControlAction, recordControlAction, registerSurgeryAction } =
-  await import("./actions.js");
+const {
+  assignResidentAction,
+  modifyControlAction,
+  recordControlAction,
+  registerSurgeryAction,
+  removeResidentAction,
+} = await import("./actions.js");
 
 function formData(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -266,5 +271,108 @@ describe("modifyControlAction", () => {
     await expect(
       modifyControlAction("surgery-1", "control-1", {}, formData({ observations: "x" })),
     ).rejects.toBeInstanceOf(ApiUnexpectedError);
+  });
+});
+
+describe("assignResidentAction", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    redirectMock.mockImplementation((path: string) => {
+      throw new FakeRedirectSignal(path);
+    });
+  });
+
+  it("succeeds: calls POST /surgeries/:id/residents and redirects back to the surgery", async () => {
+    authedApiRequestMock.mockResolvedValue({
+      surgeryId: "surgery-1",
+      participatingResidentIds: ["resident-1"],
+    });
+
+    await expect(
+      assignResidentAction("surgery-1", {}, formData({ residentId: "resident-1" })),
+    ).rejects.toThrow("NEXT_REDIRECT:/surgeries/surgery-1");
+
+    expect(authedApiRequestMock).toHaveBeenCalledWith({
+      method: "POST",
+      path: "/surgeries/surgery-1/residents",
+      body: { residentId: "resident-1" },
+    });
+  });
+
+  it("rejects an empty selection before ever calling api", async () => {
+    const result = await assignResidentAction("surgery-1", {}, formData({ residentId: "" }));
+
+    expect(result).toEqual({ error: "Please select a resident." });
+    expect(authedApiRequestMock).not.toHaveBeenCalled();
+  });
+
+  it("expectable error: surfaces api's cross-tenant DomainError inline, unchanged", async () => {
+    authedApiRequestMock.mockRejectedValue(
+      new ApiDomainError(
+        "A resident may only be assigned to a surgery within their own physician's tenant",
+      ),
+    );
+
+    const result = await assignResidentAction(
+      "surgery-1",
+      {},
+      formData({ residentId: "resident-1" }),
+    );
+
+    expect(result).toEqual({
+      error: "A resident may only be assigned to a surgery within their own physician's tenant",
+    });
+  });
+
+  it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
+    authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
+
+    await expect(
+      assignResidentAction("surgery-1", {}, formData({ residentId: "resident-1" })),
+    ).rejects.toBeInstanceOf(ApiUnexpectedError);
+  });
+});
+
+describe("removeResidentAction", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    redirectMock.mockImplementation((path: string) => {
+      throw new FakeRedirectSignal(path);
+    });
+  });
+
+  it("succeeds: calls DELETE /surgeries/:id/residents/:residentId and redirects back to the surgery", async () => {
+    authedApiRequestMock.mockResolvedValue({
+      surgeryId: "surgery-1",
+      participatingResidentIds: [],
+    });
+
+    await expect(removeResidentAction("surgery-1", "resident-1", {})).rejects.toThrow(
+      "NEXT_REDIRECT:/surgeries/surgery-1",
+    );
+
+    expect(authedApiRequestMock).toHaveBeenCalledWith({
+      method: "DELETE",
+      path: "/surgeries/surgery-1/residents/resident-1",
+    });
+  });
+
+  it("expectable error: surfaces api's participation-preservation rejection inline, unchanged", async () => {
+    authedApiRequestMock.mockRejectedValue(
+      new ApiDomainError("A resident who has recorded a control cannot be removed"),
+    );
+
+    const result = await removeResidentAction("surgery-1", "resident-1", {});
+
+    expect(result).toEqual({ error: "A resident who has recorded a control cannot be removed" });
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
+    authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
+
+    await expect(removeResidentAction("surgery-1", "resident-1", {})).rejects.toBeInstanceOf(
+      ApiUnexpectedError,
+    );
   });
 });

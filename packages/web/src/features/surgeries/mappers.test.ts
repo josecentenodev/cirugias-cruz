@@ -28,15 +28,25 @@ function buildControl(overrides: Partial<ControlDto> = {}): ControlDto {
 
 describe("toControlView", () => {
   it("labels a physician-authored control", () => {
-    const view = toControlView(buildControl());
+    const view = toControlView(buildControl(), new Map());
     expect(view.authorLabel).toBe("You (physician)");
   });
 
-  it("labels a resident-authored control with a shortened residentId", () => {
+  it("labels a resident-authored control with the resolved resident name", () => {
+    const residentNames = new Map([["resident-1", "Laura Díaz"]]);
     const view = toControlView(
-      buildControl({ author: { type: "resident", residentId: "abcdef12-3456-7890" } }),
+      buildControl({ author: { type: "resident", residentId: "resident-1" } }),
+      residentNames,
     );
-    expect(view.authorLabel).toBe("Resident abcdef12");
+    expect(view.authorLabel).toBe("Laura Díaz");
+  });
+
+  it("falls back to a placeholder when the authoring resident has no matching entry", () => {
+    const view = toControlView(
+      buildControl({ author: { type: "resident", residentId: "resident-1" } }),
+      new Map(),
+    );
+    expect(view.authorLabel).toBe("Unknown resident");
   });
 
   it("formats recordedAt for both display and datetime-local input pre-fill, in the viewer's local time", () => {
@@ -52,7 +62,7 @@ describe("toControlView", () => {
       `${expected.getFullYear()}-${pad(expected.getMonth() + 1)}-${pad(expected.getDate())}` +
       `T${pad(expected.getHours())}:${pad(expected.getMinutes())}`;
 
-    const view = toControlView(buildControl({ recordedAt }));
+    const view = toControlView(buildControl({ recordedAt }), new Map());
 
     expect(view.recordedAtInputValue).toBe(expectedLocalValue);
     expect(view.recordedAtLabel).toContain("2026");
@@ -62,9 +72,13 @@ describe("toControlView", () => {
     // The concrete correctness property that matters: pre-filling the
     // edit form with recordedAtInputValue and resubmitting it unchanged
     // must not silently shift the Control's recorded time.
-    const original = toControlView(buildControl({ recordedAt: "2026-01-16T14:30:00.000Z" }));
+    const original = toControlView(
+      buildControl({ recordedAt: "2026-01-16T14:30:00.000Z" }),
+      new Map(),
+    );
     const roundTripped = toControlView(
       buildControl({ recordedAt: new Date(original.recordedAtInputValue).toISOString() }),
+      new Map(),
     );
     expect(roundTripped.recordedAtInputValue).toBe(original.recordedAtInputValue);
   });
@@ -99,15 +113,16 @@ describe("toSurgeryListView", () => {
 });
 
 describe("toSurgeryDetailView", () => {
-  it("includes the full mapped Control history and the participating-resident roster", () => {
+  it("includes the full mapped Control history and the participating-resident roster, names resolved", () => {
     const surgery = buildSurgery({
       participatingResidentIds: ["resident-1"],
       controls: [buildControl({ id: "control-1", recordedAt: "2026-01-16T10:00:00.000Z" })],
     });
+    const residentNames = new Map([["resident-1", "Laura Díaz"]]);
 
-    const view = toSurgeryDetailView(surgery, new Map(), new Map());
+    const view = toSurgeryDetailView(surgery, new Map(), new Map(), residentNames);
 
-    expect(view.participatingResidentIds).toEqual(["resident-1"]);
+    expect(view.participants).toEqual([{ id: "resident-1", name: "Laura Díaz" }]);
     expect(view.controls).toHaveLength(1);
     expect(view.controls[0]?.id).toBe("control-1");
   });
@@ -120,7 +135,7 @@ describe("toSurgeryDetailView", () => {
       ],
     });
 
-    const view = toSurgeryDetailView(surgery, new Map(), new Map());
+    const view = toSurgeryDetailView(surgery, new Map(), new Map(), new Map());
 
     expect(view.controls.map((c) => c.id)).toEqual(["newer", "older"]);
   });

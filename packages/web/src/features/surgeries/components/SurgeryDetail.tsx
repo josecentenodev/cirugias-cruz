@@ -1,16 +1,27 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { SurgeryDetailView } from "../mappers";
+import { AssignResidentForm } from "./AssignResidentForm";
 import { ControlRow } from "./ControlRow";
 import { RecordControlForm } from "./RecordControlForm";
+import { RemoveResidentButton } from "./RemoveResidentButton";
 
 /**
  * Server Component — reads are rendered directly, no client-side fetch.
- * `ControlRow` (per-control edit toggle) and `RecordControlForm` (the
- * record form) are the only Client Components nested inside; everything
- * else here — headings, layout, the surgery's own fields — needs no
- * interactivity.
+ * `ControlRow`, `RecordControlForm`, `AssignResidentForm`, and
+ * `RemoveResidentButton` are the only Client Components nested inside;
+ * everything else here — headings, layout, the surgery's own fields —
+ * needs no interactivity. Assigning/removing a Resident lives on this
+ * page, not on a Resident-owned one, mirroring `api` itself
+ * (`assignResidentToSurgery`/`removeResidentFromSurgery` are Surgery's
+ * own operations — see `features/surgeries/actions.ts`).
  */
-export function SurgeryDetail({ surgery }: { surgery: SurgeryDetailView }) {
+export function SurgeryDetail({
+  surgery,
+  availableResidents,
+}: {
+  surgery: SurgeryDetailView;
+  availableResidents: { id: string; label: string }[];
+}) {
   return (
     <div className="flex flex-col gap-4">
       <Card>
@@ -20,6 +31,30 @@ export function SurgeryDetail({ surgery }: { surgery: SurgeryDetailView }) {
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Field label="Procedure type" value={surgery.procedureTypeName} />
           <Field label="Performed" value={surgery.performedAtLabel} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Residents</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {surgery.participants.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No residents assigned yet.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {surgery.participants.map((participant) => (
+                <li
+                  key={participant.id}
+                  className="flex items-center justify-between rounded-md border border-border p-2"
+                >
+                  <span className="text-sm">{participant.name}</span>
+                  <RemoveResidentButton surgeryId={surgery.id} residentId={participant.id} />
+                </li>
+              ))}
+            </ul>
+          )}
+          <AssignResidentForm surgeryId={surgery.id} residents={availableResidents} />
         </CardContent>
       </Card>
 
@@ -45,10 +80,7 @@ export function SurgeryDetail({ surgery }: { surgery: SurgeryDetailView }) {
           <CardTitle>Record a control</CardTitle>
         </CardHeader>
         <CardContent>
-          <RecordControlForm
-            surgeryId={surgery.id}
-            participatingResidentIds={surgery.participatingResidentIds}
-          />
+          <RecordControlForm surgeryId={surgery.id} participants={surgery.participants} />
         </CardContent>
       </Card>
     </div>

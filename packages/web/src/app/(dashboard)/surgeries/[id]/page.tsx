@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listPatients } from "@/features/patients/queries";
 import { listProcedureTypes } from "@/features/procedure-types/queries";
+import { listResidents } from "@/features/residents/queries";
 import { SurgeryDetail } from "@/features/surgeries/components/SurgeryDetail";
 import { toSurgeryDetailView } from "@/features/surgeries/mappers";
 import { getSurgery } from "@/features/surgeries/queries";
@@ -13,19 +14,29 @@ export default async function SurgeryDetailPage({ params }: { params: Promise<{ 
   // getSurgery calls notFound() itself on a missing/foreign surgery
   // (see queries.ts) — resolved before the name-lookup reads below run.
   const surgery = await getSurgery(id);
-  const [patients, procedureTypes] = await Promise.all([listPatients(), listProcedureTypes()]);
+  const [patients, procedureTypes, residents] = await Promise.all([
+    listPatients(),
+    listProcedureTypes(),
+    listResidents(),
+  ]);
 
   const patientNames = new Map(patients.map((p) => [p.id, `${p.firstName} ${p.lastName}`]));
   const procedureTypeNames = new Map(procedureTypes.map((pt) => [pt.id, pt.name]));
+  const residentNames = new Map(residents.map((r) => [r.id, `${r.firstName} ${r.lastName}`]));
 
-  const view = toSurgeryDetailView(surgery, patientNames, procedureTypeNames);
+  const view = toSurgeryDetailView(surgery, patientNames, procedureTypeNames, residentNames);
+
+  const participatingIds = new Set(view.participants.map((p) => p.id));
+  const availableResidents = residents
+    .filter((r) => !participatingIds.has(r.id))
+    .map((r) => ({ id: r.id, label: `${r.firstName} ${r.lastName}` }));
 
   return (
     <div className="flex flex-col gap-4">
       <Link href="/surgeries" className="text-sm text-muted-foreground hover:text-foreground">
         ← Back to surgeries
       </Link>
-      <SurgeryDetail surgery={view} />
+      <SurgeryDetail surgery={view} availableResidents={availableResidents} />
     </div>
   );
 }

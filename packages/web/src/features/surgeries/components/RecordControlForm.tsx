@@ -6,6 +6,7 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { recordControlAction, type RecordControlFormState } from "../actions";
+import type { ParticipantView } from "../mappers";
 
 const initialState: RecordControlFormState = {};
 
@@ -19,29 +20,26 @@ function SubmitButton() {
 }
 
 /**
- * `participatingResidentIds` come straight from the Surgery aggregate
- * (`SurgeryDto.participatingResidentIds`) — the same roster
- * `Surgery.recordControl`'s resident branch checks server-side. This
- * form does not let a physician type an arbitrary residentId; the
- * dropdown is populated only from residents `api` already reports as
- * currently participating, so a picker can never offer a choice `api`
- * would reject. No resident *names* are shown yet — assigning a
- * Resident to a Surgery, and the Resident-name lookups that make more
- * than an id displayable, are the next vertical slice's own work (see
- * ROADMAP.md's Milestone 8 entry); until then this list is typically
- * empty and the "record as a resident" option stays disabled.
+ * `participants` come straight from the Surgery aggregate
+ * (`SurgeryDto.participatingResidentIds`, resolved to display names by
+ * `toSurgeryDetailView` via `features/residents/queries.ts` — see
+ * `[id]/page.tsx`) — the same roster `Surgery.recordControl`'s resident
+ * branch checks server-side. This form does not let a physician type an
+ * arbitrary residentId; the dropdown is populated only from residents
+ * `api` already reports as currently participating, so a picker can
+ * never offer a choice `api` would reject.
  */
 export function RecordControlForm({
   surgeryId,
-  participatingResidentIds,
+  participants,
 }: {
   surgeryId: string;
-  participatingResidentIds: string[];
+  participants: ParticipantView[];
 }) {
   const boundAction = recordControlAction.bind(null, surgeryId);
   const [state, formAction] = useActionState(boundAction, initialState);
   const [authorType, setAuthorType] = useState<"physician" | "resident">("physician");
-  const hasParticipatingResidents = participatingResidentIds.length > 0;
+  const hasParticipants = participants.length > 0;
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -65,12 +63,12 @@ export function RecordControlForm({
               type="radio"
               name="authorType"
               value="resident"
-              disabled={!hasParticipatingResidents}
+              disabled={!hasParticipants}
               checked={authorType === "resident"}
               onChange={() => setAuthorType("resident")}
             />
             A participating resident
-            {hasParticipatingResidents ? null : (
+            {hasParticipants ? null : (
               <span className="text-xs text-muted-foreground">
                 (none currently assigned to this surgery)
               </span>
@@ -79,7 +77,7 @@ export function RecordControlForm({
         </div>
       </fieldset>
 
-      {authorType === "resident" && hasParticipatingResidents ? (
+      {authorType === "resident" && hasParticipants ? (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="residentId">Resident</Label>
           <select
@@ -92,9 +90,9 @@ export function RecordControlForm({
             <option value="" disabled>
               Select a resident
             </option>
-            {participatingResidentIds.map((residentId) => (
-              <option key={residentId} value={residentId}>
-                Resident {residentId.slice(0, 8)}
+            {participants.map((participant) => (
+              <option key={participant.id} value={participant.id}>
+                {participant.name}
               </option>
             ))}
           </select>

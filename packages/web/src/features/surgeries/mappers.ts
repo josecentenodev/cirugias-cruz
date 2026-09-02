@@ -16,12 +16,17 @@ export interface SurgeryListView {
   controlCount: number;
 }
 
+export interface ParticipantView {
+  id: string;
+  name: string;
+}
+
 export interface SurgeryDetailView {
   id: string;
   patientName: string;
   procedureTypeName: string;
   performedAtLabel: string;
-  participatingResidentIds: string[];
+  participants: ParticipantView[];
   controls: ControlView[];
 }
 
@@ -42,7 +47,7 @@ function resolveName(id: string, lookup: NameLookup, fallback: string): string {
   return lookup.get(id) ?? fallback;
 }
 
-export function toControlView(dto: ControlDto): ControlView {
+export function toControlView(dto: ControlDto, residentNames: NameLookup): ControlView {
   return {
     id: dto.id,
     observations: dto.observations,
@@ -51,7 +56,7 @@ export function toControlView(dto: ControlDto): ControlView {
     authorLabel:
       dto.author.type === "physician"
         ? "You (physician)"
-        : `Resident ${dto.author.residentId.slice(0, 8)}`,
+        : resolveName(dto.author.residentId, residentNames, "Unknown resident"),
   };
 }
 
@@ -73,15 +78,19 @@ export function toSurgeryDetailView(
   dto: SurgeryDto,
   patientNames: NameLookup,
   procedureTypeNames: NameLookup,
+  residentNames: NameLookup,
 ): SurgeryDetailView {
   return {
     id: dto.id,
     patientName: resolveName(dto.patientId, patientNames, "Unknown patient"),
     procedureTypeName: resolveName(dto.procedureTypeId, procedureTypeNames, "Unknown procedure"),
     performedAtLabel: formatDate(dto.performedAt),
-    participatingResidentIds: dto.participatingResidentIds,
+    participants: dto.participatingResidentIds.map((residentId) => ({
+      id: residentId,
+      name: resolveName(residentId, residentNames, "Unknown resident"),
+    })),
     controls: dto.controls
-      .map(toControlView)
+      .map((control) => toControlView(control, residentNames))
       // Newest first — a physician reviewing follow-up cares most about
       // the most recent observation; `api` itself doesn't sort this.
       .sort((a, b) => b.recordedAtInputValue.localeCompare(a.recordedAtInputValue)),

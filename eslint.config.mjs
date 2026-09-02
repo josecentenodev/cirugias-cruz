@@ -24,6 +24,14 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    rules: {
+      // A leading underscore is this codebase's existing convention for
+      // an intentionally-unused parameter (e.g. a Server Action's
+      // `_previousState`, required by `useActionState`'s call signature
+      // but not read) — this makes that convention actually enforced/
+      // exempted consistently, rather than only by positional accident.
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+    },
   },
   {
     // packages/web only: React Hooks correctness rules (exhaustive-deps,

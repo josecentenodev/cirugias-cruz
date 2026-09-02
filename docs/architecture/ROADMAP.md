@@ -225,18 +225,18 @@ reasoning and Milestone 8 for its scope.
 > "usable by a physician through the product" are no longer treated as
 > equivalent — see Progress Measurement below.
 
-| Capability                                                                | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                      |
-| ------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | --------------------------------------------------- |
-| Physician registration + authentication                                   | N/A    | ✅          | ✅          | ✅        | N/A      | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
-| Patient (register + retrieve)                                             | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
-| Procedure Type (register + retrieve)                                      | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
-| Surgery + Control history (register/record/modify + retrieve)             | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
-| Resident (register, assign/remove on Surgery, retrieve)                   | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
-| Research Study (create, edit, manage universe, full lifecycle, retrieve)  | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8           |
-| `api` security baseline (validation, forwarded-IP rate limiting, headers) | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                              |
-| `web` security baseline (headers/CSP, client-IP forwarding)               | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | N/A       | Not started — Milestone 8 (`web` doesn't exist yet) |
-| Public reachability                                                       | N/A    | N/A         | N/A         | N/A       | N/A      | N/A | ❌        | No public domain attached — Milestone 9             |
-| Platform Admin visibility                                                 | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                  |
+| Capability                                                                | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                 |
+| ------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | ---------------------------------------------------------------------------------------------- |
+| Physician registration + authentication                                   | N/A    | ✅          | ✅          | ✅        | N/A      | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                      |
+| Patient (register + retrieve)                                             | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, in progress) — no public deployment/human walkthrough yet (Milestone 9) |
+| Procedure Type (register + retrieve)                                      | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                      |
+| Surgery + Control history (register/record/modify + retrieve)             | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                      |
+| Resident (register, assign/remove on Surgery, retrieve)                   | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                      |
+| Research Study (create, edit, manage universe, full lifecycle, retrieve)  | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Technically complete; no UI — Milestone 8                                                      |
+| `api` security baseline (validation, forwarded-IP rate limiting, headers) | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                         |
+| `web` security baseline (headers/CSP, client-IP forwarding)               | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | N/A       | Not started — Milestone 8 (`web` doesn't exist yet)                                            |
+| Public reachability                                                       | N/A    | N/A         | N/A         | N/A       | N/A      | N/A | ❌        | No public domain attached — Milestone 9                                                        |
+| Platform Admin visibility                                                 | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                             |
 
 **Nothing is Human-E2E complete yet.** Every MVP-required backend
 capability (Milestones 1–7) is now `TECHNICALLY_COMPLETE` — proven
@@ -832,7 +832,88 @@ the first time — not duplicating the HTTP e2e tests already proving
 backend correctness, but proving the UI correctly drives that
 already-proven backend.
 
-**Status**: `NOT_STARTED`
+**Status**: `IN_PROGRESS` — the first vertical slice (Authentication +
+Patients) is built and verified, following exactly the design in
+`docs/architecture/milestone-8-design.md` with no undocumented
+architectural deviation. **Not yet done**: Procedure Type, Surgery +
+Control, Resident, and Research Study are not built — this milestone's
+DoD ("every MVP-required backend capability... has a corresponding,
+reachable screen") is not met until they are. `web` has not been
+deployed to Railway, so "verified able to reach `api` over Railway's
+private network" is also not yet checked — only local `web` ↔ local
+`api` has been proven.
+
+Concretely, what exists in `packages/web` today:
+
+- `lib/api-client.ts` (the sole `fetch` boundary to `api`), `lib/session.ts`
+  (`web_session` cookie — see below), `lib/client-ip.ts`, and
+  `lib/authed-api-request.ts` (the single point where an `ApiAuthError`
+  becomes a redirect to `/login`, per §7 of the design document).
+- `proxy.ts` (Next 16 renamed "middleware" to "proxy" — same cookie-
+  _presence_-only check the design specifies, not a second auth
+  authority).
+- Login (`POST /sessions`) and logout (`DELETE /sessions`), with the
+  four requirements `milestone-8-session-security-review.md` added
+  before implementation: fail-closed login (no session cookie set if
+  `api`'s response carries no extractable session id), unconditional
+  cookie-clearing logout (even if invalidating on `api` fails).
+- The Patients vertical slice: list, detail, and registration, each a
+  Server Component read (`features/patients/queries.ts`) or a Server
+  Action write (`features/patients/actions.ts`) — no client-side `fetch`
+  anywhere.
+- The typed error contract from the design (`ApiAuthError`/
+  `ApiNotFoundError`/`ApiDomainError`/`ApiUnexpectedError`), wired
+  end-to-end: a missing patient renders via `not-found.tsx`
+  (`notFound()`), an unexpected failure would hit `error.tsx`, and a
+  `DomainError` from `api` is shown inline on the registration form
+  exactly as `api` phrased it.
+- `components/ui/*` — a small shadcn/ui-style primitive set (Button,
+  Input, Label, Card, Table, Alert) built on plain semantic HTML with
+  `class-variance-authority`, not Base UI — see "Deviations and
+  decisions made during implementation" below for why.
+- 48 tests (`lib/`, `features/auth/`, `features/patients/`, `proxy.ts`)
+  plus a real, manual browser walkthrough against a locally-running
+  `api` and a real (test-data, since cleaned up) Postgres row — login,
+  register a patient, view it in the list and its own detail page, a
+  nonexistent patient id correctly rendering `not-found.tsx`, logout,
+  and confirming an unauthenticated request to `/patients` redirects to
+  `/login`. Not a substitute for Milestone 8's own eventual scripted
+  Playwright walkthrough (still `NOT_STARTED`, tracked in this
+  milestone's Measurable completion criteria) — this was a manual
+  verification during implementation, not the deliverable itself.
+
+**Deviations and decisions made during implementation** (none reopen an
+existing architectural decision — see Roadmap Maintenance Rule 8):
+
+- **Next.js 16 renamed the "middleware" file convention to "proxy"**
+  (`packages/web/src/proxy.ts`, exporting `proxy` instead of
+  `middleware`) — a framework naming change between when
+  `milestone-8-design.md` was written and when Next 16 was actually
+  installed, not a design change; the file's one responsibility
+  (cookie-presence check only) is unchanged.
+- **`components/ui/*` uses plain semantic HTML + `class-variance-authority`
+  for Button/Input/Label/Card/Table/Alert, not Base UI primitives.**
+  `@base-ui/react` (the current package name — `@base-ui-components/react`
+  is deprecated/renamed) is installed and is the project's intended
+  primitive layer, but none of these six components have ARIA/behavioral
+  complexity Base UI would add value to (no popover, no listbox, no
+  focus-trap) — using it for a plain `<button>` would be exactly the
+  "unnecessary abstraction" Roadmap/Milestone 8 rules warn against. Base
+  UI is expected to earn its place the first time a genuinely complex
+  interactive primitive is needed (e.g. a Select for assigning a Resident
+  in a future slice).
+- **`lib/authed-api-request.ts`** is a small addition not itemized by
+  name in `milestone-8-design.md`'s file list, but implements exactly
+  what that document's §7 already specified ("every route/component...
+  catch by type... trigger the redirect for 401") — centralized into one
+  function instead of repeated per feature, which
+  `milestone-8-design.md` itself calls the correct pattern (§2's "single
+  chokepoint" reasoning, applied one layer up so `api-client.ts` itself
+  stays free of `next/navigation` knowledge).
+
+**No other deviation was found or required** — `web_session`'s mechanics,
+the Server/Client Component split, the error-status mapping, and the
+feature-folder structure all match the design document as written.
 
 ---
 
@@ -949,7 +1030,7 @@ only becomes possible once Milestone 8 (frontend) and Milestone 9
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: none — Milestones 1–7 are complete and merged into `main`; Milestone 8 (frontend) is next, fully planned and approved, awaiting implementation authorization**
+> **CURRENT MILESTONE: 8 — Minimal physician-facing frontend (Next.js App Router, BFF). `IN_PROGRESS`: the Authentication + Patients vertical slice is built and verified; Procedure Type, Surgery + Control, Resident, and Research Study are not.**
 
 Milestones 1 through 7 are complete (see their entries above and
 Historical Progress below): the full core loop plus read/query,
@@ -959,22 +1040,33 @@ against a real Railway Postgres instance, with the full workspace
 quality gate (lint, format-check, typecheck, test — 81 Domain + 102
 Application + 45 Infrastructure + 31 HTTP tests) green, including the
 M4–M7 conformance-review fixes (see the Risks and Unknowns entry above
-and `docs/architecture/m4-m7-conformance-review.md`). What remains is
-the frontend (Milestone 8) and public reachability + human validation
-(Milestone 9).
+and `docs/architecture/m4-m7-conformance-review.md`).
+
+Milestone 8 is now `IN_PROGRESS` — see its full entry above for exactly
+what exists in `packages/web` today (48 passing tests; lint,
+format-check, and typecheck all green workspace-wide) and what does not
+yet. It is **not** complete: only one of five vertical slices
+(Authentication + Patients) is built, `web` has not been deployed to
+Railway, and Milestone 8's own Definition of Done requires every
+MVP-required backend capability to have a reachable screen. What
+remains is the other four vertical slices (Procedure Type, Surgery +
+Control, Resident, Research Study), then public reachability and human
+validation (Milestone 9).
 
 ---
 
 ## Next Milestone
 
-**Milestone 8 — Minimal physician-facing frontend (Next.js App Router,
-BFF).** See its full entry above. Its hard prerequisite (Milestone 4)
-and soft prerequisites (Milestones 5–6, for full MVP-workflow coverage)
-are all satisfied; Milestone 7 (the `api` security baseline it depends
-on for the private-network path) is also complete. No open decision
-blocks it — the frontend technology and BFF pattern were confirmed
-before Milestones 4–7 began. This is now the sole remaining path to an
-MVP a physician can actually use.
+**Still Milestone 8** — continue building the remaining vertical slices
+(Procedure Type, Surgery + Control, Resident, Research Study), each
+following the same pattern the Authentication + Patients slice already
+proved out (`features/<slice>/{queries,actions,dtos,mappers,schemas,components}`,
+Server Components for reads, Server Actions for writes, the same typed
+error contract). No open decision blocks any of them — the pattern is
+proven, not merely designed. Once all five slices exist and `web` is
+deployed to Railway with its private-network path to `api` verified,
+Milestone 8's Definition of Done is met and Milestone 9 (public domain +
+human validation) becomes the next milestone.
 
 ---
 

@@ -9,7 +9,7 @@ import { defineConfig, devices } from "@playwright/test";
  * - PLAYWRIGHT_BASE_URL: the `web` origin to drive the browser against.
  *   Defaults to a locally-running production build (`next start`, see
  *   package.json's `start` script) on port 3001.
- * - PLAYWRIGHT_API_BASE_URL: used only by `e2e/setup.ts` to register a
+ * - PLAYWRIGHT_API_BASE_URL: used only by `e2e/test-physician.ts` to register a
  *   fresh, unique test physician directly against `api` before the
  *   browser-driven part of the walkthrough begins — there is no
  *   self-registration UI (`web`'s own documented Scope; see

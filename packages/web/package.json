@@ -22,7 +22,6 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
-    "@cirugias-cruz/infrastructure": "workspace:*",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20.14.0",

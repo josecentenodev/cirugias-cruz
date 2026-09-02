@@ -20,7 +20,13 @@ export default tseslint.config(
     extends: [...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       parserOptions: {
-        projectService: true,
+        // `e2e-cleanup.ts` sits outside `packages/infrastructure`'s own
+        // `rootDir: "src"` (it's a standalone script, not library
+        // source — see `tsconfig.scripts.json`), so it can't be added to
+        // that package's main tsconfig `include` without breaking its
+        // build. `allowDefaultProject` lets the project service lint it
+        // against an inferred, single-file program instead.
+        projectService: { allowDefaultProject: ["packages/infrastructure/e2e-cleanup.ts"] },
         tsconfigRootDir: import.meta.dirname,
       },
     },

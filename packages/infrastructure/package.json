@@ -6,7 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },

@@ -1,6 +1,6 @@
 import { assertActingPhysicianOwnsResource } from "../shared/assert-tenant-owner.js";
 import { DomainError } from "../shared/domain-error.js";
-import { Control, type ControlAttributes } from "./control.js";
+import { Control, type ControlAttributes, type ControlAuthor } from "./control.js";
 
 export type SurgeryState = "DONE";
 
@@ -190,14 +190,29 @@ export class Surgery {
     return control;
   }
 
+  /**
+   * The Physician may modify any Control in their tenant, regardless of
+   * who authored it. A Resident may modify only a Control they
+   * themselves authored — never another Resident's, and never delete
+   * any Control at all (see `deleteControl`, unchanged, Physician-only).
+   * This is ADR 0017's amendment to ADR 0004's original
+   * Physician-only rule.
+   */
   modifyControl(
     controlId: string,
     changes: { observations?: string; recordedAt?: Date },
-    actingPhysicianId: string,
+    actingAs: ControlAuthor,
   ): void {
-    assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
-
     const control = this.findControl(controlId);
+
+    if (actingAs.type === "physician") {
+      assertActingPhysicianOwnsResource(this.physicianId_, actingAs.physicianId);
+    } else {
+      if (control.author.type !== "resident" || control.author.residentId !== actingAs.residentId) {
+        throw new DomainError("A resident may only modify a Control they themselves authored");
+      }
+    }
+
     if (changes.observations !== undefined) {
       control.updateObservations(changes.observations);
     }

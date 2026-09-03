@@ -63,6 +63,7 @@ export {
   type ModifyControlInput,
   type ModifyControlOutput,
   type ModifyControlDeps,
+  type ModifyControlActorInput,
 } from "./surgery/modify-control.js";
 export {
   removeResidentFromSurgery,
@@ -70,6 +71,16 @@ export {
   type RemoveResidentFromSurgeryOutput,
   type RemoveResidentFromSurgeryDeps,
 } from "./surgery/remove-resident-from-surgery.js";
+export {
+  listSurgeriesForResident,
+  type ListSurgeriesForResidentInput,
+  type ListSurgeriesForResidentDeps,
+} from "./surgery/list-surgeries-for-resident.js";
+export {
+  getSurgeryForResident,
+  type GetSurgeryForResidentInput,
+  type GetSurgeryForResidentDeps,
+} from "./surgery/get-surgery-for-resident.js";
 
 export type { PhysicianRepository } from "./physician/physician-repository.js";
 export type {
@@ -77,7 +88,11 @@ export type {
   PhysicianCredentialRepository,
 } from "./physician/physician-credential-repository.js";
 export type { PasswordHasher } from "./physician/password-hasher.js";
-export type { Session, SessionRepository } from "./physician/session-repository.js";
+export type {
+  CreateSessionInput,
+  Session,
+  SessionRepository,
+} from "./physician/session-repository.js";
 export type {
   EmailConfirmationToken,
   EmailConfirmationTokenRepository,
@@ -104,6 +119,11 @@ export {
 } from "./physician/confirm-physician-email.js";
 
 export type { ResidentRepository } from "./resident/resident-repository.js";
+export type {
+  ResidentCredential,
+  ResidentCredentialRepository,
+} from "./resident/resident-credential-repository.js";
+export type { TemporaryPasswordGenerator } from "./resident/temporary-password-generator.js";
 export {
   registerResident,
   type RegisterResidentInput,
@@ -120,6 +140,27 @@ export {
   type GetResidentInput,
   type GetResidentDeps,
 } from "./resident/get-resident.js";
+export {
+  changeResidentPassword,
+  type ChangeResidentPasswordInput,
+  type ChangeResidentPasswordDeps,
+} from "./resident/change-resident-password.js";
+export {
+  resetResidentPassword,
+  type ResetResidentPasswordInput,
+  type ResetResidentPasswordOutput,
+  type ResetResidentPasswordDeps,
+} from "./resident/reset-resident-password.js";
+export {
+  setResidentActive,
+  type SetResidentActiveInput,
+  type SetResidentActiveDeps,
+} from "./resident/set-resident-active.js";
+export {
+  viewResidentTemporaryPassword,
+  type ViewResidentTemporaryPasswordInput,
+  type ViewResidentTemporaryPasswordOutput,
+} from "./resident/view-resident-temporary-password.js";
 
 export type { ResearchStudyRepository } from "./research-study/research-study-repository.js";
 export {

@@ -209,7 +209,7 @@ describe("Surgery", () => {
     expect(() => surgery.assertCanBeDeletedBy(PHYSICIAN_ID)).not.toThrow();
   });
 
-  it("only the owning physician may modify a control, regardless of who authored it", () => {
+  it("the owning physician may modify any control, regardless of who authored it", () => {
     const surgery = createSurgery();
     surgery.assignResident("resident-1", PHYSICIAN_ID);
     surgery.recordControl({
@@ -220,11 +220,77 @@ describe("Surgery", () => {
     });
 
     expect(() =>
-      surgery.modifyControl("control-1", { observations: "updated" }, OTHER_PHYSICIAN_ID),
+      surgery.modifyControl(
+        "control-1",
+        { observations: "updated" },
+        { type: "physician", physicianId: OTHER_PHYSICIAN_ID },
+      ),
     ).toThrow();
 
-    surgery.modifyControl("control-1", { observations: "updated" }, PHYSICIAN_ID);
+    surgery.modifyControl(
+      "control-1",
+      { observations: "updated" },
+      { type: "physician", physicianId: PHYSICIAN_ID },
+    );
     expect(surgery.controls[0]?.observations).toBe("updated");
+  });
+
+  it("a resident may modify a control they themselves authored (ADR 0017)", () => {
+    const surgery = createSurgery();
+    surgery.assignResident("resident-1", PHYSICIAN_ID);
+    surgery.recordControl({
+      id: "control-1",
+      observations: "obs",
+      recordedAt: new Date(),
+      author: { type: "resident", residentId: "resident-1" },
+    });
+
+    surgery.modifyControl(
+      "control-1",
+      { observations: "updated by author" },
+      { type: "resident", residentId: "resident-1" },
+    );
+
+    expect(surgery.controls[0]?.observations).toBe("updated by author");
+  });
+
+  it("a resident may not modify a control authored by another resident", () => {
+    const surgery = createSurgery();
+    surgery.assignResident("resident-1", PHYSICIAN_ID);
+    surgery.assignResident("resident-2", PHYSICIAN_ID);
+    surgery.recordControl({
+      id: "control-1",
+      observations: "obs",
+      recordedAt: new Date(),
+      author: { type: "resident", residentId: "resident-1" },
+    });
+
+    expect(() =>
+      surgery.modifyControl(
+        "control-1",
+        { observations: "updated" },
+        { type: "resident", residentId: "resident-2" },
+      ),
+    ).toThrow();
+  });
+
+  it("a resident may not modify a control authored by the physician", () => {
+    const surgery = createSurgery();
+    surgery.assignResident("resident-1", PHYSICIAN_ID);
+    surgery.recordControl({
+      id: "control-1",
+      observations: "obs",
+      recordedAt: new Date(),
+      author: { type: "physician", physicianId: PHYSICIAN_ID },
+    });
+
+    expect(() =>
+      surgery.modifyControl(
+        "control-1",
+        { observations: "updated" },
+        { type: "resident", residentId: "resident-1" },
+      ),
+    ).toThrow();
   });
 
   it("reconstitutes a surgery with its existing controls and participating residents, without re-running creation checks", () => {

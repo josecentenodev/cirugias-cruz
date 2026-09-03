@@ -44,7 +44,17 @@ export async function apiRequestRaw(options: ApiRequestOptions): Promise<Respons
     response = await fetch(`${apiBaseUrl()}${options.path}`, {
       method: options.method,
       headers: {
-        "content-type": "application/json",
+        // Only declared when there's an actual body — sending
+        // `content-type: application/json` on a bodyless request (e.g.
+        // `POST /residents/:id/password-reset`, ADR 0017) makes
+        // Fastify's default JSON parser reject it with 400 "Body cannot
+        // be empty when content-type is set to 'application/json'"
+        // (`FST_ERR_CTP_EMPTY_JSON_BODY`) before the route handler ever
+        // runs — found via manual browser verification, not a test
+        // suite, since every existing bodyless call in this codebase
+        // happens to use DELETE, which Fastify doesn't route through
+        // body parsing the same way.
+        ...(options.body !== undefined ? { "content-type": "application/json" } : {}),
         cookie: options.sessionId ? `session_id=${options.sessionId}` : "",
         ...(options.clientIp ? { "x-forwarded-for": options.clientIp } : {}),
       },

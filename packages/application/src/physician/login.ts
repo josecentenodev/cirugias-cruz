@@ -1,4 +1,5 @@
 import { DomainError } from "@cirugias-cruz/domain";
+import type { ResidentCredentialRepository } from "../resident/resident-credential-repository.js";
 import type { PhysicianCredentialRepository } from "./physician-credential-repository.js";
 import type { PasswordHasher } from "./password-hasher.js";
 import type { Session, SessionRepository } from "./session-repository.js";
@@ -10,42 +11,73 @@ export interface LoginInput {
 
 export interface LoginDeps {
   physicianCredentialRepository: PhysicianCredentialRepository;
+  residentCredentialRepository: ResidentCredentialRepository;
   passwordHasher: PasswordHasher;
   sessionRepository: SessionRepository;
 }
 
 /**
- * Authenticates a Physician by email + password and creates a
- * server-side session. Deliberately returns the same error for "no such
- * email" and "wrong password" — which credential was wrong is not
- * information the caller needs, and distinguishing them would leak
- * whether an email is registered.
+ * Authenticates either a Physician or a Resident by email + password —
+ * one login for both principal types (ADR 0017), since both are
+ * identified by `email` (ADR 0012) and email is enforced unique across
+ * both credential stores (see `registerPhysician`/`registerResident`).
+ * The Physician store is checked first; a hit there short-circuits
+ * before the Resident store is ever touched.
+ *
+ * Deliberately returns the same "Invalid email or password" error for
+ * "no such email" and "wrong password" in both branches — which
+ * credential was wrong, and even which *kind* of principal an email
+ * belongs to, is not information the caller needs before proving they
+ * hold the password.
  */
 export function login(deps: LoginDeps) {
   return async function execute(input: LoginInput): Promise<Session> {
-    const credential = await deps.physicianCredentialRepository.findByEmail(input.email);
-    if (!credential) {
+    const physicianCredential = await deps.physicianCredentialRepository.findByEmail(input.email);
+    if (physicianCredential) {
+      const passwordMatches = await deps.passwordHasher.verify(
+        input.password,
+        physicianCredential.passwordHash,
+      );
+      if (!passwordMatches) {
+        throw new DomainError("Invalid email or password");
+      }
+
+      // ADR 0016: email confirmation is paused for MVP. `confirmedAt`
+      // is still recorded on the credential (dormant — see the ADR) but
+      // no longer checked here; re-enabling it later is restoring the
+      // check this comment used to describe, not rebuilding anything.
+      return deps.sessionRepository.create({
+        userType: "physician",
+        physicianId: physicianCredential.physicianId,
+      });
+    }
+
+    const residentCredential = await deps.residentCredentialRepository.findByEmail(input.email);
+    if (!residentCredential) {
       throw new DomainError("Invalid email or password");
     }
 
     const passwordMatches = await deps.passwordHasher.verify(
       input.password,
-      credential.passwordHash,
+      residentCredential.passwordHash,
     );
     if (!passwordMatches) {
       throw new DomainError("Invalid email or password");
     }
 
-    // Checked only after the password is confirmed correct (ADR 0015) —
-    // unlike the email/password check above, there's no information-leak
-    // concern here: the caller has already proven they own this
-    // credential, so telling them specifically that it's unconfirmed
-    // (rather than folding it into "invalid email or password") is a
-    // real, distinct thing they can act on.
-    if (!credential.confirmedAt) {
-      throw new DomainError("Please confirm your email before logging in");
+    // Checked only after the password is confirmed correct — same
+    // reasoning ADR 0015 already established for the (now-paused)
+    // unconfirmed-email case: the caller has proven they hold this
+    // credential, so a specific message is no longer an information
+    // leak (ADR 0017).
+    if (!residentCredential.active) {
+      throw new DomainError("This account has been deactivated");
     }
 
-    return deps.sessionRepository.create(credential.physicianId);
+    return deps.sessionRepository.create({
+      userType: "resident",
+      physicianId: residentCredential.physicianId,
+      residentId: residentCredential.residentId,
+    });
   };
 }

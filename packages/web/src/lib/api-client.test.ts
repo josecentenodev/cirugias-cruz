@@ -47,6 +47,29 @@ describe("apiRequest / apiRequestRaw", () => {
     expect(init.body).toBe(JSON.stringify({ email: "a", password: "b" }));
   });
 
+  it("sets content-type: application/json when a body is sent", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiRequest({ method: "POST", path: "/sessions", body: { email: "a", password: "b" } });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers["content-type"]).toBe("application/json");
+  });
+
+  it("omits content-type entirely for a bodyless request — Fastify's default JSON parser rejects an empty body declared as application/json", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiRequest({ method: "POST", path: "/residents/resident-1/password-reset" });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers["content-type"]).toBeUndefined();
+    expect(init.body).toBeUndefined();
+  });
+
   it("returns undefined for a 204 response without attempting to parse a body", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
 

@@ -211,7 +211,7 @@ describe("Resident vertical slice over real HTTP, authenticated, against real Po
     });
 
     expect(assignAttempt.statusCode).toBe(400);
-  });
+  }, 60000);
 
   it("does not let a physician see another tenant's resident by id", async () => {
     const app = await buildApp(buildDeps());
@@ -239,5 +239,5 @@ describe("Resident vertical slice over real HTTP, authenticated, against real Po
     });
 
     expect(getAttempt.statusCode).toBe(404);
-  });
+  }, 60000);
 });

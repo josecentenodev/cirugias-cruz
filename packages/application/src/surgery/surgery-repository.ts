@@ -9,5 +9,7 @@ import type { Surgery } from "@cirugias-cruz/domain";
 export interface SurgeryRepository {
   findById(id: string): Promise<Surgery | null>;
   findByPhysicianId(physicianId: string): Promise<Surgery[]>;
+  /** Every Surgery a Resident participates in — the "Surgery panel" ADR 0017 grants them (nothing else in the tenant). */
+  findByResidentId(residentId: string): Promise<Surgery[]>;
   save(surgery: Surgery): Promise<void>;
 }

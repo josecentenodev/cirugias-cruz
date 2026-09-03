@@ -18,12 +18,21 @@ import type {
   PhysicianCredentialRepository,
 } from "../physician/physician-credential-repository.js";
 import type { PasswordHasher } from "../physician/password-hasher.js";
-import type { Session, SessionRepository } from "../physician/session-repository.js";
+import type {
+  CreateSessionInput,
+  Session,
+  SessionRepository,
+} from "../physician/session-repository.js";
 import type {
   EmailConfirmationToken,
   EmailConfirmationTokenRepository,
 } from "../physician/email-confirmation-token-repository.js";
 import type { EmailSender, SendEmailInput } from "../physician/email-sender.js";
+import type {
+  ResidentCredential,
+  ResidentCredentialRepository,
+} from "../resident/resident-credential-repository.js";
+import type { TemporaryPasswordGenerator } from "../resident/temporary-password-generator.js";
 
 /**
  * In-memory fakes for Application orchestration tests. No Infrastructure
@@ -45,6 +54,14 @@ export class InMemorySurgeryRepository implements SurgeryRepository {
   findByPhysicianId(physicianId: string): Promise<Surgery[]> {
     return Promise.resolve(
       [...this.surgeries.values()].filter((surgery) => surgery.physicianId === physicianId),
+    );
+  }
+
+  findByResidentId(residentId: string): Promise<Surgery[]> {
+    return Promise.resolve(
+      [...this.surgeries.values()].filter((surgery) =>
+        surgery.participatingResidentIds.includes(residentId),
+      ),
     );
   }
 
@@ -256,10 +273,12 @@ export class FakePasswordHasher implements PasswordHasher {
 export class InMemorySessionRepository implements SessionRepository {
   private readonly sessions = new Map<string, Session>();
 
-  create(physicianId: string): Promise<Session> {
+  create(input: CreateSessionInput): Promise<Session> {
     const session: Session = {
       id: randomUUID(),
-      physicianId,
+      userType: input.userType,
+      physicianId: input.physicianId,
+      residentId: input.userType === "resident" ? input.residentId : null,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     };
     this.sessions.set(session.id, session);
@@ -277,5 +296,90 @@ export class InMemorySessionRepository implements SessionRepository {
   delete(sessionId: string): Promise<void> {
     this.sessions.delete(sessionId);
     return Promise.resolve();
+  }
+
+  deleteByResidentId(residentId: string): Promise<void> {
+    for (const [id, session] of this.sessions) {
+      if (session.residentId === residentId) {
+        this.sessions.delete(id);
+      }
+    }
+    return Promise.resolve();
+  }
+}
+
+export class InMemoryResidentCredentialRepository implements ResidentCredentialRepository {
+  private readonly credentials = new Map<string, ResidentCredential>();
+
+  seed(credential: ResidentCredential): void {
+    this.credentials.set(credential.email.toLowerCase(), credential);
+  }
+
+  findByEmail(email: string): Promise<ResidentCredential | null> {
+    return Promise.resolve(this.credentials.get(email.toLowerCase()) ?? null);
+  }
+
+  findByResidentId(residentId: string): Promise<ResidentCredential | null> {
+    for (const credential of this.credentials.values()) {
+      if (credential.residentId === residentId) {
+        return Promise.resolve(credential);
+      }
+    }
+    return Promise.resolve(null);
+  }
+
+  save(credential: ResidentCredential): Promise<void> {
+    this.credentials.set(credential.email.toLowerCase(), credential);
+    return Promise.resolve();
+  }
+
+  recordPasswordChange(residentId: string, passwordHash: string): Promise<void> {
+    for (const [key, credential] of this.credentials) {
+      if (credential.residentId === residentId) {
+        this.credentials.set(key, {
+          ...credential,
+          passwordHash,
+          temporaryPassword: null,
+          mustChangePassword: false,
+        });
+      }
+    }
+    return Promise.resolve();
+  }
+
+  reissueTemporaryPassword(
+    residentId: string,
+    temporaryPassword: string,
+    passwordHash: string,
+  ): Promise<void> {
+    for (const [key, credential] of this.credentials) {
+      if (credential.residentId === residentId) {
+        this.credentials.set(key, {
+          ...credential,
+          passwordHash,
+          temporaryPassword,
+          mustChangePassword: true,
+        });
+      }
+    }
+    return Promise.resolve();
+  }
+
+  setActive(residentId: string, active: boolean): Promise<void> {
+    for (const [key, credential] of this.credentials) {
+      if (credential.residentId === residentId) {
+        this.credentials.set(key, { ...credential, active });
+      }
+    }
+    return Promise.resolve();
+  }
+}
+
+/** Deterministic, not random — a fake for Application-level tests. */
+export class FakeTemporaryPasswordGenerator implements TemporaryPasswordGenerator {
+  constructor(private readonly value: string = "Temp1234") {}
+
+  generate(): string {
+    return this.value;
   }
 }

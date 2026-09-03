@@ -1,4 +1,5 @@
 import { DomainError, Physician } from "@cirugias-cruz/domain";
+import type { ResidentCredentialRepository } from "../resident/resident-credential-repository.js";
 import type { PhysicianRepository } from "./physician-repository.js";
 import type { PhysicianCredentialRepository } from "./physician-credential-repository.js";
 import type { PasswordHasher } from "./password-hasher.js";
@@ -21,6 +22,7 @@ export interface RegisterPhysicianOutput {
 export interface RegisterPhysicianDeps {
   physicianRepository: PhysicianRepository;
   physicianCredentialRepository: PhysicianCredentialRepository;
+  residentCredentialRepository: ResidentCredentialRepository;
   passwordHasher: PasswordHasher;
 }
 
@@ -34,11 +36,20 @@ export interface RegisterPhysicianDeps {
  * access), so — following the same pattern already used for
  * `registerSurgery`'s tenant checks — Application enforces it here using
  * the domain's own `DomainError`.
+ *
+ * Checked against **both** credential stores (Physician's and, since
+ * ADR 0017, Resident's) — `login` looks up a single email across both,
+ * so a collision between the two kinds of principal would make that
+ * lookup ambiguous.
  */
 export function registerPhysician(deps: RegisterPhysicianDeps) {
   return async function execute(input: RegisterPhysicianInput): Promise<RegisterPhysicianOutput> {
     const existing = await deps.physicianCredentialRepository.findByEmail(input.email);
     if (existing) {
+      throw new DomainError("A physician with this email is already registered");
+    }
+    const existingResident = await deps.residentCredentialRepository.findByEmail(input.email);
+    if (existingResident) {
       throw new DomainError("A physician with this email is already registered");
     }
 

@@ -122,6 +122,7 @@ describe("Milestone 1 operations against real Prisma repositories", () => {
       surgeryId: SURGERY_ID,
       controlId: CONTROL_ID,
       changes: { observations: "Evolución favorable, sin complicaciones" },
+      actor: { type: "physician" },
     });
 
     expect(output).toEqual({ surgeryId: SURGERY_ID, controlId: CONTROL_ID });

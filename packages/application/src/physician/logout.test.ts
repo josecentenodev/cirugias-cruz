@@ -5,7 +5,10 @@ import { logout } from "./logout.js";
 describe("logout", () => {
   it("invalidates an existing session", async () => {
     const sessionRepository = new InMemorySessionRepository();
-    const session = await sessionRepository.create("physician-1");
+    const session = await sessionRepository.create({
+      userType: "physician",
+      physicianId: "physician-1",
+    });
 
     await logout({ sessionRepository })({ sessionId: session.id });
 

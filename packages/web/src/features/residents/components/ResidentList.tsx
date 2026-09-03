@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
 import type { ResidentView } from "../mappers";
+import { ResidentCredentialActions } from "./ResidentCredentialActions";
 
 /** Purely presentational — mirrors `features/patients/components/PatientList.tsx`. No detail page (see queries.ts). */
 export function ResidentList({ residents }: { residents: ResidentView[] }) {
@@ -36,6 +37,7 @@ export function ResidentList({ residents }: { residents: ResidentView[] }) {
             <TableHead>Phone</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Date of birth</TableHead>
+            <TableHead>Credential</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -45,6 +47,9 @@ export function ResidentList({ residents }: { residents: ResidentView[] }) {
               <TableCell>{resident.phone}</TableCell>
               <TableCell>{resident.email}</TableCell>
               <TableCell>{resident.dateOfBirthLabel}</TableCell>
+              <TableCell>
+                <ResidentCredentialActions residentId={resident.id} />
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

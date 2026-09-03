@@ -2,14 +2,23 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import {
   assignResidentToSurgery,
+  changeResidentPassword,
   getResident,
+  getSurgeryForResident,
   listResidents,
+  listSurgeriesForResident,
   registerResident,
   removeResidentFromSurgery,
+  resetResidentPassword,
+  setResidentActive,
+  viewResidentTemporaryPassword,
 } from "@cirugias-cruz/application";
 import type { AppDeps } from "../deps.js";
 import { replyForError } from "../shared/errors.js";
-import { requireAuth } from "../shared/require-auth.js";
+import { requirePhysicianAuth } from "../shared/require-physician-auth.js";
+import { requireResidentAuth } from "../shared/require-resident-auth.js";
+import { requireResidentPasswordChanged } from "../shared/require-resident-password-changed.js";
+import { serializeSurgery } from "./core-loop.js";
 
 interface RegisterResidentBody {
   firstName: string;
@@ -22,6 +31,14 @@ interface RegisterResidentBody {
 
 interface AssignResidentBody {
   residentId: string;
+}
+
+interface SetActiveBody {
+  active: boolean;
+}
+
+interface ChangePasswordBody {
+  newPassword: string;
 }
 
 /**
@@ -68,6 +85,18 @@ const assignResidentBodySchema = {
   properties: { residentId: { type: "string" } },
 } as const;
 
+const setActiveBodySchema = {
+  type: "object",
+  required: ["active"],
+  properties: { active: { type: "boolean" } },
+} as const;
+
+const changePasswordBodySchema = {
+  type: "object",
+  required: ["newPassword"],
+  properties: { newPassword: { type: "string" } },
+} as const;
+
 function toResidentDto(resident: {
   id: string;
   physicianId: string;
@@ -91,22 +120,28 @@ function toResidentDto(resident: {
 }
 
 /**
- * Milestone 5 — Resident vertical slice, reached over HTTP. Every handler
- * takes `request.physicianId` — set only by requireAuth from the
- * authenticated session — as the tenant. No route ever reads a
- * physicianId from the request body/params/query.
+ * Resident vertical slice, reached over HTTP — Milestone 5's original
+ * physician-management routes, plus ADR 0017's own login/self-service
+ * for the Resident as a principal in their own right.
  *
- * Reads go through `listResidents`/`getResident` (Application), the same
- * as every other resource's read routes in routes/core-loop.ts — see
- * docs/architecture/m4-m7-conformance-review.md §2.2 for why this was
- * corrected from calling `ResidentRepository` directly.
+ * Two auth postures live in this one file:
+ * - `physicianAuth` — the Physician managing their Residents (create,
+ *   list, get, assign/remove from a Surgery, view/reset the temporary
+ *   password, activate/deactivate). Unchanged in spirit from Milestone 5.
+ * - `residentAuth` (`/me/...`) — a Resident acting as themselves: their
+ *   own Surgery panel (read-only; Control create/edit lives in
+ *   routes/core-loop.ts, shared with the Physician) and changing their
+ *   own password. `requireResidentPasswordChanged` gates every one of
+ *   these EXCEPT changing the password itself — see ADR 0017, decision
+ *   item 3.
  */
 export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): void {
-  const auth = { preHandler: requireAuth(deps.sessionRepository) };
+  const physicianAuth = { preHandler: requirePhysicianAuth(deps.sessionRepository) };
+  const residentAuth = { preHandler: requireResidentAuth(deps.sessionRepository) };
 
   app.post<{ Body: RegisterResidentBody }>(
     "/residents",
-    { ...auth, schema: { body: registerResidentBodySchema } },
+    { ...physicianAuth, schema: { body: registerResidentBodySchema } },
     async (request, reply) => {
       try {
         const output = await registerResident(deps)({
@@ -126,7 +161,7 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
     },
   );
 
-  app.get("/residents", auth, async (request, reply) => {
+  app.get("/residents", physicianAuth, async (request, reply) => {
     try {
       const residents = await listResidents(deps)({
         physicianId: request.physicianId as string,
@@ -139,7 +174,7 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
 
   app.get<{ Params: { id: string } }>(
     "/residents/:id",
-    { ...auth, schema: { params: residentIdParamsSchema } },
+    { ...physicianAuth, schema: { params: residentIdParamsSchema } },
     async (request, reply) => {
       try {
         const resident = await getResident(deps)({
@@ -153,9 +188,61 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
     },
   );
 
+  app.get<{ Params: { id: string } }>(
+    "/residents/:id/temporary-password",
+    { ...physicianAuth, schema: { params: residentIdParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await viewResidentTemporaryPassword(deps)({
+          physicianId: request.physicianId as string,
+          residentId: request.params.id,
+        });
+        return await reply.code(200).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    "/residents/:id/password-reset",
+    { ...physicianAuth, schema: { params: residentIdParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await resetResidentPassword(deps)({
+          physicianId: request.physicianId as string,
+          residentId: request.params.id,
+        });
+        return await reply.code(200).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
+  app.patch<{ Params: { id: string }; Body: SetActiveBody }>(
+    "/residents/:id/active",
+    { ...physicianAuth, schema: { params: residentIdParamsSchema, body: setActiveBodySchema } },
+    async (request, reply) => {
+      try {
+        await setResidentActive(deps)({
+          physicianId: request.physicianId as string,
+          residentId: request.params.id,
+          active: request.body.active,
+        });
+        return await reply.code(204).send();
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
   app.post<{ Params: { id: string }; Body: AssignResidentBody }>(
     "/surgeries/:id/residents",
-    { ...auth, schema: { params: surgeryIdParamsSchema, body: assignResidentBodySchema } },
+    {
+      ...physicianAuth,
+      schema: { params: surgeryIdParamsSchema, body: assignResidentBodySchema },
+    },
     async (request, reply) => {
       try {
         const output = await assignResidentToSurgery(deps)({
@@ -172,7 +259,7 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
 
   app.delete<{ Params: { id: string; residentId: string } }>(
     "/surgeries/:id/residents/:residentId",
-    { ...auth, schema: { params: surgeryResidentParamsSchema } },
+    { ...physicianAuth, schema: { params: surgeryResidentParamsSchema } },
     async (request, reply) => {
       try {
         const output = await removeResidentFromSurgery(deps)({
@@ -181,6 +268,71 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
           residentId: request.params.residentId,
         });
         return await reply.code(200).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
+  // --- A Resident acting as themselves (ADR 0017) ---
+
+  // Lets `web` learn its own residentId — the session cookie is opaque
+  // by design (BFF pattern), so this is the one read that closes the
+  // gap for anything client-side that needs to compare "is this control
+  // mine" (e.g. showing an Edit button only where it would actually be
+  // allowed). Not gated by requireResidentPasswordChanged — knowing who
+  // you are isn't gated on having changed your password.
+  app.get("/me", residentAuth, async (request, reply) => {
+    return reply.code(200).send({ residentId: request.residentId as string });
+  });
+
+  app.patch<{ Body: ChangePasswordBody }>(
+    "/me/password",
+    { ...residentAuth, schema: { body: changePasswordBodySchema } },
+    async (request, reply) => {
+      try {
+        await changeResidentPassword(deps)({
+          residentId: request.residentId as string,
+          newPassword: request.body.newPassword,
+        });
+        return await reply.code(204).send();
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
+  app.get("/me/surgeries", residentAuth, async (request, reply) => {
+    try {
+      await requireResidentPasswordChanged(deps.residentCredentialRepository)(request, reply);
+      if (reply.sent) {
+        return reply;
+      }
+
+      const surgeries = await listSurgeriesForResident(deps)({
+        residentId: request.residentId as string,
+      });
+      return await reply.code(200).send(surgeries.map(serializeSurgery));
+    } catch (error) {
+      return replyForError(error, reply);
+    }
+  });
+
+  app.get<{ Params: { id: string } }>(
+    "/me/surgeries/:id",
+    { ...residentAuth, schema: { params: surgeryIdParamsSchema } },
+    async (request, reply) => {
+      try {
+        await requireResidentPasswordChanged(deps.residentCredentialRepository)(request, reply);
+        if (reply.sent) {
+          return reply;
+        }
+
+        const surgery = await getSurgeryForResident(deps)({
+          residentId: request.residentId as string,
+          surgeryId: request.params.id,
+        });
+        return await reply.code(200).send(serializeSurgery(surgery));
       } catch (error) {
         return replyForError(error, reply);
       }

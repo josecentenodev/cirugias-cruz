@@ -2,7 +2,9 @@
 
 ## Status
 
-Established (current iteration).
+Established (current iteration). **Amended** by
+[0017](0017-resident-authentication-physician-issued-temporary-password.md)
+— the modification rule below no longer holds unmodified; see Amendment.
 
 ## Decision
 
@@ -24,7 +26,22 @@ once within a given Control. The exact pterygium measurements are not yet
 known.
 
 **Modification and deletion:** only the Physician may modify or delete a
-Control, regardless of who originally performed it.
+Control, regardless of who originally performed it. **(Amended by 0017:
+see Amendment below — this no longer holds for editing, unmodified, once
+Residents have their own login.)**
+
+## Amendment (0017)
+
+Once a Resident has their own authenticated session
+([0017](0017-resident-authentication-physician-issued-temporary-password.md)),
+a Resident **may edit — never delete — a Control they themselves
+authored**. The Physician's rights are unchanged and remain the superset:
+modify or delete _any_ Control in their tenant, regardless of author.
+Deletion of any Control, and modification of a Control authored by
+someone else, both remain Physician-only. The original reasoning below
+(Physician as sole controller of the tenant's clinical record) still
+governs deletion and cross-author edits; it no longer governs a
+Resident's edits to their own work.
 
 ## Rationale
 

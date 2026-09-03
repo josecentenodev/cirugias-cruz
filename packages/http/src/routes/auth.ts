@@ -155,7 +155,23 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps): void {
           password: request.body.password,
         });
         reply.setCookie(SESSION_COOKIE_NAME, session.id, sessionCookieOptions(session.expiresAt));
-        return reply.code(204).send();
+
+        // web needs to know which kind of principal just logged in (and,
+        // for a Resident, whether they still must change their temporary
+        // password) to redirect to the right place — ADR 0017. Physician
+        // logins keep the same 200-with-a-small-body shape rather than
+        // the previous bare 204, so `web` has one response shape to
+        // parse regardless of who logged in.
+        if (session.userType === "resident") {
+          const credential = await deps.residentCredentialRepository.findByResidentId(
+            session.residentId as string,
+          );
+          return await reply.code(200).send({
+            userType: "resident",
+            mustChangePassword: credential?.mustChangePassword ?? false,
+          });
+        }
+        return await reply.code(200).send({ userType: "physician" });
       } catch (error) {
         return replyForError(error, reply);
       }

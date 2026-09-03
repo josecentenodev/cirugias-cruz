@@ -6,9 +6,11 @@ import {
   PrismaPhysicianRepository,
   PrismaProcedureTypeRepository,
   PrismaResearchStudyRepository,
+  PrismaResidentCredentialRepository,
   PrismaResidentRepository,
   PrismaSessionRepository,
   PrismaSurgeryRepository,
+  RandomTemporaryPasswordGenerator,
   ResendEmailSender,
   createPrismaClient,
 } from "@cirugias-cruz/infrastructure";
@@ -35,6 +37,8 @@ export function buildDeps(): AppDeps {
     procedureTypeRepository: new PrismaProcedureTypeRepository(prisma),
     surgeryRepository: new PrismaSurgeryRepository(prisma),
     residentRepository: new PrismaResidentRepository(prisma),
+    residentCredentialRepository: new PrismaResidentCredentialRepository(prisma),
+    temporaryPasswordGenerator: new RandomTemporaryPasswordGenerator(),
     researchStudyRepository: new PrismaResearchStudyRepository(prisma),
     webBaseUrl: process.env.WEB_BASE_URL ?? "http://localhost:3001",
   };

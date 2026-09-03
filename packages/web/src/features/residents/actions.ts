@@ -1,8 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { authedApiRequest } from "@/lib/authed-api-request";
-import { ApiDomainError } from "@/lib/api-errors";
+import { ApiDomainError, ApiNotFoundError } from "@/lib/api-errors";
+import type { TemporaryPasswordResponse } from "./dtos";
 import { registerResidentSchema } from "./schemas";
 
 export interface RegisterResidentFormState {
@@ -35,4 +37,74 @@ export async function registerResidentAction(
   }
 
   redirect("/residents");
+}
+
+export interface ViewTemporaryPasswordFormState {
+  temporaryPassword?: string | null;
+  revealed?: boolean;
+  error?: string;
+}
+
+/**
+ * `GET /residents/:id/temporary-password`, called through a Server
+ * Action (not a plain query) so a Client Component can reveal it
+ * on-demand via `useActionState`, without a page navigation. Returns
+ * `null` once the Resident has changed it (ADR 0017) — not an error.
+ */
+export async function viewResidentTemporaryPasswordAction(
+  residentId: string,
+  _previousState: ViewTemporaryPasswordFormState,
+): Promise<ViewTemporaryPasswordFormState> {
+  try {
+    const { temporaryPassword } = await authedApiRequest<TemporaryPasswordResponse>({
+      method: "GET",
+      path: `/residents/${residentId}/temporary-password`,
+    });
+    return { temporaryPassword, revealed: true };
+  } catch (error) {
+    if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+}
+
+export interface ResetPasswordFormState {
+  temporaryPassword?: string;
+  error?: string;
+}
+
+/** The "blanqueo" (ADR 0017, decision item 8) — `POST /residents/:id/password-reset`. */
+export async function resetResidentPasswordAction(
+  residentId: string,
+  _previousState: ResetPasswordFormState,
+): Promise<ResetPasswordFormState> {
+  try {
+    const { temporaryPassword } = await authedApiRequest<{ temporaryPassword: string }>({
+      method: "POST",
+      path: `/residents/${residentId}/password-reset`,
+    });
+    return { temporaryPassword };
+  } catch (error) {
+    if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
+}
+
+/**
+ * `PATCH /residents/:id/active` — deactivating forces the immediate
+ * closure of any session that Resident currently holds (`api`'s own
+ * behavior, ADR 0017 decision item 9; nothing extra needed here).
+ * `revalidatePath`, not `redirect`: called from a small inline form on
+ * the list page itself, which should just refresh in place.
+ */
+export async function setResidentActiveAction(residentId: string, active: boolean): Promise<void> {
+  await authedApiRequest({
+    method: "PATCH",
+    path: `/residents/${residentId}/active`,
+    body: { active },
+  });
+  revalidatePath("/residents");
 }

@@ -31,6 +31,14 @@ export class PrismaSurgeryRepository implements SurgeryRepository {
     return rows.map(toSurgery);
   }
 
+  async findByResidentId(residentId: string): Promise<Surgery[]> {
+    const rows = await this.prisma.surgery.findMany({
+      where: { participants: { some: { residentId } } },
+      include: { controls: true, participants: true },
+    });
+    return rows.map(toSurgery);
+  }
+
   async save(surgery: Surgery): Promise<void> {
     await this.prisma.$transaction([
       this.prisma.surgery.upsert({

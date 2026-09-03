@@ -75,7 +75,8 @@ describe("Physician registration and authentication (real HTTP, real DB)", () =>
       url: "/sessions",
       payload: { email: payload.email, password: payload.password },
     });
-    expect(goodLogin.statusCode).toBe(204);
+    expect(goodLogin.statusCode).toBe(200);
+    expect(goodLogin.json()).toEqual({ userType: "physician" });
     expect(extractSessionCookie(goodLogin)).toBeDefined();
 
     const badLogin = await app.inject({
@@ -86,7 +87,7 @@ describe("Physician registration and authentication (real HTTP, real DB)", () =>
     expect(badLogin.statusCode).toBe(400);
   });
 
-  it("rejects login before the email is confirmed, then allows it after confirming via the token", async () => {
+  it("allows login before confirming the email, and confirming (still a real, working route) doesn't change that (ADR 0016)", async () => {
     const app = await buildApp(buildDeps());
     const payload = newPhysicianPayload();
     const registerResponse = await app.inject({ method: "POST", url: "/physicians", payload });
@@ -98,15 +99,15 @@ describe("Physician registration and authentication (real HTTP, real DB)", () =>
       url: "/sessions",
       payload: { email: payload.email, password: payload.password },
     });
-    expect(loginBeforeConfirm.statusCode).toBe(400);
-    expect(loginBeforeConfirm.json<{ error: string }>().error).toMatch(/confirm your email/);
+    expect(loginBeforeConfirm.statusCode).toBe(200);
+    expect(extractSessionCookie(loginBeforeConfirm)).toBeDefined();
 
-    // No real email was sent (RESEND_API_KEY isn't configured for this
-    // test run — see routes/auth.ts's resilient-failure comment); the
-    // token this test redeems is the one the confirmation email would
-    // have embedded, read directly from where the operation persisted
-    // it — proving the actual `POST /email-confirmations` route, not a
-    // shortcut around it.
+    // ADR 0016 pauses the login *gate*, not the confirmation machinery
+    // itself — the token/route this test redeems is exactly what 0015
+    // built and 0016 explicitly leaves in place, dormant. No real email
+    // was sent (RESEND_API_KEY isn't configured for this test run — see
+    // routes/auth.ts's resilient-failure comment); the token is read
+    // directly from where the operation persisted it.
     const token = await testPrisma.emailConfirmationToken.findFirstOrThrow({
       where: { physicianId },
     });
@@ -124,7 +125,7 @@ describe("Physician registration and authentication (real HTTP, real DB)", () =>
       url: "/sessions",
       payload: { email: payload.email, password: payload.password },
     });
-    expect(loginAfterConfirm.statusCode).toBe(204);
+    expect(loginAfterConfirm.statusCode).toBe(200);
     expect(extractSessionCookie(loginAfterConfirm)).toBeDefined();
   });
 

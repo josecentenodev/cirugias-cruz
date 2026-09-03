@@ -193,7 +193,11 @@ describe("PrismaSurgeryRepository", () => {
     await repository.save(surgery);
 
     const loaded = await repository.findById(SURGERY_ID);
-    loaded?.modifyControl("control-1", { observations: "corrected observations" }, PHYSICIAN_ID);
+    loaded?.modifyControl(
+      "control-1",
+      { observations: "corrected observations" },
+      { type: "physician", physicianId: PHYSICIAN_ID },
+    );
     await repository.save(loaded as Surgery);
 
     const reloaded = await repository.findById(SURGERY_ID);
@@ -267,5 +271,31 @@ describe("PrismaSurgeryRepository", () => {
     const withControl = found.find((s) => s.id === SURGERY_ID);
     expect(withControl?.controls).toHaveLength(1);
     expect(withControl?.controls[0]?.observations).toBe("obs");
+  });
+
+  it("findByResidentId returns only the surgeries that resident participates in (ADR 0017)", async () => {
+    const surgeryWithResident = Surgery.create({
+      id: SURGERY_ID,
+      physicianId: PHYSICIAN_ID,
+      patientId: PATIENT_ID,
+      procedureTypeId: PROCEDURE_TYPE_ID,
+      performedAt: new Date("2026-01-10"),
+    });
+    surgeryWithResident.assignResident("resident-panel-1", PHYSICIAN_ID);
+    await repository.save(surgeryWithResident);
+
+    await repository.save(
+      Surgery.create({
+        id: SURGERY_ID_2,
+        physicianId: PHYSICIAN_ID,
+        patientId: PATIENT_ID,
+        procedureTypeId: PROCEDURE_TYPE_ID,
+        performedAt: new Date("2026-02-01"),
+      }),
+    );
+
+    const found = await repository.findByResidentId("resident-panel-1");
+
+    expect(found.map((s) => s.id)).toEqual([SURGERY_ID]);
   });
 });

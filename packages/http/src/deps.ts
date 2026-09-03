@@ -7,9 +7,11 @@ import type {
   ProcedureTypeRepository,
   PasswordHasher,
   ResearchStudyRepository,
+  ResidentCredentialRepository,
   ResidentRepository,
   SessionRepository,
   SurgeryRepository,
+  TemporaryPasswordGenerator,
 } from "@cirugias-cruz/application";
 
 /**
@@ -29,6 +31,8 @@ export interface AppDeps {
   procedureTypeRepository: ProcedureTypeRepository;
   surgeryRepository: SurgeryRepository;
   residentRepository: ResidentRepository;
+  residentCredentialRepository: ResidentCredentialRepository;
+  temporaryPasswordGenerator: TemporaryPasswordGenerator;
   researchStudyRepository: ResearchStudyRepository;
   /**
    * `web`'s own public origin — the base every confirmation link is

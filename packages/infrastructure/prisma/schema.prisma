@@ -81,15 +81,26 @@ model EmailConfirmationToken {
 // Server-side session (PostgreSQL-backed, per the approved decision — no
 // JWT, no Redis). `id` is the opaque token the browser holds via a
 // cookie; it is never the physicianId.
+//
+// `userType`/`residentId` are ADR 0017's extension: a Resident now
+// authenticates too. `physicianId` keeps its original meaning (the
+// tenant) and is populated identically for both kinds of session — see
+// packages/application/src/physician/session-repository.ts for the full
+// reasoning behind this shape over a discriminated union or a parallel
+// ResidentSession table.
 model Session {
   id          String   @id
+  userType    String   @default("physician")
   physicianId String
+  residentId  String?
   expiresAt   DateTime
   createdAt   DateTime @default(now())
 
   physician Physician @relation(fields: [physicianId], references: [id])
+  resident  Resident? @relation(fields: [residentId], references: [id])
 
   @@index([physicianId])
+  @@index([residentId])
   @@map("sessions")
 }
 
@@ -145,10 +156,43 @@ model Resident {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  physician Physician @relation(fields: [physicianId], references: [id])
+  physician  Physician           @relation(fields: [physicianId], references: [id])
+  credential ResidentCredential?
+  sessions   Session[]
 
   @@index([physicianId])
   @@map("residents")
+}
+
+// The login credential for a Resident (ADR 0017) — deliberately not
+// part of the Resident model itself, same reasoning as
+// PhysicianCredential above. `physicianId` is denormalized here purely
+// so this table's own queries can tenant-scope without a join; it is
+// never the source of truth for tenancy (Resident.physicianId is).
+//
+// `temporaryPassword` is the one deliberate departure from
+// PhysicianCredential's hash-only posture: it holds the CURRENT
+// temporary password in cleartext, but only while `mustChangePassword`
+// is still true — the Physician can read it back in `web` until the
+// Resident changes it (ADR 0017, decision item 4). It is set to NULL
+// the moment the Resident changes their password; `passwordHash` alone
+// is authoritative for verifying a login from that point on.
+model ResidentCredential {
+  residentId         String   @id
+  physicianId        String
+  email              String
+  emailNormalized    String   @unique
+  passwordHash       String
+  temporaryPassword  String?
+  mustChangePassword Boolean  @default(true)
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  resident Resident @relation(fields: [residentId], references: [id])
+
+  @@index([physicianId])
+  @@map("resident_credentials")
 }
 
 model Surgery {
@@ -223,7 +267,7 @@ model ResearchStudy {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  physician Physician               @relation(fields: [physicianId], references: [id])
+  physician Physician              @relation(fields: [physicianId], references: [id])
   surgeries ResearchStudySurgery[]
 
   @@index([physicianId])

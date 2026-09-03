@@ -19,6 +19,8 @@ export async function cleanupPatient(patientId: string): Promise<void> {
 }
 
 export async function cleanupResident(residentId: string): Promise<void> {
+  await testPrisma.session.deleteMany({ where: { residentId } });
+  await testPrisma.residentCredential.deleteMany({ where: { residentId } });
   await testPrisma.resident.deleteMany({ where: { id: residentId } });
 }
 
@@ -48,6 +50,22 @@ export async function seedPhysician(id: string): Promise<void> {
       phone: "555-0100",
       email: `${id}@example.com`,
       dateOfBirth: new Date("1980-01-01"),
+    },
+    update: {},
+  });
+}
+
+export async function seedResident(id: string, physicianId: string): Promise<void> {
+  await testPrisma.resident.upsert({
+    where: { id },
+    create: {
+      id,
+      physicianId,
+      firstName: "Test",
+      lastName: "Resident",
+      phone: "555-0200",
+      email: `${id}@example.com`,
+      dateOfBirth: new Date("1995-01-01"),
     },
     update: {},
   });

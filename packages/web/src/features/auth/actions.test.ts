@@ -57,8 +57,8 @@ describe("loginAction", () => {
 
   it("succeeds: sets the session cookie from api's Set-Cookie header and redirects to /patients", async () => {
     apiRequestRawMock.mockResolvedValue(
-      new Response(null, {
-        status: 204,
+      new Response(JSON.stringify({ userType: "physician" }), {
+        status: 200,
         headers: {
           "set-cookie":
             "session_id=abc-123; Path=/; Expires=Thu, 02 Oct 2025 12:00:00 GMT; HttpOnly",
@@ -71,6 +71,54 @@ describe("loginAction", () => {
     ).rejects.toThrow("NEXT_REDIRECT:/patients");
 
     expect(setSessionCookieMock).toHaveBeenCalledWith("abc-123", expect.any(Date));
+  });
+
+  it("falls back to the physician redirect when the success body is empty/unparseable (ADR 0017)", async () => {
+    apiRequestRawMock.mockResolvedValue(
+      new Response(null, {
+        status: 204,
+        headers: {
+          "set-cookie":
+            "session_id=abc-123; Path=/; Expires=Thu, 02 Oct 2025 12:00:00 GMT; HttpOnly",
+        },
+      }),
+    );
+
+    await expect(
+      loginAction({}, formData({ email: "doc@example.com", password: "s3cret" })),
+    ).rejects.toThrow("NEXT_REDIRECT:/patients");
+  });
+
+  it("resident login, must change password: redirects to /resident/change-password (ADR 0017)", async () => {
+    apiRequestRawMock.mockResolvedValue(
+      new Response(JSON.stringify({ userType: "resident", mustChangePassword: true }), {
+        status: 200,
+        headers: {
+          "set-cookie":
+            "session_id=abc-123; Path=/; Expires=Thu, 02 Oct 2025 12:00:00 GMT; HttpOnly",
+        },
+      }),
+    );
+
+    await expect(
+      loginAction({}, formData({ email: "resident@example.com", password: "temp-pass" })),
+    ).rejects.toThrow("NEXT_REDIRECT:/resident/change-password");
+  });
+
+  it("resident login, already changed: redirects to /resident/surgeries (ADR 0017)", async () => {
+    apiRequestRawMock.mockResolvedValue(
+      new Response(JSON.stringify({ userType: "resident", mustChangePassword: false }), {
+        status: 200,
+        headers: {
+          "set-cookie":
+            "session_id=abc-123; Path=/; Expires=Thu, 02 Oct 2025 12:00:00 GMT; HttpOnly",
+        },
+      }),
+    );
+
+    await expect(
+      loginAction({}, formData({ email: "resident@example.com", password: "my-own-pass" })),
+    ).rejects.toThrow("NEXT_REDIRECT:/resident/surgeries");
   });
 
   it("rejects invalid credentials (api's 400, no parseable body) with a generic fallback, no redirect", async () => {

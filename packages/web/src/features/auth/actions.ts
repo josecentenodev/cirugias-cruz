@@ -122,6 +122,31 @@ export async function loginAction(
   }
 
   await setSessionCookie(parsedCookie.sessionId, parsedCookie.expiresAt);
+
+  // ADR 0017: `api` now authenticates two kinds of principal through
+  // this one route — the response body says which, and, for a
+  // Resident, whether they still must change their temporary password
+  // before doing anything else. A malformed/missing body is treated as
+  // the physician case (this route's original, still-default shape)
+  // rather than thrown — the session cookie is already set either way.
+  let userType: "physician" | "resident" = "physician";
+  let mustChangePassword = false;
+  try {
+    const body = (await response.json()) as {
+      userType?: "physician" | "resident";
+      mustChangePassword?: boolean;
+    };
+    if (body.userType === "resident") {
+      userType = "resident";
+      mustChangePassword = body.mustChangePassword ?? false;
+    }
+  } catch {
+    // Fall back to the physician case above.
+  }
+
+  if (userType === "resident") {
+    redirect(mustChangePassword ? "/resident/change-password" : "/resident/surgeries");
+  }
   redirect("/patients");
 }
 

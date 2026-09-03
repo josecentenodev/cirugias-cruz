@@ -17,6 +17,8 @@ import type { Patient, ProcedureType, Surgery } from "@cirugias-cruz/domain";
 import type { AppDeps } from "../deps.js";
 import { replyForError } from "../shared/errors.js";
 import { requireAuth } from "../shared/require-auth.js";
+import { requirePhysicianAuth } from "../shared/require-physician-auth.js";
+import { requireResidentPasswordChanged } from "../shared/require-resident-password-changed.js";
 
 interface RegisterPatientBody {
   firstName: string;
@@ -171,7 +173,7 @@ function serializeProcedureType(procedureType: ProcedureType) {
   };
 }
 
-function serializeSurgery(surgery: Surgery) {
+export function serializeSurgery(surgery: Surgery) {
   return {
     id: surgery.id,
     physicianId: surgery.physicianId,
@@ -195,9 +197,15 @@ function serializeSurgery(surgery: Surgery) {
  * only by `requireAuth` from the authenticated session — as the tenant
  * for the underlying Application operation. No route ever reads a
  * physicianId from the request body/params/query.
+ *
+ * Every route below is Physician-only (`requirePhysicianAuth`) EXCEPT
+ * the two Control routes, which ADR 0017 deliberately opens to both
+ * kinds of principal — see `controlAuth` and its handlers below for how
+ * they branch on `request.userType`.
  */
 export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): void {
-  const auth = { preHandler: requireAuth(deps.sessionRepository) };
+  const auth = { preHandler: requirePhysicianAuth(deps.sessionRepository) };
+  const controlAuth = { preHandler: requireAuth(deps.sessionRepository) };
 
   app.post<{ Body: RegisterPatientBody }>(
     "/patients",
@@ -263,18 +271,35 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
   app.post<{ Params: { surgeryId: string }; Body: RecordControlBody }>(
     "/surgeries/:surgeryId/controls",
     {
-      ...auth,
+      ...controlAuth,
       schema: { params: surgeryIdParamsSchema, body: recordControlBodySchema },
     },
     async (request, reply) => {
       try {
+        // A Resident session never gets to choose the author it acts
+        // as — always forced to themselves, ignoring whatever the
+        // client sent, same trust posture as physicianId never coming
+        // from the body (ADR 0017). A Physician session keeps its
+        // existing freedom to record on behalf of either themselves or
+        // a participating Resident.
+        if (request.userType === "resident") {
+          await requireResidentPasswordChanged(deps.residentCredentialRepository)(request, reply);
+          if (reply.sent) {
+            return reply;
+          }
+        }
+        const author =
+          request.userType === "resident"
+            ? ({ type: "resident", residentId: request.residentId as string } as const)
+            : request.body.author;
+
         const output = await recordControl(deps)({
           physicianId: request.physicianId as string,
           surgeryId: request.params.surgeryId,
           id: randomUUID(),
           observations: request.body.observations,
           recordedAt: new Date(request.body.recordedAt),
-          author: request.body.author,
+          author,
         });
         return await reply.code(201).send(output);
       } catch (error) {
@@ -286,11 +311,22 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
   app.patch<{ Params: { surgeryId: string; controlId: string }; Body: ModifyControlBody }>(
     "/surgeries/:surgeryId/controls/:controlId",
     {
-      ...auth,
+      ...controlAuth,
       schema: { params: controlParamsSchema, body: modifyControlBodySchema },
     },
     async (request, reply) => {
       try {
+        if (request.userType === "resident") {
+          await requireResidentPasswordChanged(deps.residentCredentialRepository)(request, reply);
+          if (reply.sent) {
+            return reply;
+          }
+        }
+        const actor =
+          request.userType === "resident"
+            ? ({ type: "resident", residentId: request.residentId as string } as const)
+            : ({ type: "physician" } as const);
+
         const output = await modifyControl(deps)({
           physicianId: request.physicianId as string,
           surgeryId: request.params.surgeryId,
@@ -299,6 +335,7 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
             observations: request.body.observations,
             recordedAt: request.body.recordedAt ? new Date(request.body.recordedAt) : undefined,
           },
+          actor,
         });
         return await reply.code(200).send(output);
       } catch (error) {

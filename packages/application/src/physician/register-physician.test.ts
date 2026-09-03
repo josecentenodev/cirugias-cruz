@@ -3,6 +3,7 @@ import {
   FakePasswordHasher,
   InMemoryPhysicianCredentialRepository,
   InMemoryPhysicianRepository,
+  InMemoryResidentCredentialRepository,
 } from "../testing/fakes.js";
 import { registerPhysician } from "./register-physician.js";
 
@@ -10,6 +11,7 @@ function buildDeps() {
   return {
     physicianRepository: new InMemoryPhysicianRepository(),
     physicianCredentialRepository: new InMemoryPhysicianCredentialRepository(),
+    residentCredentialRepository: new InMemoryResidentCredentialRepository(),
     passwordHasher: new FakePasswordHasher(),
   };
 }
@@ -61,5 +63,20 @@ describe("registerPhysician", () => {
     await expect(
       registerPhysician(deps)({ ...validInput, id: "physician-2", email: "ANA@example.com" }),
     ).rejects.toThrow(/already registered/);
+  });
+
+  it("rejects an email already registered to a Resident", async () => {
+    const deps = buildDeps();
+    deps.residentCredentialRepository.seed({
+      residentId: "resident-1",
+      physicianId: "physician-other",
+      email: validInput.email,
+      passwordHash: "hash",
+      temporaryPassword: null,
+      mustChangePassword: false,
+      active: true,
+    });
+
+    await expect(registerPhysician(deps)(validInput)).rejects.toThrow(/already registered/);
   });
 });

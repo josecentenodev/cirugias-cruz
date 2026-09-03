@@ -28,8 +28,9 @@ export async function cleanupPhysician(physicianId: string): Promise<void> {
   }
   await testPrisma.patient.deleteMany({ where: { physicianId } });
   await testPrisma.procedureType.deleteMany({ where: { physicianId } });
-  await testPrisma.resident.deleteMany({ where: { physicianId } });
   await testPrisma.session.deleteMany({ where: { physicianId } });
+  await testPrisma.residentCredential.deleteMany({ where: { physicianId } });
+  await testPrisma.resident.deleteMany({ where: { physicianId } });
   await testPrisma.emailConfirmationToken.deleteMany({ where: { physicianId } });
   await testPrisma.physicianCredential.deleteMany({ where: { physicianId } });
   await testPrisma.physician.deleteMany({ where: { id: physicianId } });

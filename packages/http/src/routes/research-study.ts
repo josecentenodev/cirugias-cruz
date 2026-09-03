@@ -17,7 +17,7 @@ import {
 } from "@cirugias-cruz/application";
 import type { AppDeps } from "../deps.js";
 import { replyForError } from "../shared/errors.js";
-import { requireAuth } from "../shared/require-auth.js";
+import { requirePhysicianAuth } from "../shared/require-physician-auth.js";
 
 interface CreateResearchStudyBody {
   hypothesis?: string;
@@ -93,9 +93,11 @@ const researchStudySurgeryParamsSchema = {
 } as const;
 
 /**
- * Research Study routes. Every route is requireAuth-protected and takes
- * tenant identity only from `request.physicianId` (set by requireAuth from
- * the session cookie) — never from the request body/params/query.
+ * Research Study routes. Every route is Physician-only
+ * (`requirePhysicianAuth`, ADR 0017 — ResearchStudy is out of scope for
+ * a Resident session) and takes tenant identity only from
+ * `request.physicianId` (set from the session cookie) — never from the
+ * request body/params/query.
  *
  * POST /research-studies/:id/status maps its `{ to }` body onto exactly
  * one of the three real Domain transition methods, based on the study's
@@ -110,7 +112,7 @@ const researchStudySurgeryParamsSchema = {
  * docs/architecture/m4-m7-conformance-review.md §2.4).
  */
 export function registerResearchStudyRoutes(app: FastifyInstance, deps: AppDeps): void {
-  const auth = { preHandler: requireAuth(deps.sessionRepository) };
+  const auth = { preHandler: requirePhysicianAuth(deps.sessionRepository) };
 
   app.post<{ Body: CreateResearchStudyBody }>(
     "/research-studies",

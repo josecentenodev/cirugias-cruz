@@ -3,6 +3,8 @@ export { PrismaPatientRepository } from "./patient/prisma-patient-repository.js"
 export { PrismaProcedureTypeRepository } from "./procedure-type/prisma-procedure-type-repository.js";
 export { PrismaSurgeryRepository } from "./surgery/prisma-surgery-repository.js";
 export { PrismaResidentRepository } from "./resident/prisma-resident-repository.js";
+export { PrismaResidentCredentialRepository } from "./resident/prisma-resident-credential-repository.js";
+export { RandomTemporaryPasswordGenerator } from "./resident/random-temporary-password-generator.js";
 export { PrismaPhysicianRepository } from "./physician/prisma-physician-repository.js";
 export { PrismaPhysicianCredentialRepository } from "./physician/prisma-physician-credential-repository.js";
 export { PrismaSessionRepository } from "./physician/prisma-session-repository.js";

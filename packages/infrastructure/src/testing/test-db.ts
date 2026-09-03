@@ -33,6 +33,7 @@ export async function cleanupResearchStudy(researchStudyId: string): Promise<voi
 
 export async function cleanupPhysician(physicianId: string): Promise<void> {
   await testPrisma.session.deleteMany({ where: { physicianId } });
+  await testPrisma.emailConfirmationToken.deleteMany({ where: { physicianId } });
   await testPrisma.physicianCredential.deleteMany({ where: { physicianId } });
   await testPrisma.physician.deleteMany({ where: { id: physicianId } });
 }

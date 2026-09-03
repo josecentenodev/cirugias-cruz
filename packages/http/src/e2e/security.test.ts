@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  FakeEmailSender,
   FakePasswordHasher,
+  InMemoryEmailConfirmationTokenRepository,
   InMemoryPatientRepository,
   InMemoryPhysicianCredentialRepository,
   InMemoryPhysicianRepository,
@@ -26,11 +28,14 @@ function buildTestDeps(): AppDeps {
     physicianCredentialRepository: new InMemoryPhysicianCredentialRepository(),
     passwordHasher: new FakePasswordHasher(),
     sessionRepository: new InMemorySessionRepository(),
+    emailConfirmationTokenRepository: new InMemoryEmailConfirmationTokenRepository(),
+    emailSender: new FakeEmailSender(),
     patientRepository: new InMemoryPatientRepository(),
     procedureTypeRepository: new InMemoryProcedureTypeRepository(),
     surgeryRepository: new InMemorySurgeryRepository(),
     residentRepository: new InMemoryResidentRepository(),
     researchStudyRepository: new InMemoryResearchStudyRepository(),
+    webBaseUrl: "http://localhost:3001",
   };
 }
 
@@ -95,10 +100,13 @@ describe("Request validation", () => {
   });
 
   it("rejects a malformed authenticated POST /patients body with a clean 400", async () => {
-    const app = await buildApp(buildTestDeps());
+    const deps = buildTestDeps();
+    const app = await buildApp(deps);
     const payload = newPhysicianPayload();
     const registerResponse = await app.inject({ method: "POST", url: "/physicians", payload });
     expect(registerResponse.statusCode).toBe(201);
+    const { physicianId } = registerResponse.json<{ physicianId: string }>();
+    await deps.physicianCredentialRepository.markConfirmed(physicianId);
 
     const loginResponse = await app.inject({
       method: "POST",
@@ -117,10 +125,22 @@ describe("Request validation", () => {
     expect(response.statusCode).toBe(400);
   });
 
-  async function loginNewPhysician(app: Awaited<ReturnType<typeof buildApp>>): Promise<string> {
+  /**
+   * Registers and logs in a physician for tests that only need an
+   * authenticated session, not the confirmation flow itself (that's
+   * covered by e2e/auth.test.ts). Confirms directly via the repository
+   * — these are in-memory fakes in this same process, so this is a test
+   * setup shortcut, not a bypass of anything real (see ADR 0015).
+   */
+  async function loginNewPhysician(
+    app: Awaited<ReturnType<typeof buildApp>>,
+    deps: AppDeps,
+  ): Promise<string> {
     const payload = newPhysicianPayload();
     const registerResponse = await app.inject({ method: "POST", url: "/physicians", payload });
     expect(registerResponse.statusCode).toBe(201);
+    const { physicianId } = registerResponse.json<{ physicianId: string }>();
+    await deps.physicianCredentialRepository.markConfirmed(physicianId);
 
     const loginResponse = await app.inject({
       method: "POST",
@@ -138,8 +158,9 @@ describe("Request validation", () => {
   // of Done requires. These prove the fix: every route in both files now
   // validates its body/params before the handler runs.
   it("rejects a POST /research-studies request with no body at all with a clean 400, not a 500", async () => {
-    const app = await buildApp(buildTestDeps());
-    const sessionId = await loginNewPhysician(app);
+    const deps = buildTestDeps();
+    const app = await buildApp(deps);
+    const sessionId = await loginNewPhysician(app, deps);
 
     const response = await app.inject({
       method: "POST",
@@ -152,8 +173,9 @@ describe("Request validation", () => {
   });
 
   it("rejects a malformed POST /research-studies body (wrong field type) with a clean 400", async () => {
-    const app = await buildApp(buildTestDeps());
-    const sessionId = await loginNewPhysician(app);
+    const deps = buildTestDeps();
+    const app = await buildApp(deps);
+    const sessionId = await loginNewPhysician(app, deps);
 
     const response = await app.inject({
       method: "POST",
@@ -166,8 +188,9 @@ describe("Request validation", () => {
   });
 
   it("rejects a malformed PATCH /research-studies/:id body with a clean 400", async () => {
-    const app = await buildApp(buildTestDeps());
-    const sessionId = await loginNewPhysician(app);
+    const deps = buildTestDeps();
+    const app = await buildApp(deps);
+    const sessionId = await loginNewPhysician(app, deps);
 
     const response = await app.inject({
       method: "PATCH",
@@ -180,8 +203,9 @@ describe("Request validation", () => {
   });
 
   it("rejects a POST /research-studies/:id/surgeries request missing surgeryId with a clean 400", async () => {
-    const app = await buildApp(buildTestDeps());
-    const sessionId = await loginNewPhysician(app);
+    const deps = buildTestDeps();
+    const app = await buildApp(deps);
+    const sessionId = await loginNewPhysician(app, deps);
 
     const response = await app.inject({
       method: "POST",
@@ -194,8 +218,9 @@ describe("Request validation", () => {
   });
 
   it("rejects a POST /research-studies/:id/status request with an invalid body shape with a clean 400", async () => {
-    const app = await buildApp(buildTestDeps());
-    const sessionId = await loginNewPhysician(app);
+    const deps = buildTestDeps();
+    const app = await buildApp(deps);
+    const sessionId = await loginNewPhysician(app, deps);
 
     const response = await app.inject({
       method: "POST",
@@ -208,8 +233,9 @@ describe("Request validation", () => {
   });
 
   it("rejects a POST /residents request with no body at all with a clean 400, not a 500", async () => {
-    const app = await buildApp(buildTestDeps());
-    const sessionId = await loginNewPhysician(app);
+    const deps = buildTestDeps();
+    const app = await buildApp(deps);
+    const sessionId = await loginNewPhysician(app, deps);
 
     const response = await app.inject({
       method: "POST",
@@ -222,8 +248,9 @@ describe("Request validation", () => {
   });
 
   it("rejects a malformed POST /residents body (missing required fields) with a clean 400", async () => {
-    const app = await buildApp(buildTestDeps());
-    const sessionId = await loginNewPhysician(app);
+    const deps = buildTestDeps();
+    const app = await buildApp(deps);
+    const sessionId = await loginNewPhysician(app, deps);
 
     const response = await app.inject({
       method: "POST",
@@ -236,8 +263,9 @@ describe("Request validation", () => {
   });
 
   it("rejects a POST /surgeries/:id/residents request missing residentId with a clean 400", async () => {
-    const app = await buildApp(buildTestDeps());
-    const sessionId = await loginNewPhysician(app);
+    const deps = buildTestDeps();
+    const app = await buildApp(deps);
+    const sessionId = await loginNewPhysician(app, deps);
 
     const response = await app.inject({
       method: "POST",

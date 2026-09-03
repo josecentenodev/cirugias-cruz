@@ -31,6 +31,17 @@ describe("proxy (route protection)", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 
+  it("never redirects /signup or its /signup/check-email sub-page (ADR 0015)", () => {
+    expect(proxy(request("/signup")).headers.get("location")).toBeNull();
+    expect(proxy(request("/signup/check-email")).headers.get("location")).toBeNull();
+  });
+
+  it("never redirects /confirm-email, even with a ?token= query string", () => {
+    const response = proxy(request("/confirm-email?token=abc-123"));
+
+    expect(response.headers.get("location")).toBeNull();
+  });
+
   it("does not check session validity itself — a present-but-stale cookie still passes through", () => {
     // Deliberately not authedApiRequest's job here — see
     // docs/architecture/milestone-8-design.md §3.2: this proxy only

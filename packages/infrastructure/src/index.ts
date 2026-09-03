@@ -6,5 +6,7 @@ export { PrismaResidentRepository } from "./resident/prisma-resident-repository.
 export { PrismaPhysicianRepository } from "./physician/prisma-physician-repository.js";
 export { PrismaPhysicianCredentialRepository } from "./physician/prisma-physician-credential-repository.js";
 export { PrismaSessionRepository } from "./physician/prisma-session-repository.js";
+export { PrismaEmailConfirmationTokenRepository } from "./physician/prisma-email-confirmation-token-repository.js";
 export { BcryptPasswordHasher } from "./physician/bcrypt-password-hasher.js";
+export { ResendEmailSender } from "./physician/resend-email-sender.js";
 export { PrismaResearchStudyRepository } from "./research-study/prisma-research-study-repository.js";

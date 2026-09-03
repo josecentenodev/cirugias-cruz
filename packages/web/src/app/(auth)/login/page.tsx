@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 
@@ -14,8 +15,14 @@ export default function LoginPage() {
         <CardTitle>Epitaxy</CardTitle>
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
         <LoginForm />
+        <p className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-medium text-foreground hover:underline">
+            Create one
+          </Link>
+        </p>
       </CardContent>
     </Card>
   );

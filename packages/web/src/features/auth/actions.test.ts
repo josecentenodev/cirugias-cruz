@@ -1,10 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ApiDomainError, ApiUnexpectedError } from "@/lib/api-errors";
 
 const { redirectMock } = vi.hoisted(() => ({ redirectMock: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: redirectMock }));
 
-const { apiRequestRawMock } = vi.hoisted(() => ({ apiRequestRawMock: vi.fn() }));
-vi.mock("@/lib/api-client.js", () => ({ apiRequestRaw: apiRequestRawMock }));
+const { apiRequestRawMock, apiRequestMock } = vi.hoisted(() => ({
+  apiRequestRawMock: vi.fn(),
+  apiRequestMock: vi.fn(),
+}));
+vi.mock("@/lib/api-client.js", () => ({
+  apiRequestRaw: apiRequestRawMock,
+  apiRequest: apiRequestMock,
+}));
 
 vi.mock("@/lib/client-ip.js", () => ({
   getForwardedClientIp: vi.fn().mockResolvedValue(undefined),
@@ -30,7 +37,7 @@ redirectMock.mockImplementation((path: string) => {
   throw new FakeRedirectSignal(path);
 });
 
-const { loginAction, logoutAction } = await import("./actions.js");
+const { loginAction, logoutAction, registerAction } = await import("./actions.js");
 
 function formData(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -66,7 +73,7 @@ describe("loginAction", () => {
     expect(setSessionCookieMock).toHaveBeenCalledWith("abc-123", expect.any(Date));
   });
 
-  it("rejects invalid credentials (api's 400) with an inline error, no redirect", async () => {
+  it("rejects invalid credentials (api's 400, no parseable body) with a generic fallback, no redirect", async () => {
     apiRequestRawMock.mockResolvedValue(new Response(null, { status: 400 }));
 
     const result = await loginAction({}, formData({ email: "doc@example.com", password: "wrong" }));
@@ -74,6 +81,21 @@ describe("loginAction", () => {
     expect(result).toEqual({ error: "Invalid email or password." });
     expect(setSessionCookieMock).not.toHaveBeenCalled();
     expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("passes through api's actual DomainError message from the response body, unchanged (ADR 0015: the unconfirmed-email case needs its own distinct message, not a generic one)", async () => {
+    apiRequestRawMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: "Please confirm your email before logging in" }), {
+        status: 400,
+      }),
+    );
+
+    const result = await loginAction(
+      {},
+      formData({ email: "doc@example.com", password: "s3cret" }),
+    );
+
+    expect(result).toEqual({ error: "Please confirm your email before logging in" });
   });
 
   it("rejects a rate-limited attempt (429) with its own inline message", async () => {
@@ -143,5 +165,77 @@ describe("logoutAction", () => {
 
     expect(apiRequestRawMock).not.toHaveBeenCalled();
     expect(clearSessionCookieMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+function registerFormData(overrides: Record<string, string> = {}) {
+  const data = new FormData();
+  const fields: Record<string, string> = {
+    firstName: "Ana",
+    lastName: "García",
+    phone: "555-0101",
+    email: "ana@example.com",
+    dateOfBirth: "1980-01-01",
+    password: "s3cret-password",
+    ...overrides,
+  };
+  for (const [key, value] of Object.entries(fields)) {
+    data.set(key, value);
+  }
+  return data;
+}
+
+describe("registerAction", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    redirectMock.mockImplementation((path: string) => {
+      throw new FakeRedirectSignal(path);
+    });
+  });
+
+  it("succeeds: calls POST /physicians and redirects to /signup/check-email, never sets a session cookie", async () => {
+    apiRequestMock.mockResolvedValue({ physicianId: "physician-1" });
+
+    await expect(registerAction({}, registerFormData())).rejects.toThrow(
+      "NEXT_REDIRECT:/signup/check-email",
+    );
+
+    expect(apiRequestMock).toHaveBeenCalledWith({
+      method: "POST",
+      path: "/physicians",
+      body: {
+        firstName: "Ana",
+        lastName: "García",
+        phone: "555-0101",
+        email: "ana@example.com",
+        dateOfBirth: "1980-01-01",
+        password: "s3cret-password",
+      },
+    });
+    expect(setSessionCookieMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a blank field before ever calling api", async () => {
+    const result = await registerAction({}, registerFormData({ firstName: "" }));
+
+    expect(result).toEqual({ error: "Please fill in every field." });
+    expect(apiRequestMock).not.toHaveBeenCalled();
+  });
+
+  it("expectable error: surfaces api's DomainError message inline (e.g. email already registered), unchanged", async () => {
+    apiRequestMock.mockRejectedValue(
+      new ApiDomainError("A physician with this email is already registered"),
+    );
+
+    const result = await registerAction({}, registerFormData());
+
+    expect(result).toEqual({ error: "A physician with this email is already registered" });
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
+    apiRequestMock.mockRejectedValue(new ApiUnexpectedError());
+
+    await expect(registerAction({}, registerFormData())).rejects.toBeInstanceOf(ApiUnexpectedError);
   });
 });

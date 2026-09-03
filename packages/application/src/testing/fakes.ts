@@ -19,6 +19,11 @@ import type {
 } from "../physician/physician-credential-repository.js";
 import type { PasswordHasher } from "../physician/password-hasher.js";
 import type { Session, SessionRepository } from "../physician/session-repository.js";
+import type {
+  EmailConfirmationToken,
+  EmailConfirmationTokenRepository,
+} from "../physician/email-confirmation-token-repository.js";
+import type { EmailSender, SendEmailInput } from "../physician/email-sender.js";
 
 /**
  * In-memory fakes for Application orchestration tests. No Infrastructure
@@ -168,8 +173,17 @@ export class InMemoryPhysicianRepository implements PhysicianRepository {
 export class InMemoryPhysicianCredentialRepository implements PhysicianCredentialRepository {
   private readonly credentials = new Map<string, PhysicianCredential>();
 
-  seed(credential: PhysicianCredential): void {
-    this.credentials.set(credential.email.toLowerCase(), credential);
+  /**
+   * Defaults to already-confirmed — most tests aren't about the
+   * confirmation gate itself. Uses `undefined` (not `??`, which would
+   * also override an explicit `confirmedAt: null`) to distinguish
+   * "caller didn't pass it" from "caller deliberately passed null".
+   */
+  seed(credential: Omit<PhysicianCredential, "confirmedAt"> & { confirmedAt?: Date | null }): void {
+    this.credentials.set(credential.email.toLowerCase(), {
+      ...credential,
+      confirmedAt: credential.confirmedAt === undefined ? new Date() : credential.confirmedAt,
+    });
   }
 
   findByEmail(email: string): Promise<PhysicianCredential | null> {
@@ -178,6 +192,52 @@ export class InMemoryPhysicianCredentialRepository implements PhysicianCredentia
 
   save(credential: PhysicianCredential): Promise<void> {
     this.credentials.set(credential.email.toLowerCase(), credential);
+    return Promise.resolve();
+  }
+
+  markConfirmed(physicianId: string): Promise<void> {
+    for (const [key, credential] of this.credentials) {
+      if (credential.physicianId === physicianId) {
+        this.credentials.set(key, { ...credential, confirmedAt: new Date() });
+      }
+    }
+    return Promise.resolve();
+  }
+}
+
+export class InMemoryEmailConfirmationTokenRepository implements EmailConfirmationTokenRepository {
+  private readonly tokens = new Map<string, EmailConfirmationToken>();
+
+  create(physicianId: string): Promise<EmailConfirmationToken> {
+    const token: EmailConfirmationToken = {
+      id: randomUUID(),
+      physicianId,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    };
+    this.tokens.set(token.id, token);
+    return Promise.resolve(token);
+  }
+
+  findById(tokenId: string): Promise<EmailConfirmationToken | null> {
+    const token = this.tokens.get(tokenId);
+    if (!token || token.expiresAt.getTime() < Date.now()) {
+      return Promise.resolve(null);
+    }
+    return Promise.resolve(token);
+  }
+
+  delete(tokenId: string): Promise<void> {
+    this.tokens.delete(tokenId);
+    return Promise.resolve();
+  }
+}
+
+/** Records every call instead of actually sending anything — this project's fakes don't reach real network/email services. */
+export class FakeEmailSender implements EmailSender {
+  readonly sent: SendEmailInput[] = [];
+
+  send(input: SendEmailInput): Promise<void> {
+    this.sent.push(input);
     return Promise.resolve();
   }
 }

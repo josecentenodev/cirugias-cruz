@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildApp } from "../build-app.js";
 import { buildDeps } from "../index.js";
-import { cleanupPhysician } from "../testing/test-db.js";
+import { cleanupPhysician, testPrisma } from "../testing/test-db.js";
 
 const physicianIds: string[] = [];
 
@@ -26,6 +26,13 @@ async function registerAndLogin(app: Awaited<ReturnType<typeof buildApp>>) {
   });
   const physicianId = registerResponse.json<{ physicianId: string }>().physicianId;
   physicianIds.push(physicianId);
+  // Registration alone does not grant a usable account (ADR 0015) — mark
+  // it confirmed directly, bypassing the real email step these e2e
+  // tests are not about (that flow has its own dedicated coverage).
+  await testPrisma.physicianCredential.update({
+    where: { physicianId },
+    data: { confirmedAt: new Date() },
+  });
 
   const loginResponse = await app.inject({
     method: "POST",

@@ -78,6 +78,11 @@ export type {
 } from "./physician/physician-credential-repository.js";
 export type { PasswordHasher } from "./physician/password-hasher.js";
 export type { Session, SessionRepository } from "./physician/session-repository.js";
+export type {
+  EmailConfirmationToken,
+  EmailConfirmationTokenRepository,
+} from "./physician/email-confirmation-token-repository.js";
+export type { EmailSender, SendEmailInput } from "./physician/email-sender.js";
 export {
   registerPhysician,
   type RegisterPhysicianInput,
@@ -86,6 +91,17 @@ export {
 } from "./physician/register-physician.js";
 export { login, type LoginInput, type LoginDeps } from "./physician/login.js";
 export { logout, type LogoutInput, type LogoutDeps } from "./physician/logout.js";
+export {
+  sendConfirmationEmail,
+  type SendConfirmationEmailInput,
+  type SendConfirmationEmailDeps,
+} from "./physician/send-confirmation-email.js";
+export {
+  confirmPhysicianEmail,
+  type ConfirmPhysicianEmailInput,
+  type ConfirmPhysicianEmailOutput,
+  type ConfirmPhysicianEmailDeps,
+} from "./physician/confirm-physician-email.js";
 
 export type { ResidentRepository } from "./resident/resident-repository.js";
 export {

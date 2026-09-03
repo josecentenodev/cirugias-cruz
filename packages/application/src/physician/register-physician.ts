@@ -59,6 +59,12 @@ export function registerPhysician(deps: RegisterPhysicianDeps) {
       physicianId: physician.id,
       email: input.email,
       passwordHash,
+      // Unconfirmed until the physician clicks their emailed confirmation
+      // link — see ADR 0015. `registerPhysician` itself never sends that
+      // email; the HTTP route orchestrates `sendConfirmationEmail`
+      // separately, keeping this operation's own dependency list
+      // unchanged.
+      confirmedAt: null,
     });
 
     return { physicianId: physician.id };

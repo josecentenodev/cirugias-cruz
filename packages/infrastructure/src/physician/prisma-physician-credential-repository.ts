@@ -19,7 +19,12 @@ export class PrismaPhysicianCredentialRepository implements PhysicianCredentialR
       return null;
     }
 
-    return { physicianId: row.physicianId, email: row.email, passwordHash: row.passwordHash };
+    return {
+      physicianId: row.physicianId,
+      email: row.email,
+      passwordHash: row.passwordHash,
+      confirmedAt: row.confirmedAt,
+    };
   }
 
   async save(credential: PhysicianCredential): Promise<void> {
@@ -30,12 +35,21 @@ export class PrismaPhysicianCredentialRepository implements PhysicianCredentialR
         email: credential.email,
         emailNormalized: normalizeEmail(credential.email),
         passwordHash: credential.passwordHash,
+        confirmedAt: credential.confirmedAt,
       },
       update: {
         email: credential.email,
         emailNormalized: normalizeEmail(credential.email),
         passwordHash: credential.passwordHash,
+        confirmedAt: credential.confirmedAt,
       },
+    });
+  }
+
+  async markConfirmed(physicianId: string): Promise<void> {
+    await this.prisma.physicianCredential.update({
+      where: { physicianId },
+      data: { confirmedAt: new Date() },
     });
   }
 }

@@ -36,6 +36,16 @@ export function login(deps: LoginDeps) {
       throw new DomainError("Invalid email or password");
     }
 
+    // Checked only after the password is confirmed correct (ADR 0015) —
+    // unlike the email/password check above, there's no information-leak
+    // concern here: the caller has already proven they own this
+    // credential, so telling them specifically that it's unconfirmed
+    // (rather than folding it into "invalid email or password") is a
+    // real, distinct thing they can act on.
+    if (!credential.confirmedAt) {
+      throw new DomainError("Please confirm your email before logging in");
+    }
+
     return deps.sessionRepository.create(credential.physicianId);
   };
 }

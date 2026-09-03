@@ -25,13 +25,14 @@ model Physician {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  patients        Patient[]
-  procedureTypes  ProcedureType[]
-  surgeries       Surgery[]
-  residents       Resident[]
-  credential      PhysicianCredential?
-  sessions        Session[]
-  researchStudies ResearchStudy[]
+  patients                Patient[]
+  procedureTypes          ProcedureType[]
+  surgeries               Surgery[]
+  residents               Resident[]
+  credential              PhysicianCredential?
+  sessions                Session[]
+  emailConfirmationTokens EmailConfirmationToken[]
+  researchStudies         ResearchStudy[]
 
   @@map("physicians")
 }
@@ -45,16 +46,36 @@ model Physician {
 // extension (which would need CREATE EXTENSION privileges this milestone
 // doesn't assume are available).
 model PhysicianCredential {
-  physicianId     String   @id
+  physicianId     String    @id
   email           String
-  emailNormalized String   @unique
+  emailNormalized String    @unique
   passwordHash    String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  // Null until the physician clicks their emailed confirmation link
+  // (ADR 0015) — `login` refuses an unconfirmed credential.
+  confirmedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   physician Physician @relation(fields: [physicianId], references: [id])
 
   @@map("physician_credentials")
+}
+
+// A single-use, expiring token proving a physician clicked the
+// confirmation link emailed to the address they registered with (ADR
+// 0015). Deliberately shaped like Session (opaque id, physicianId,
+// expiresAt) — same kind of server-issued bearer token, different
+// purpose, not a new pattern.
+model EmailConfirmationToken {
+  id          String   @id
+  physicianId String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  physician Physician @relation(fields: [physicianId], references: [id])
+
+  @@index([physicianId])
+  @@map("email_confirmation_tokens")
 }
 
 // Server-side session (PostgreSQL-backed, per the approved decision — no

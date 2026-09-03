@@ -1,5 +1,6 @@
 import {
   BcryptPasswordHasher,
+  PrismaEmailConfirmationTokenRepository,
   PrismaPatientRepository,
   PrismaPhysicianCredentialRepository,
   PrismaPhysicianRepository,
@@ -8,6 +9,7 @@ import {
   PrismaResidentRepository,
   PrismaSessionRepository,
   PrismaSurgeryRepository,
+  ResendEmailSender,
   createPrismaClient,
 } from "@cirugias-cruz/infrastructure";
 import { buildApp } from "./build-app.js";
@@ -20,11 +22,21 @@ export function buildDeps(): AppDeps {
     physicianCredentialRepository: new PrismaPhysicianCredentialRepository(prisma),
     passwordHasher: new BcryptPasswordHasher(),
     sessionRepository: new PrismaSessionRepository(prisma),
+    emailConfirmationTokenRepository: new PrismaEmailConfirmationTokenRepository(prisma),
+    // Missing/invalid RESEND_API_KEY fails at the first actual send, not
+    // at boot — the same "fail at use" philosophy DATABASE_URL already
+    // follows here (Prisma doesn't validate its connection string at
+    // construction either).
+    emailSender: new ResendEmailSender(
+      process.env.RESEND_API_KEY ?? "",
+      process.env.RESEND_FROM_EMAIL ?? "Epitaxy <onboarding@resend.dev>",
+    ),
     patientRepository: new PrismaPatientRepository(prisma),
     procedureTypeRepository: new PrismaProcedureTypeRepository(prisma),
     surgeryRepository: new PrismaSurgeryRepository(prisma),
     residentRepository: new PrismaResidentRepository(prisma),
     researchStudyRepository: new PrismaResearchStudyRepository(prisma),
+    webBaseUrl: process.env.WEB_BASE_URL ?? "http://localhost:3001",
   };
 }
 

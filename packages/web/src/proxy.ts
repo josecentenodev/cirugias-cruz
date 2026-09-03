@@ -15,7 +15,7 @@ import { applySecurityHeaders, generateNonce } from "./lib/security-headers";
  * (`lib/security-headers.ts`) are applied here too, on every response —
  * the redirect to `/login` included, not only pages behind auth.
  */
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/signup", "/confirm-email"];
 
 export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;

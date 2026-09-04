@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { ProcedureType } from "@cirugias-cruz/domain";
+import { CustomField, ProcedureType } from "@cirugias-cruz/domain";
 import {
   cleanupPhysician,
   cleanupProcedureType,
@@ -101,5 +101,48 @@ describe("PrismaProcedureTypeRepository", () => {
       "infra-test-m4-procedure-type-2",
       "infra-test-procedure-type-1",
     ]);
+  });
+
+  it("persists and reads back CustomField definitions of every valueType", async () => {
+    const procedureType = ProcedureType.create({
+      id: "infra-test-procedure-type-1",
+      physicianId: PHYSICIAN_ID,
+      name: "Pterigión",
+    });
+    procedureType.addCustomField(
+      CustomField.create({
+        id: "cf-technique",
+        name: "Surgical technique",
+        unit: "n/a",
+        magnitude: "technique",
+        scope: "SURGERY",
+        constraint: { valueType: "ENUM", options: ["Autograft", "Amniotic membrane"] },
+      }),
+      PHYSICIAN_ID,
+    );
+    procedureType.addCustomField(
+      CustomField.create({
+        id: "cf-eva",
+        name: "Pain (EVA)",
+        unit: "0-10",
+        magnitude: "pain",
+        scope: "CONTROL",
+        constraint: { valueType: "NUMBER", min: 0, max: 10 },
+      }),
+      PHYSICIAN_ID,
+    );
+    await repository.save(procedureType);
+
+    const found = await repository.findById("infra-test-procedure-type-1");
+
+    expect(found?.customFields).toHaveLength(2);
+    const technique = found?.customFields.find((f) => f.id === "cf-technique");
+    expect(technique?.scope).toBe("SURGERY");
+    expect(technique?.constraint).toEqual({
+      valueType: "ENUM",
+      options: ["Autograft", "Amniotic membrane"],
+    });
+    const eva = found?.customFields.find((f) => f.id === "cf-eva");
+    expect(eva?.constraint).toEqual({ valueType: "NUMBER", min: 0, max: 10 });
   });
 });

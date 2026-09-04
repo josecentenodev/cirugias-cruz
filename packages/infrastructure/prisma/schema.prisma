@@ -133,11 +133,71 @@ model ProcedureType {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  physician Physician @relation(fields: [physicianId], references: [id])
-  surgeries Surgery[]
+  physician    Physician               @relation(fields: [physicianId], references: [id])
+  surgeries    Surgery[]
+  customFields CustomFieldDefinition[]
 
   @@index([physicianId])
   @@map("procedure_types")
+}
+
+// CustomField definitions are an internal collection of the ProcedureType
+// aggregate (ADR 0018) — a field's name must be unique within its owning
+// ProcedureType, which could not be enforced correctly if definitions
+// were loaded/saved independently of it. Written/read only through
+// ProcedureTypeRepository, never through a repository of its own —
+// mirrors Control's relationship to Surgery.
+//
+// `constraintMin`/`constraintMax` are stored as strings so the same pair
+// of columns can carry either a NUMBER's numeric bounds or a DATE's date
+// bounds (parsed/formatted by the mapper based on `valueType`) without a
+// separate column pair per type.
+model CustomFieldDefinition {
+  id                  String  @id
+  procedureTypeId     String
+  name                String
+  description         String?
+  unit                String
+  magnitude           String
+  scope               String
+  valueType           String
+  constraintMin       String?
+  constraintMax       String?
+  constraintMaxLength Int?
+  enumOptions         Json?
+
+  procedureType ProcedureType      @relation(fields: [procedureTypeId], references: [id])
+  values        CustomFieldValue[]
+
+  @@index([procedureTypeId])
+  @@map("custom_field_definitions")
+}
+
+// A recorded CustomField value, scoped to either a Surgery or a Control
+// per its definition's `scope` — exactly one of `surgeryId`/`controlId`
+// is set. Written/read only through ProcedureTypeRepository's sibling,
+// SurgeryRepository (never its own repository), matching how Control
+// values themselves are persisted (ADR 0019). Only one of the four
+// `value*` columns is populated per row, selected by the referenced
+// definition's `valueType`.
+model CustomFieldValue {
+  id              String    @id
+  definitionId    String
+  surgeryId       String?
+  controlId       String?
+  valueNumber     Float?
+  valueText       String?
+  valueDate       DateTime?
+  valueEnumOption String?
+
+  definition CustomFieldDefinition @relation(fields: [definitionId], references: [id])
+  surgery    Surgery?              @relation(fields: [surgeryId], references: [id])
+  control    Control?              @relation(fields: [controlId], references: [id])
+
+  @@index([definitionId])
+  @@index([surgeryId])
+  @@index([controlId])
+  @@map("custom_field_values")
 }
 
 // Mirrors Patient exactly (see Milestone 5). Resident is a plain Entity
@@ -204,11 +264,12 @@ model Surgery {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  physician     Physician            @relation(fields: [physicianId], references: [id])
-  patient       Patient              @relation(fields: [patientId], references: [id])
-  procedureType ProcedureType        @relation(fields: [procedureTypeId], references: [id])
-  controls      Control[]
-  participants  SurgeryParticipant[]
+  physician         Physician            @relation(fields: [physicianId], references: [id])
+  patient           Patient              @relation(fields: [patientId], references: [id])
+  procedureType     ProcedureType        @relation(fields: [procedureTypeId], references: [id])
+  controls          Control[]
+  participants      SurgeryParticipant[]
+  customFieldValues CustomFieldValue[]
 
   @@index([physicianId])
   @@map("surgeries")
@@ -229,7 +290,8 @@ model Control {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  surgery Surgery @relation(fields: [surgeryId], references: [id])
+  surgery           Surgery            @relation(fields: [surgeryId], references: [id])
+  customFieldValues CustomFieldValue[]
 
   @@index([surgeryId])
   @@map("controls")

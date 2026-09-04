@@ -12,6 +12,8 @@ const OTHER_PATIENT_ID = "infra-test-m4-patient-surgery-other";
 const OTHER_PROCEDURE_TYPE_ID = "infra-test-m4-procedure-type-surgery-other";
 const SURGERY_ID_2 = "infra-test-m4-surgery-2";
 const OTHER_SURGERY_ID = "infra-test-m4-surgery-other";
+const CF_TECHNIQUE_ID = "infra-test-cf-technique";
+const CF_EVA_ID = "infra-test-cf-eva";
 
 async function seedPatientAndProcedureType(): Promise<void> {
   await Promise.all([
@@ -34,6 +36,37 @@ async function seedPatientAndProcedureType(): Promise<void> {
         id: PROCEDURE_TYPE_ID,
         physicianId: PHYSICIAN_ID,
         name: "Pterigión",
+      },
+      update: {},
+    }),
+  ]);
+  await Promise.all([
+    testPrisma.customFieldDefinition.upsert({
+      where: { id: CF_TECHNIQUE_ID },
+      create: {
+        id: CF_TECHNIQUE_ID,
+        procedureTypeId: PROCEDURE_TYPE_ID,
+        name: "Surgical technique",
+        unit: "n/a",
+        magnitude: "technique",
+        scope: "SURGERY",
+        valueType: "ENUM",
+        enumOptions: ["Autograft", "Amniotic membrane"],
+      },
+      update: {},
+    }),
+    testPrisma.customFieldDefinition.upsert({
+      where: { id: CF_EVA_ID },
+      create: {
+        id: CF_EVA_ID,
+        procedureTypeId: PROCEDURE_TYPE_ID,
+        name: "Pain (EVA)",
+        unit: "0-10",
+        magnitude: "pain",
+        scope: "CONTROL",
+        valueType: "NUMBER",
+        constraintMin: "0",
+        constraintMax: "10",
       },
       update: {},
     }),
@@ -77,6 +110,9 @@ describe("PrismaSurgeryRepository", () => {
   }, 30000);
 
   afterAll(async () => {
+    await testPrisma.customFieldDefinition.deleteMany({
+      where: { id: { in: [CF_TECHNIQUE_ID, CF_EVA_ID] } },
+    });
     await Promise.all([
       testPrisma.patient.deleteMany({ where: { id: PATIENT_ID } }),
       testPrisma.procedureType.deleteMany({ where: { id: PROCEDURE_TYPE_ID } }),
@@ -110,6 +146,38 @@ describe("PrismaSurgeryRepository", () => {
     expect(found?.controls).toHaveLength(0);
     expect(found?.participatingResidentIds).toHaveLength(0);
   });
+
+  it("persists SURGERY- and CONTROL-scoped CustomField values and reconstructs them", async () => {
+    const surgery = Surgery.create({
+      id: SURGERY_ID,
+      physicianId: PHYSICIAN_ID,
+      patientId: PATIENT_ID,
+      procedureTypeId: PROCEDURE_TYPE_ID,
+      performedAt: new Date("2026-01-10"),
+      customFieldValues: [{ definitionId: CF_TECHNIQUE_ID, value: "Autograft" }],
+    });
+    surgery.recordControl({
+      id: "control-1",
+      observations: "Sin signos de infección",
+      recordedAt: new Date("2026-01-11"),
+      author: { type: "physician", physicianId: PHYSICIAN_ID },
+      customFieldValues: [{ definitionId: CF_EVA_ID, value: 3 }],
+    });
+
+    await repository.save(surgery);
+    const found = await repository.findById(SURGERY_ID);
+
+    expect(found?.customFieldValues).toHaveLength(1);
+    expect(found?.customFieldValues[0]).toMatchObject({
+      definitionId: CF_TECHNIQUE_ID,
+      value: "Autograft",
+    });
+    expect(found?.controls[0]?.customFieldValues).toHaveLength(1);
+    expect(found?.controls[0]?.customFieldValues[0]).toMatchObject({
+      definitionId: CF_EVA_ID,
+      value: 3,
+    });
+  }, 15000);
 
   it("persists Controls (physician- and resident-authored) as part of saving the Surgery, and reconstructs them", async () => {
     const surgery = Surgery.create({
@@ -206,7 +274,7 @@ describe("PrismaSurgeryRepository", () => {
 
     const rowCount = await testPrisma.control.count({ where: { surgeryId: SURGERY_ID } });
     expect(rowCount).toBe(1);
-  });
+  }, 15000);
 
   it("keeps createdAt stable and advances updatedAt across saves", async () => {
     const surgery = Surgery.create({
@@ -271,7 +339,7 @@ describe("PrismaSurgeryRepository", () => {
     const withControl = found.find((s) => s.id === SURGERY_ID);
     expect(withControl?.controls).toHaveLength(1);
     expect(withControl?.controls[0]?.observations).toBe("obs");
-  });
+  }, 15000);
 
   it("findByResidentId returns only the surgeries that resident participates in (ADR 0017)", async () => {
     const surgeryWithResident = Surgery.create({

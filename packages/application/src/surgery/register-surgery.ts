@@ -1,5 +1,7 @@
 import { DomainError, Surgery } from "@cirugias-cruz/domain";
 import { NotFoundError } from "../shared/not-found-error.js";
+import type { CustomFieldValueInput } from "../shared/validate-custom-field-values.js";
+import { validateCustomFieldValues } from "../shared/validate-custom-field-values.js";
 import type { PatientRepository } from "../patient/patient-repository.js";
 import type { ProcedureTypeRepository } from "../procedure-type/procedure-type-repository.js";
 import type { SurgeryRepository } from "./surgery-repository.js";
@@ -10,6 +12,8 @@ export interface RegisterSurgeryInput {
   patientId: string;
   procedureTypeId: string;
   performedAt: Date;
+  /** SURGERY-scoped CustomField values (ADR 0018), validated against the Procedure Type's definitions. */
+  customFieldValues?: CustomFieldValueInput[];
 }
 
 export interface RegisterSurgeryOutput {
@@ -53,12 +57,15 @@ export function registerSurgery(deps: RegisterSurgeryDeps) {
       throw new DomainError("A surgery may only reference a procedure type within the same tenant");
     }
 
+    validateCustomFieldValues(procedureType.customFields, input.customFieldValues ?? [], "SURGERY");
+
     const surgery = Surgery.create({
       id: input.id,
       physicianId: input.physicianId,
       patientId: input.patientId,
       procedureTypeId: input.procedureTypeId,
       performedAt: input.performedAt,
+      customFieldValues: input.customFieldValues,
     });
 
     await deps.surgeryRepository.save(surgery);

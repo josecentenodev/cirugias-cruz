@@ -101,7 +101,7 @@ describe("Milestone 1 operations against real Prisma repositories", () => {
   });
 
   it("recordControl persists the resulting Surgery aggregate, including its Control", async () => {
-    const output = await recordControl({ surgeryRepository })({
+    const output = await recordControl({ surgeryRepository, procedureTypeRepository })({
       physicianId: PHYSICIAN_ID,
       surgeryId: SURGERY_ID,
       id: CONTROL_ID,

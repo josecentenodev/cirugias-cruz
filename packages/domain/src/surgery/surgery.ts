@@ -1,4 +1,5 @@
 import { assertActingPhysicianOwnsResource } from "../shared/assert-tenant-owner.js";
+import { CustomFieldValue, type CustomFieldValueAttributes } from "../shared/custom-field-value.js";
 import { DomainError } from "../shared/domain-error.js";
 import { Control, type ControlAttributes, type ControlAuthor } from "./control.js";
 
@@ -10,6 +11,8 @@ export interface SurgeryAttributes {
   patientId: string;
   procedureTypeId: string;
   performedAt: Date;
+  /** SURGERY-scoped CustomField values recorded on this Surgery (ADR 0018). */
+  customFieldValues?: CustomFieldValueAttributes[];
 }
 
 export type RecordControlInput = Omit<ControlAttributes, never>;
@@ -24,6 +27,7 @@ export type RecordControlInput = Omit<ControlAttributes, never>;
 export class Surgery {
   private readonly controls_: Control[] = [];
   private readonly participatingResidentIds_: Set<string> = new Set();
+  private readonly customFieldValues_: CustomFieldValue[] = [];
 
   private constructor(
     private readonly id_: string,
@@ -50,13 +54,19 @@ export class Surgery {
       throw new DomainError("Surgery requires a performance/realization date");
     }
 
-    return new Surgery(
+    const surgery = new Surgery(
       attributes.id,
       attributes.physicianId,
       attributes.patientId,
       attributes.procedureTypeId,
       attributes.performedAt,
     );
+
+    for (const valueAttributes of attributes.customFieldValues ?? []) {
+      surgery.customFieldValues_.push(CustomFieldValue.create(valueAttributes));
+    }
+
+    return surgery;
   }
 
   /**
@@ -80,6 +90,7 @@ export class Surgery {
     performedAt: Date;
     controls: ControlAttributes[];
     participatingResidentIds: string[];
+    customFieldValues?: CustomFieldValueAttributes[];
   }): Surgery {
     const surgery = new Surgery(
       params.id,
@@ -94,6 +105,9 @@ export class Surgery {
     }
     for (const residentId of params.participatingResidentIds) {
       surgery.participatingResidentIds_.add(residentId);
+    }
+    for (const valueAttributes of params.customFieldValues ?? []) {
+      surgery.customFieldValues_.push(CustomFieldValue.create(valueAttributes));
     }
 
     return surgery;
@@ -129,6 +143,10 @@ export class Surgery {
 
   get participatingResidentIds(): readonly string[] {
     return [...this.participatingResidentIds_];
+  }
+
+  get customFieldValues(): readonly CustomFieldValue[] {
+    return [...this.customFieldValues_];
   }
 
   /**

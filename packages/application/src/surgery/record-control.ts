@@ -1,5 +1,8 @@
 import { DomainError } from "@cirugias-cruz/domain";
 import { NotFoundError } from "../shared/not-found-error.js";
+import type { CustomFieldValueInput } from "../shared/validate-custom-field-values.js";
+import { validateCustomFieldValues } from "../shared/validate-custom-field-values.js";
+import type { ProcedureTypeRepository } from "../procedure-type/procedure-type-repository.js";
 import type { SurgeryRepository } from "./surgery-repository.js";
 
 export type RecordControlAuthorInput =
@@ -12,6 +15,8 @@ export interface RecordControlInput {
   observations: string;
   recordedAt: Date;
   author: RecordControlAuthorInput;
+  /** CONTROL-scoped CustomField values (ADR 0018), validated against the Procedure Type's definitions. */
+  customFieldValues?: CustomFieldValueInput[];
 }
 
 export interface RecordControlOutput {
@@ -21,6 +26,7 @@ export interface RecordControlOutput {
 
 export interface RecordControlDeps {
   surgeryRepository: SurgeryRepository;
+  procedureTypeRepository: ProcedureTypeRepository;
 }
 
 /**
@@ -51,6 +57,12 @@ export function recordControl(deps: RecordControlDeps) {
       throw new DomainError("A control may only be recorded on a surgery within your own tenant");
     }
 
+    const procedureType = await deps.procedureTypeRepository.findById(surgery.procedureTypeId);
+    if (!procedureType) {
+      throw new NotFoundError(`Procedure type ${surgery.procedureTypeId} was not found`);
+    }
+    validateCustomFieldValues(procedureType.customFields, input.customFieldValues ?? [], "CONTROL");
+
     const author =
       input.author.type === "physician"
         ? ({ type: "physician", physicianId: input.physicianId } as const)
@@ -61,6 +73,7 @@ export function recordControl(deps: RecordControlDeps) {
       observations: input.observations,
       recordedAt: input.recordedAt,
       author,
+      customFieldValues: input.customFieldValues,
     });
 
     await deps.surgeryRepository.save(surgery);

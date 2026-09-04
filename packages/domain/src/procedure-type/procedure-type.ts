@@ -1,4 +1,5 @@
 import { assertActingPhysicianOwnsResource } from "../shared/assert-tenant-owner.js";
+import { CustomField, type CustomFieldAttributes } from "../shared/custom-field.js";
 import { DomainError } from "../shared/domain-error.js";
 
 export interface ProcedureTypeAttributes {
@@ -18,8 +19,16 @@ export interface ProcedureTypeAttributes {
 /**
  * A Procedure Type is owned and managed by a single Physician/Tenant.
  * It is never deleted — no deletion method is exposed by this class.
+ *
+ * It owns its CustomField definitions as an internal collection (ADR
+ * 0018), mirroring how Control lives inside Surgery: a CustomField
+ * definition has no meaning or consistency outside the ProcedureType
+ * that defines it (its name must be unique within that ProcedureType),
+ * so it is not a separate aggregate with its own repository.
  */
 export class ProcedureType {
+  private readonly customFields_: CustomField[] = [];
+
   private constructor(
     private readonly id_: string,
     private readonly physicianId_: string,
@@ -48,6 +57,30 @@ export class ProcedureType {
     );
   }
 
+  /**
+   * Rebuilds a ProcedureType already known to be valid — from persisted
+   * state, including its CustomField definitions — without re-running
+   * "is this a valid new ProcedureType" checks. Mirrors
+   * `Surgery.reconstitute()`.
+   */
+  static reconstitute(
+    params: ProcedureTypeAttributes & { customFields: CustomFieldAttributes[] },
+  ): ProcedureType {
+    const procedureType = new ProcedureType(
+      params.id,
+      params.physicianId,
+      params.name,
+      params.description,
+      params.technique,
+    );
+
+    for (const customFieldAttributes of params.customFields) {
+      procedureType.customFields_.push(CustomField.create(customFieldAttributes));
+    }
+
+    return procedureType;
+  }
+
   get id(): string {
     return this.id_;
   }
@@ -68,6 +101,10 @@ export class ProcedureType {
     return this.technique_;
   }
 
+  get customFields(): readonly CustomField[] {
+    return [...this.customFields_];
+  }
+
   modify(
     changes: { name?: string; description?: string; technique?: string },
     actingPhysicianId: string,
@@ -86,5 +123,23 @@ export class ProcedureType {
     if (changes.technique !== undefined) {
       this.technique_ = changes.technique;
     }
+  }
+
+  /**
+   * Adds a new CustomField definition. A field's name must be unique
+   * within this ProcedureType — this is the actual invariant that
+   * justifies keeping CustomField definitions inside this aggregate
+   * rather than as a standalone, independently-persisted concept: it
+   * could not be enforced correctly if definitions were loaded/saved
+   * independently of the ProcedureType they belong to.
+   */
+  addCustomField(field: CustomField, actingPhysicianId: string): void {
+    assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
+
+    if (this.customFields_.some((existing) => existing.name === field.name)) {
+      throw new DomainError(`ProcedureType already has a CustomField named "${field.name}"`);
+    }
+
+    this.customFields_.push(field);
   }
 }

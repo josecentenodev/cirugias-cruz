@@ -1,13 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { Surgery } from "@cirugias-cruz/domain";
-import { InMemorySurgeryRepository } from "../testing/fakes.js";
+import { CustomField, ProcedureType, Surgery } from "@cirugias-cruz/domain";
+import { InMemoryProcedureTypeRepository, InMemorySurgeryRepository } from "../testing/fakes.js";
 import { recordControl } from "./record-control.js";
 
 const PHYSICIAN_ID = "physician-1";
 const OTHER_PHYSICIAN_ID = "physician-2";
 
 function buildDeps() {
-  return { surgeryRepository: new InMemorySurgeryRepository() };
+  const procedureTypeRepository = new InMemoryProcedureTypeRepository();
+  procedureTypeRepository.seed(
+    ProcedureType.create({
+      id: "procedure-type-1",
+      physicianId: PHYSICIAN_ID,
+      name: "Pterigión",
+    }),
+  );
+  return { surgeryRepository: new InMemorySurgeryRepository(), procedureTypeRepository };
 }
 
 function seedSurgery(surgeryRepository: InMemorySurgeryRepository, physicianId = PHYSICIAN_ID) {
@@ -107,5 +115,65 @@ describe("recordControl", () => {
         author: { type: "resident", residentId: "resident-1" },
       }),
     ).rejects.toThrow();
+  });
+
+  it("accepts a CONTROL-scoped CustomField value matching the procedure type's definition", async () => {
+    const deps = buildDeps();
+    seedSurgery(deps.surgeryRepository);
+    const procedureType = await deps.procedureTypeRepository.findById("procedure-type-1");
+    procedureType?.addCustomField(
+      CustomField.create({
+        id: "cf-eva",
+        name: "Pain (EVA)",
+        unit: "0-10",
+        magnitude: "pain",
+        scope: "CONTROL",
+        constraint: { valueType: "NUMBER", min: 0, max: 10 },
+      }),
+      PHYSICIAN_ID,
+    );
+
+    const output = await recordControl(deps)({
+      physicianId: PHYSICIAN_ID,
+      surgeryId: "surgery-1",
+      id: "control-1",
+      observations: "obs",
+      recordedAt: new Date(),
+      author: { type: "physician" },
+      customFieldValues: [{ definitionId: "cf-eva", value: 3 }],
+    });
+
+    expect(output.controlId).toBe("control-1");
+    const persisted = await deps.surgeryRepository.findById("surgery-1");
+    expect(persisted?.controls[0]?.customFieldValues[0]?.value).toBe(3);
+  });
+
+  it("rejects a CustomField value outside its NUMBER constraint's range", async () => {
+    const deps = buildDeps();
+    seedSurgery(deps.surgeryRepository);
+    const procedureType = await deps.procedureTypeRepository.findById("procedure-type-1");
+    procedureType?.addCustomField(
+      CustomField.create({
+        id: "cf-eva",
+        name: "Pain (EVA)",
+        unit: "0-10",
+        magnitude: "pain",
+        scope: "CONTROL",
+        constraint: { valueType: "NUMBER", min: 0, max: 10 },
+      }),
+      PHYSICIAN_ID,
+    );
+
+    await expect(
+      recordControl(deps)({
+        physicianId: PHYSICIAN_ID,
+        surgeryId: "surgery-1",
+        id: "control-1",
+        observations: "obs",
+        recordedAt: new Date(),
+        author: { type: "physician" },
+        customFieldValues: [{ definitionId: "cf-eva", value: 99 }],
+      }),
+    ).rejects.toThrow(/must be <=/);
   });
 });

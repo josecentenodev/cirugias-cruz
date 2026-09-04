@@ -4,6 +4,10 @@
 
 Established (current iteration). Deliberately temporary/pragmatic — see
 "Temporary / evolving decisions" in [DOMAIN.md](../domain/DOMAIN.md#13-temporary--evolving-decisions).
+**Partially amended** by [0018](0018-customfield-value-representation.md),
+which resolves value representation, per-type constraints, scope, and
+aggregate placement — see that ADR before treating the "Not decided here"
+list below as still fully open.
 
 ## Decision
 

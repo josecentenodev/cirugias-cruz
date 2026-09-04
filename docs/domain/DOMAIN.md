@@ -296,32 +296,47 @@ form-builder. The platform owns the core domain concepts (Patient, Surgery,
 Control, Procedure Type, Research); the physician customizes the
 information captured _within_ those concepts.
 
-CustomField structure:
+CustomField structure (as of [ADR 0018](../decisions/0018-customfield-value-representation.md),
+amending the original ADR 0005 structure below):
 
 - `name` — required
 - `description` — optional
-- `unit` — required
-- `magnitude` — required
+- `unit` — required (the human-readable unit, e.g. "escala 0-10", "mmHg")
+- `magnitude` — required (the clinical dimension, e.g. "dolor", "presión intraocular")
+- `valueType` — required: `NUMBER | ENUM | TEXT | DATE`
+- a constraint matching `valueType` (`NUMBER`→ optional min/max, `ENUM` →
+  ≥1 options, `TEXT` → optional maxLength, `DATE` → optional min/max) —
+  a CustomField's constraint must always be coherent with its `valueType`
+- `scope`: `SURGERY` (value fixed once, e.g. surgical technique) or
+  `CONTROL` (value recorded once per Control, e.g. a pain scale at
+  successive follow-ups)
 
 CustomFields can extend: Procedure Types, Surgeries, Controls, and other
 predefined clinical concepts where appropriate. A Control may contain
 multiple CustomFields, and each CustomField can be recorded only once
-within a given Control (§7).
+within a given Control (§7). `CustomField` **definitions** live inside the
+`ProcedureType` aggregate (no separate repository), the same way `Control`
+lives inside `Surgery` (§7, ADR 0004) — this was a deliberate symmetry
+decision, not a new pattern. `ENUM` options may be added to over time but
+never removed, mirroring "Procedure Type is never deleted" (§8, ADR 0011).
 
-No additional CustomField types/constraints are assumed. The current
-structure is considered sufficient for this stage, not final/immutable
-forever.
+The current structure is considered sufficient for this stage, not
+final/immutable forever — additional `valueType`s should only be added
+when a real, documented case needs one, not speculatively.
 
-**Explicitly unresolved (do not implement beyond the `name` /
-`description` / `unit` / `magnitude` structure above):**
+Persistence is normalized SQL tables (`custom_field_definitions`,
+`custom_field_values` with typed columns per `value_type`), not a JSON
+column — see [ADR 0019](../decisions/0019-customfield-persistence-schema.md),
+chosen specifically to keep aggregate statistics (recurrence rate by
+technique, mean pain score by treatment arm) computable in plain SQL.
 
-- The exact value representation of a CustomField (how an actual recorded
-  value is stored/typed).
-- The relationship between `magnitude` and `unit`.
-- The exact value types allowed.
-- How CustomField _definitions_ are associated with Procedure Types,
-  Surgeries, and Controls (i.e. where a CustomField is defined vs. where
-  it is filled in).
+**Still explicitly unresolved** (see ADR 0018's "Not decided here"):
+
+- Any `valueType` beyond `NUMBER | ENUM | TEXT | DATE`.
+- Whether a `CONTROL`-scoped CustomField can be made mandatory per
+  Control, or is always optional-by-default.
+- Cross-field validation between CustomFields (e.g. ordering rules across
+  timepoints).
 
 These remain out of implementation scope until explicitly resolved.
 

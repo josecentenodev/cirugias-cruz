@@ -1,3 +1,4 @@
+import { CustomFieldValue, type CustomFieldValueAttributes } from "../shared/custom-field-value.js";
 import { DomainError } from "../shared/domain-error.js";
 
 export type ControlAuthor =
@@ -8,6 +9,8 @@ export interface ControlAttributes {
   observations: string;
   recordedAt: Date;
   author: ControlAuthor;
+  /** CONTROL-scoped CustomField values recorded on this Control (ADR 0018). */
+  customFieldValues?: CustomFieldValueAttributes[];
 }
 
 /**
@@ -15,11 +18,10 @@ export interface ControlAttributes {
  * It is an internal entity of the Surgery aggregate — it must only be
  * created/modified/removed through Surgery, never constructed directly
  * by outside code with mutation intent.
- *
- * CustomField measurements are intentionally NOT modeled here yet — the
- * CustomField value model remains unresolved (see docs/decisions/0005).
  */
 export class Control {
+  private readonly customFieldValues_: CustomFieldValue[] = [];
+
   private constructor(
     private readonly id_: string,
     private observations_: string,
@@ -41,12 +43,18 @@ export class Control {
       throw new DomainError("Control requires an author");
     }
 
-    return new Control(
+    const control = new Control(
       attributes.id,
       attributes.observations,
       attributes.recordedAt,
       attributes.author,
     );
+
+    for (const valueAttributes of attributes.customFieldValues ?? []) {
+      control.customFieldValues_.push(CustomFieldValue.create(valueAttributes));
+    }
+
+    return control;
   }
 
   get id(): string {
@@ -63,6 +71,10 @@ export class Control {
 
   get author(): ControlAuthor {
     return this.author_;
+  }
+
+  get customFieldValues(): readonly CustomFieldValue[] {
+    return [...this.customFieldValues_];
   }
 
   updateObservations(observations: string): void {

@@ -9,6 +9,8 @@ import { PrismaClient } from "@prisma/client";
 export const testPrisma = new PrismaClient();
 
 export async function cleanupSurgery(surgeryId: string): Promise<void> {
+  await testPrisma.customFieldValue.deleteMany({ where: { surgeryId } });
+  await testPrisma.customFieldValue.deleteMany({ where: { control: { surgeryId } } });
   await testPrisma.surgeryParticipant.deleteMany({ where: { surgeryId } });
   await testPrisma.control.deleteMany({ where: { surgeryId } });
   await testPrisma.surgery.deleteMany({ where: { id: surgeryId } });
@@ -25,6 +27,8 @@ export async function cleanupResident(residentId: string): Promise<void> {
 }
 
 export async function cleanupProcedureType(procedureTypeId: string): Promise<void> {
+  await testPrisma.customFieldValue.deleteMany({ where: { definition: { procedureTypeId } } });
+  await testPrisma.customFieldDefinition.deleteMany({ where: { procedureTypeId } });
   await testPrisma.procedureType.deleteMany({ where: { id: procedureTypeId } });
 }
 

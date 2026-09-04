@@ -1,25 +1,56 @@
+import { DomainError } from "./domain-error.js";
+
+export type CustomFieldScope = "SURGERY" | "CONTROL";
+
+export type CustomFieldConstraint =
+  | { valueType: "NUMBER"; min?: number; max?: number }
+  | { valueType: "ENUM"; options: string[] }
+  | { valueType: "TEXT"; maxLength?: number }
+  | { valueType: "DATE"; min?: Date; max?: Date };
+
 export interface CustomFieldAttributes {
+  id: string;
   name: string;
   description?: string;
   unit: string;
   magnitude: string;
+  scope: CustomFieldScope;
+  constraint: CustomFieldConstraint;
 }
 
+/**
+ * A CustomField is a physician-defined data point, generic across
+ * specialties on purpose (ADR 0018): the platform never hard-codes
+ * clinical content, only this mechanism. Its constraint must always be
+ * coherent with its own `valueType` (e.g. a TEXT field can never carry a
+ * numeric min/max) — this is the one invariant `create()` enforces
+ * beyond required-field presence.
+ */
 export class CustomField {
   private constructor(private readonly attributes: CustomFieldAttributes) {}
 
   static create(attributes: CustomFieldAttributes): CustomField {
+    if (!attributes.id.trim()) {
+      throw new DomainError("CustomField requires an id");
+    }
     if (!attributes.name.trim()) {
-      throw new Error("CustomField requires a name");
+      throw new DomainError("CustomField requires a name");
     }
     if (!attributes.unit.trim()) {
-      throw new Error("CustomField requires a unit");
+      throw new DomainError("CustomField requires a unit");
     }
     if (!attributes.magnitude.trim()) {
-      throw new Error("CustomField requires a magnitude");
+      throw new DomainError("CustomField requires a magnitude");
+    }
+    if (attributes.constraint.valueType === "ENUM" && attributes.constraint.options.length === 0) {
+      throw new DomainError("An ENUM CustomField requires at least one option");
     }
 
     return new CustomField({ ...attributes });
+  }
+
+  get id(): string {
+    return this.attributes.id;
   }
 
   get name(): string {
@@ -38,12 +69,19 @@ export class CustomField {
     return this.attributes.magnitude;
   }
 
+  get scope(): CustomFieldScope {
+    return this.attributes.scope;
+  }
+
+  get valueType(): CustomFieldConstraint["valueType"] {
+    return this.attributes.constraint.valueType;
+  }
+
+  get constraint(): CustomFieldConstraint {
+    return this.attributes.constraint;
+  }
+
   equals(other: CustomField): boolean {
-    return (
-      this.attributes.name === other.attributes.name &&
-      this.attributes.description === other.attributes.description &&
-      this.attributes.unit === other.attributes.unit &&
-      this.attributes.magnitude === other.attributes.magnitude
-    );
+    return this.attributes.id === other.attributes.id;
   }
 }

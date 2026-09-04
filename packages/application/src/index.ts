@@ -31,6 +31,22 @@ export {
   type GetProcedureTypeInput,
   type GetProcedureTypeDeps,
 } from "./procedure-type/get-procedure-type.js";
+export {
+  modifyProcedureType,
+  type ModifyProcedureTypeInput,
+  type ModifyProcedureTypeOutput,
+  type ModifyProcedureTypeDeps,
+} from "./procedure-type/modify-procedure-type.js";
+export {
+  addCustomField,
+  type AddCustomFieldInput,
+  type AddCustomFieldOutput,
+  type AddCustomFieldDeps,
+} from "./procedure-type/add-custom-field.js";
+export {
+  validateCustomFieldValues,
+  type CustomFieldValueInput,
+} from "./shared/validate-custom-field-values.js";
 
 export type { SurgeryRepository } from "./surgery/surgery-repository.js";
 export {

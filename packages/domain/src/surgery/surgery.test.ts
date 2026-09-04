@@ -44,6 +44,37 @@ describe("Surgery", () => {
     expect(surgery.controls).toHaveLength(0);
   });
 
+  it("may exist with zero CustomField values", () => {
+    const surgery = createSurgery();
+
+    expect(surgery.customFieldValues).toHaveLength(0);
+  });
+
+  it("accepts SURGERY-scoped CustomField values at creation", () => {
+    const surgery = Surgery.create({
+      ...validAttributes,
+      customFieldValues: [{ definitionId: "cf-technique", value: "Autograft" }],
+    });
+
+    expect(surgery.customFieldValues).toHaveLength(1);
+    expect(surgery.customFieldValues[0]?.value).toBe("Autograft");
+  });
+
+  it("accepts CONTROL-scoped CustomField values when recording a control", () => {
+    const surgery = createSurgery();
+
+    const control = surgery.recordControl({
+      id: "control-1",
+      observations: "Sin signos de infección",
+      recordedAt: new Date("2026-01-11"),
+      author: { type: "physician", physicianId: PHYSICIAN_ID },
+      customFieldValues: [{ definitionId: "cf-eva", value: 3 }],
+    });
+
+    expect(control.customFieldValues).toHaveLength(1);
+    expect(control.customFieldValues[0]?.value).toBe(3);
+  });
+
   it("allows the owning physician to record a control directly", () => {
     const surgery = createSurgery();
 

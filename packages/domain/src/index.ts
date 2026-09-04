@@ -14,6 +14,16 @@ export {
   type ResearchStudyAttributes,
   type ResearchStudyStatus,
 } from "./research/research-study.js";
-export { CustomField, type CustomFieldAttributes } from "./shared/custom-field.js";
+export {
+  CustomField,
+  type CustomFieldAttributes,
+  type CustomFieldScope,
+  type CustomFieldConstraint,
+} from "./shared/custom-field.js";
+export {
+  CustomFieldValue,
+  type CustomFieldValueAttributes,
+  type CustomFieldValueData,
+} from "./shared/custom-field-value.js";
 export { Person, type PersonAttributes } from "./shared/person.js";
 export { DomainError } from "./shared/domain-error.js";

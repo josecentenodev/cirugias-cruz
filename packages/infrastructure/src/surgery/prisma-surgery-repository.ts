@@ -1,12 +1,20 @@
 import type { SurgeryRepository } from "@cirugias-cruz/application";
 import { Surgery, type ControlAttributes, type ControlAuthor } from "@cirugias-cruz/domain";
 import type { PrismaClient } from "@prisma/client";
+import {
+  fromCustomFieldValueRow,
+  toCustomFieldValueColumns,
+  type CustomFieldValueRow,
+} from "../shared/custom-field-mapping.js";
 
 /**
- * Loads/saves the whole Surgery aggregate — including its Controls and
- * participating-resident ids — as one unit. There is no ControlRepository
- * and no repository call for a Control on its own anywhere in this class;
- * see docs/architecture/application-layer-discovery.md §1.3/§3.
+ * Loads/saves the whole Surgery aggregate — including its Controls,
+ * participating-resident ids, and CustomField values (ADR 0018) — as one
+ * unit. There is no ControlRepository and no repository call for a
+ * Control on its own anywhere in this class; see
+ * docs/architecture/application-layer-discovery.md §1.3/§3. CustomField
+ * *values* follow the same rule: only ProcedureTypeRepository/
+ * SurgeryRepository ever write to `custom_field_values`.
  */
 export class PrismaSurgeryRepository implements SurgeryRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -14,7 +22,11 @@ export class PrismaSurgeryRepository implements SurgeryRepository {
   async findById(id: string): Promise<Surgery | null> {
     const row = await this.prisma.surgery.findUnique({
       where: { id },
-      include: { controls: true, participants: true },
+      include: {
+        controls: { include: { customFieldValues: true } },
+        participants: true,
+        customFieldValues: true,
+      },
     });
     if (!row) {
       return null;
@@ -26,7 +38,11 @@ export class PrismaSurgeryRepository implements SurgeryRepository {
   async findByPhysicianId(physicianId: string): Promise<Surgery[]> {
     const rows = await this.prisma.surgery.findMany({
       where: { physicianId },
-      include: { controls: true, participants: true },
+      include: {
+        controls: { include: { customFieldValues: true } },
+        participants: true,
+        customFieldValues: true,
+      },
     });
     return rows.map(toSurgery);
   }
@@ -34,12 +50,24 @@ export class PrismaSurgeryRepository implements SurgeryRepository {
   async findByResidentId(residentId: string): Promise<Surgery[]> {
     const rows = await this.prisma.surgery.findMany({
       where: { participants: { some: { residentId } } },
-      include: { controls: true, participants: true },
+      include: {
+        controls: { include: { customFieldValues: true } },
+        participants: true,
+        customFieldValues: true,
+      },
     });
     return rows.map(toSurgery);
   }
 
   async save(surgery: Surgery): Promise<void> {
+    const definitionIds = new Set<string>([
+      ...surgery.customFieldValues.map((value) => value.definitionId),
+      ...surgery.controls.flatMap((control) =>
+        control.customFieldValues.map((value) => value.definitionId),
+      ),
+    ]);
+    const valueTypeByDefinitionId = await this.loadValueTypes(definitionIds);
+
     await this.prisma.$transaction([
       this.prisma.surgery.upsert({
         where: { id: surgery.id },
@@ -79,7 +107,56 @@ export class PrismaSurgeryRepository implements SurgeryRepository {
           residentId,
         })),
       }),
+      ...surgery.customFieldValues.map((value) =>
+        this.prisma.customFieldValue.upsert({
+          where: { id: `${surgery.id}:${value.definitionId}` },
+          create: {
+            id: `${surgery.id}:${value.definitionId}`,
+            definitionId: value.definitionId,
+            surgeryId: surgery.id,
+            ...toCustomFieldValueColumns(
+              value,
+              valueTypeByDefinitionId.get(value.definitionId) ?? "",
+            ),
+          },
+          update: toCustomFieldValueColumns(
+            value,
+            valueTypeByDefinitionId.get(value.definitionId) ?? "",
+          ),
+        }),
+      ),
+      ...surgery.controls.flatMap((control) =>
+        control.customFieldValues.map((value) =>
+          this.prisma.customFieldValue.upsert({
+            where: { id: `${control.id}:${value.definitionId}` },
+            create: {
+              id: `${control.id}:${value.definitionId}`,
+              definitionId: value.definitionId,
+              controlId: control.id,
+              ...toCustomFieldValueColumns(
+                value,
+                valueTypeByDefinitionId.get(value.definitionId) ?? "",
+              ),
+            },
+            update: toCustomFieldValueColumns(
+              value,
+              valueTypeByDefinitionId.get(value.definitionId) ?? "",
+            ),
+          }),
+        ),
+      ),
     ]);
+  }
+
+  private async loadValueTypes(definitionIds: Set<string>): Promise<Map<string, string>> {
+    if (definitionIds.size === 0) {
+      return new Map();
+    }
+    const definitions = await this.prisma.customFieldDefinition.findMany({
+      where: { id: { in: [...definitionIds] } },
+      select: { id: true, valueType: true },
+    });
+    return new Map(definitions.map((definition) => [definition.id, definition.valueType]));
   }
 }
 
@@ -96,14 +173,17 @@ function toSurgery(row: {
     authorType: string;
     authorPhysicianId: string | null;
     authorResidentId: string | null;
+    customFieldValues: CustomFieldValueRow[];
   }[];
   participants: { residentId: string }[];
+  customFieldValues: CustomFieldValueRow[];
 }): Surgery {
   const controls: ControlAttributes[] = row.controls.map((control) => ({
     id: control.id,
     observations: control.observations,
     recordedAt: control.recordedAt,
     author: toControlAuthor(control),
+    customFieldValues: control.customFieldValues.map(fromCustomFieldValueRow),
   }));
 
   return Surgery.reconstitute({
@@ -114,6 +194,7 @@ function toSurgery(row: {
     performedAt: row.performedAt,
     controls,
     participatingResidentIds: row.participants.map((participant) => participant.residentId),
+    customFieldValues: row.customFieldValues.map(fromCustomFieldValueRow),
   });
 }
 

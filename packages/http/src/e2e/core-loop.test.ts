@@ -242,7 +242,136 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
     expect(surgeryBody.id).toBe(surgeryId);
     expect(surgeryBody.controls).toHaveLength(1);
     expect(surgeryBody.controls[0]?.observations).toBe("Sin signos de infección");
-  });
+  }, 30000);
+
+  it("defines CustomFields on a Procedure Type and records SURGERY/CONTROL-scoped values (ADR 0018/0019)", async () => {
+    const app = await buildApp(buildDeps());
+    const { sessionId } = await registerAndLogin(app);
+    const cookies = { session_id: sessionId };
+
+    const procedureTypeResponse = await app.inject({
+      method: "POST",
+      url: "/procedure-types",
+      cookies,
+      payload: { name: "Pterigión" },
+    });
+    const { procedureTypeId } = procedureTypeResponse.json<{ procedureTypeId: string }>();
+
+    const modifyResponse = await app.inject({
+      method: "PATCH",
+      url: `/procedure-types/${procedureTypeId}`,
+      cookies,
+      payload: { technique: "Conjunctival autograft" },
+    });
+    expect(modifyResponse.statusCode).toBe(200);
+
+    const techniqueFieldResponse = await app.inject({
+      method: "POST",
+      url: `/procedure-types/${procedureTypeId}/custom-fields`,
+      cookies,
+      payload: {
+        name: "Surgical technique",
+        unit: "n/a",
+        magnitude: "technique",
+        scope: "SURGERY",
+        constraint: { valueType: "ENUM", options: ["Autograft", "Amniotic membrane"] },
+      },
+    });
+    expect(techniqueFieldResponse.statusCode).toBe(201);
+    const { customFieldId: techniqueFieldId } = techniqueFieldResponse.json<{
+      customFieldId: string;
+    }>();
+
+    const evaFieldResponse = await app.inject({
+      method: "POST",
+      url: `/procedure-types/${procedureTypeId}/custom-fields`,
+      cookies,
+      payload: {
+        name: "Pain (EVA)",
+        unit: "0-10",
+        magnitude: "pain",
+        scope: "CONTROL",
+        constraint: { valueType: "NUMBER", min: 0, max: 10 },
+      },
+    });
+    const { customFieldId: evaFieldId } = evaFieldResponse.json<{ customFieldId: string }>();
+
+    const patientResponse = await app.inject({
+      method: "POST",
+      url: "/patients",
+      cookies,
+      payload: {
+        firstName: "Juan",
+        lastName: "Pérez",
+        phone: "555-0202",
+        email: "juan-customfield@example.com",
+        dateOfBirth: "1990-05-15",
+      },
+    });
+    const { patientId } = patientResponse.json<{ patientId: string }>();
+
+    const surgeryResponse = await app.inject({
+      method: "POST",
+      url: "/surgeries",
+      cookies,
+      payload: {
+        patientId,
+        procedureTypeId,
+        performedAt: "2026-01-10",
+        customFieldValues: [{ definitionId: techniqueFieldId, value: "Autograft" }],
+      },
+    });
+    expect(surgeryResponse.statusCode).toBe(201);
+    const { surgeryId } = surgeryResponse.json<{ surgeryId: string }>();
+
+    const invalidControlResponse = await app.inject({
+      method: "POST",
+      url: `/surgeries/${surgeryId}/controls`,
+      cookies,
+      payload: {
+        observations: "obs",
+        recordedAt: "2026-01-11",
+        author: { type: "physician" },
+        customFieldValues: [{ definitionId: evaFieldId, value: 99 }],
+      },
+    });
+    expect(invalidControlResponse.statusCode).toBe(400);
+
+    const controlResponse = await app.inject({
+      method: "POST",
+      url: `/surgeries/${surgeryId}/controls`,
+      cookies,
+      payload: {
+        observations: "obs",
+        recordedAt: "2026-01-11",
+        author: { type: "physician" },
+        customFieldValues: [{ definitionId: evaFieldId, value: 3 }],
+      },
+    });
+    expect(controlResponse.statusCode).toBe(201);
+
+    const surgeryGet = await app.inject({ method: "GET", url: `/surgeries/${surgeryId}`, cookies });
+    const surgeryBody2 = surgeryGet.json<{
+      customFieldValues: { definitionId: string; value: unknown }[];
+      controls: { customFieldValues: { definitionId: string; value: unknown }[] }[];
+    }>();
+    expect(surgeryBody2.customFieldValues).toEqual([
+      { definitionId: techniqueFieldId, value: "Autograft" },
+    ]);
+    expect(surgeryBody2.controls[0]?.customFieldValues).toEqual([
+      { definitionId: evaFieldId, value: 3 },
+    ]);
+
+    const procedureTypeGet = await app.inject({
+      method: "GET",
+      url: `/procedure-types/${procedureTypeId}`,
+      cookies,
+    });
+    const procedureTypeBody = procedureTypeGet.json<{ customFields: { id: string }[] }>();
+    expect(procedureTypeBody.customFields.map((f) => f.id).sort()).toEqual(
+      [techniqueFieldId, evaFieldId].sort(),
+    );
+  }, 30000);
 
   it("rejects a physician retrieving another physician's Patient/ProcedureType/Surgery with 404, not 403", async () => {
     const app = await buildApp(buildDeps());

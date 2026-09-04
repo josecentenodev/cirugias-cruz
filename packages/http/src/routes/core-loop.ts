@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import {
+  addCustomField,
   getPatient,
   getProcedureType,
   getSurgery,
@@ -8,6 +9,7 @@ import {
   listProcedureTypes,
   listSurgeries,
   modifyControl,
+  modifyProcedureType,
   recordControl,
   registerPatient,
   registerProcedureType,
@@ -36,16 +38,44 @@ interface RegisterProcedureTypeBody {
   technique?: string;
 }
 
+interface ModifyProcedureTypeBody {
+  name?: string;
+  description?: string;
+  technique?: string;
+}
+
+type CustomFieldConstraintBody =
+  | { valueType: "NUMBER"; min?: number; max?: number }
+  | { valueType: "ENUM"; options: string[] }
+  | { valueType: "TEXT"; maxLength?: number }
+  | { valueType: "DATE"; min?: string; max?: string };
+
+interface AddCustomFieldBody {
+  name: string;
+  description?: string;
+  unit: string;
+  magnitude: string;
+  scope: "SURGERY" | "CONTROL";
+  constraint: CustomFieldConstraintBody;
+}
+
+interface CustomFieldValueBody {
+  definitionId: string;
+  value: string | number;
+}
+
 interface RegisterSurgeryBody {
   patientId: string;
   procedureTypeId: string;
   performedAt: string;
+  customFieldValues?: CustomFieldValueBody[];
 }
 
 interface RecordControlBody {
   observations: string;
   recordedAt: string;
   author: { type: "physician" } | { type: "resident"; residentId: string };
+  customFieldValues?: CustomFieldValueBody[];
 }
 
 interface ModifyControlBody {
@@ -84,6 +114,82 @@ const registerProcedureTypeBodySchema = {
   },
 } as const;
 
+const modifyProcedureTypeBodySchema = {
+  type: "object",
+  properties: {
+    name: { type: "string" },
+    description: { type: "string" },
+    technique: { type: "string" },
+  },
+} as const;
+
+const customFieldConstraintSchema = {
+  type: "object",
+  oneOf: [
+    {
+      type: "object",
+      required: ["valueType"],
+      properties: {
+        valueType: { const: "NUMBER" },
+        min: { type: "number" },
+        max: { type: "number" },
+      },
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      required: ["valueType", "options"],
+      properties: {
+        valueType: { const: "ENUM" },
+        options: { type: "array", items: { type: "string" }, minItems: 1 },
+      },
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      required: ["valueType"],
+      properties: { valueType: { const: "TEXT" }, maxLength: { type: "integer" } },
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      required: ["valueType"],
+      properties: {
+        valueType: { const: "DATE" },
+        min: { type: "string" },
+        max: { type: "string" },
+      },
+      additionalProperties: false,
+    },
+  ],
+} as const;
+
+const addCustomFieldBodySchema = {
+  type: "object",
+  required: ["name", "unit", "magnitude", "scope", "constraint"],
+  properties: {
+    name: { type: "string" },
+    description: { type: "string" },
+    unit: { type: "string" },
+    magnitude: { type: "string" },
+    scope: { enum: ["SURGERY", "CONTROL"] },
+    constraint: customFieldConstraintSchema,
+  },
+} as const;
+
+const customFieldValueSchema = {
+  type: "object",
+  required: ["definitionId", "value"],
+  properties: {
+    definitionId: { type: "string" },
+    // Order matters under Fastify/AJV's coerceTypes: it tries each anyOf
+    // branch in order and keeps the first that validates after coercion,
+    // so "number" must come first — otherwise a real numeric value like
+    // 3 would be coerced to the string "3" to satisfy the string branch.
+    value: { anyOf: [{ type: "number" }, { type: "string" }] },
+  },
+} as const;
+
 const registerSurgeryBodySchema = {
   type: "object",
   required: ["patientId", "procedureTypeId", "performedAt"],
@@ -91,6 +197,7 @@ const registerSurgeryBodySchema = {
     patientId: { type: "string" },
     procedureTypeId: { type: "string" },
     performedAt: { type: "string" },
+    customFieldValues: { type: "array", items: customFieldValueSchema },
   },
 } as const;
 
@@ -119,6 +226,7 @@ const recordControlBodySchema = {
     observations: { type: "string" },
     recordedAt: { type: "string" },
     author: controlAuthorSchema,
+    customFieldValues: { type: "array", items: customFieldValueSchema },
   },
 } as const;
 
@@ -140,6 +248,12 @@ const controlParamsSchema = {
   type: "object",
   required: ["surgeryId", "controlId"],
   properties: { surgeryId: { type: "string" }, controlId: { type: "string" } },
+} as const;
+
+const procedureTypeIdParamsSchema = {
+  type: "object",
+  required: ["id"],
+  properties: { id: { type: "string" } },
 } as const;
 
 /**
@@ -170,6 +284,15 @@ function serializeProcedureType(procedureType: ProcedureType) {
     name: procedureType.name,
     description: procedureType.description,
     technique: procedureType.technique,
+    customFields: procedureType.customFields.map((field) => ({
+      id: field.id,
+      name: field.name,
+      description: field.description,
+      unit: field.unit,
+      magnitude: field.magnitude,
+      scope: field.scope,
+      constraint: field.constraint,
+    })),
   };
 }
 
@@ -182,11 +305,19 @@ export function serializeSurgery(surgery: Surgery) {
     performedAt: surgery.performedAt,
     state: surgery.state,
     participatingResidentIds: surgery.participatingResidentIds,
+    customFieldValues: surgery.customFieldValues.map((value) => ({
+      definitionId: value.definitionId,
+      value: value.value,
+    })),
     controls: surgery.controls.map((control) => ({
       id: control.id,
       observations: control.observations,
       recordedAt: control.recordedAt,
       author: control.author,
+      customFieldValues: control.customFieldValues.map((value) => ({
+        definitionId: value.definitionId,
+        value: value.value,
+      })),
     })),
   };
 }
@@ -249,6 +380,54 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
     },
   );
 
+  app.patch<{ Params: { id: string }; Body: ModifyProcedureTypeBody }>(
+    "/procedure-types/:id",
+    {
+      ...auth,
+      schema: { params: procedureTypeIdParamsSchema, body: modifyProcedureTypeBodySchema },
+    },
+    async (request, reply) => {
+      try {
+        const output = await modifyProcedureType(deps)({
+          physicianId: request.physicianId as string,
+          procedureTypeId: request.params.id,
+          name: request.body.name,
+          description: request.body.description,
+          technique: request.body.technique,
+        });
+        return await reply.code(200).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
+  app.post<{ Params: { id: string }; Body: AddCustomFieldBody }>(
+    "/procedure-types/:id/custom-fields",
+    { ...auth, schema: { params: procedureTypeIdParamsSchema, body: addCustomFieldBodySchema } },
+    async (request, reply) => {
+      try {
+        const output = await addCustomField(deps)({
+          physicianId: request.physicianId as string,
+          procedureTypeId: request.params.id,
+          id: randomUUID(),
+          name: request.body.name,
+          description: request.body.description,
+          unit: request.body.unit,
+          magnitude: request.body.magnitude,
+          scope: request.body.scope,
+          // DATE min/max would need string->Date conversion here; not
+          // wired yet since no real usage of a DATE-valueType CustomField
+          // exists (ADR 0018's two concrete cases are ENUM and NUMBER).
+          constraint: request.body.constraint as never,
+        });
+        return await reply.code(201).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
   app.post<{ Body: RegisterSurgeryBody }>(
     "/surgeries",
     { ...auth, schema: { body: registerSurgeryBodySchema } },
@@ -260,6 +439,7 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
           patientId: request.body.patientId,
           procedureTypeId: request.body.procedureTypeId,
           performedAt: new Date(request.body.performedAt),
+          customFieldValues: request.body.customFieldValues,
         });
         return await reply.code(201).send(output);
       } catch (error) {
@@ -300,6 +480,7 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
           observations: request.body.observations,
           recordedAt: new Date(request.body.recordedAt),
           author,
+          customFieldValues: request.body.customFieldValues,
         });
         return await reply.code(201).send(output);
       } catch (error) {

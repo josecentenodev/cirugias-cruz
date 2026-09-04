@@ -81,12 +81,16 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 - Nothing — every Application-layer capability the MVP Definition below
   requires (Milestones 1–7) is now implemented, tested, and reachable
-  through authenticated HTTP against real Postgres. What remains is the
-  frontend and public reachability (Milestones 8–9), not partially-built
-  backend capability.
+  through authenticated HTTP against real Postgres. What remains is
+  CustomField's `packages/web` UI, the rest of the frontend, and public
+  reachability (Milestones 8–9), not partially-built backend capability.
 
 ### Not started
 
+- **CustomField's `packages/web` UI** (Milestone 8.6) — backend (Domain/
+  Application/Infrastructure/HTTP) is complete and tested; only the UI
+  for defining and filling CustomFields remains, deliberately deferred to
+  a follow-up pass.
 - Frontend (`packages/web`) — technology decided (Next.js App Router,
   BFF pattern; see `docs/architecture/frontend-architecture-discovery.md`
   and Milestone 8), not yet built.
@@ -113,9 +117,13 @@ Both services build and deploy successfully from `main`: `api`
 
 ### Explicitly deferred
 
-- CustomField value model, unit/magnitude semantics, and how CustomField
-  definitions attach to Procedure Types/Surgeries/Controls.
-- Pterygium-specific clinical measurements and interpretation rules.
+- Pterygium-specific clinical measurements and interpretation rules — this
+  is still not to be guessed or hard-coded. It stays deferred **as
+  content**, but no longer blocks CustomField's own implementation (see
+  "Resolved by explicit product decision" below): the whole point of the
+  now-decided CustomField mechanism is that the platform never needs to
+  know pterygium-specific fields in code — the physician defines their own
+  schema, for pterygium or any other specialty.
 - Notifications/reminders.
 - Payments/subscriptions.
 - Surgery scheduling/calendar concepts.
@@ -144,7 +152,21 @@ within the same monorepo; the frontend framework is **Next.js, App
 Router**, run as a **BFF** calling `api` server-to-server (not a
 CORS-facing client) — see
 `docs/architecture/frontend-architecture-discovery.md` for the full
-reasoning and Milestone 8 for its scope.
+reasoning and Milestone 8 for its scope. **CustomField's value model is
+now also MVP-required and unblocked** (product owner decision, made
+while reviewing Milestone 9's own scripted re-verification pass — see
+Milestone 8.6 below): [ADR 0018](../decisions/0018-customfield-value-representation.md)
+defines `valueType`/constraint/`scope` and its placement inside the
+`ProcedureType`/`Surgery` aggregates; [ADR 0019](../decisions/0019-customfield-persistence-schema.md)
+defines its normalized-SQL persistence. This was informed by reviewing a
+working prototype independently built by the physician who is this
+project's source of clinical requirements — see
+[`physician-prototype-analysis.md`](../domain/physician-prototype-analysis.md).
+That review supplied the structural evidence ADR 0005 was waiting on (two
+concrete cases: a once-per-Surgery enumerated value, and a
+once-per-Control numeric measurement at fixed timepoints) — it did **not**
+supply, and this decision does **not** assume, any pterygium-specific
+field content, which remains deferred exactly as before.
 
 ---
 
@@ -154,6 +176,15 @@ reasoning and Milestone 8 for its scope.
 > Resident, and Research moved from "Post-MVP" to "MVP-required" by
 > explicit product decision — this is a deliberate, approved scope change,
 > not scope creep; see Roadmap Maintenance Rule 8.
+>
+> **Revised again**, ahead of Milestone 9's human walkthrough: CustomField
+> moved from "Unknown / blocked by discovery" to "MVP-required" by
+> explicit product owner decision, on the grounds that a physician cannot
+> meaningfully complete the MVP's core workflow (register a Surgery,
+> record Controls) for their own real practice without being able to
+> define the structured fields specific to it — the generic
+> extensibility mechanism itself, not any specific clinical content, is
+> what became required. See Milestone 8.6.
 
 ### MVP-required
 
@@ -196,6 +227,12 @@ reasoning and Milestone 8 for its scope.
   public CORS policy is not required by default (see Milestone 7).
 - A minimal persistence layer (Prisma + PostgreSQL) backing all of the
   above.
+- **CustomField**: a physician can define `CustomField`s (name,
+  description, unit, magnitude, `valueType`, constraint, `scope`) on
+  their own Procedure Types, and record/retrieve values against a Surgery
+  (`SURGERY` scope) or each of its Controls (`CONTROL` scope) — exactly
+  the mechanism `ADR 0018`/`ADR 0019` define, no more. No specific
+  clinical field content is assumed or hard-coded by the platform.
 
 ### Post-MVP
 
@@ -210,12 +247,12 @@ reasoning and Milestone 8 for its scope.
 
 ### Unknown / blocked by discovery
 
-- **CustomField / structured clinical measurements** — blocked by product/
-  clinical discovery (ADR 0005 explicitly defers the value model pending
-  a physician consultation). Unaffected by the Resident/Research scope
-  change — neither capability's MVP-required subset touches CustomField.
-- **Exact pterygium clinical measurements and interpretation rules** —
-  same block; not to be guessed.
+- **Exact pterygium (or any other specialty's) clinical measurements and
+  interpretation rules** — still not to be guessed or hard-coded. This no
+  longer blocks any platform capability, though: CustomField's mechanism
+  (now MVP-required, see above) is generic by design, so the platform
+  needs no further clinical discovery to build it — only the physician,
+  using it, needs to know their own field content.
 - **Frontend framework** — narrowed (Next.js under consideration) but not
   yet locked; see "Unknown / open" above.
 - **Frontend/API hosting topology** (same-origin BFF vs. cross-origin with
@@ -232,23 +269,24 @@ reasoning and Milestone 8 for its scope.
 > "usable by a physician through the product" are no longer treated as
 > equivalent — see Progress Measurement below.
 
-| Capability                                                                                     | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                           |
-| ---------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | -------------------------------------------------------------------------------------------------------- |
-| Physician authentication (login/logout)                                                        | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
-| Physician self-registration                                                                    | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation dormant, not enforced (ADR 0016)     |
-| Resident authentication (login, forced password change, temp-password issue/reset, deactivate) | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED; no human walkthrough yet                                                       |
-| Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                     | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType by id, not name — known gap, see Risks             |
-| Patient (register + retrieve)                                                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
-| Procedure Type (register + retrieve)                                                           | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
-| Surgery + Control history (register/record/modify + retrieve)                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
-| Resident (register, assign/remove on Surgery, retrieve, credential mgmt)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, credential actions added Milestone 8.5); no human walkthrough yet                 |
-| Research Study (create, edit, manage universe, full lifecycle, retrieve)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
-| `api` security baseline (validation, forwarded-IP rate limiting, headers)                      | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                   |
-| `web` security baseline (headers/CSP, client-IP forwarding)                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)        |
-| Public reachability                                                                            | N/A    | N/A         | N/A         | N/A       | N/A      | N/A | ❌        | Railway-provided domain live (Milestone 8); custom domain + human walkthrough — Milestone 9              |
-| Physician-facing IA/navigation reorganized by clinical workflow                                | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Proposed, not started — see Milestone 10 (proposed)                                                      |
-| Design system / visual redesign                                                                | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Proposed, not started — see Milestone 10 (proposed)                                                      |
-| Platform Admin visibility                                                                      | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                       |
+| Capability                                                                                     | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                              |
+| ---------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Physician authentication (login/logout)                                                        | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                    |
+| Physician self-registration                                                                    | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation dormant, not enforced (ADR 0016)                        |
+| Resident authentication (login, forced password change, temp-password issue/reset, deactivate) | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED; no human walkthrough yet                                                                          |
+| Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                     | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType by id, not name — known gap, see Risks                                |
+| Patient (register + retrieve)                                                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                    |
+| Procedure Type (register + retrieve)                                                           | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                    |
+| Surgery + Control history (register/record/modify + retrieve)                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                    |
+| Resident (register, assign/remove on Surgery, retrieve, credential mgmt)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, credential actions added Milestone 8.5); no human walkthrough yet                                    |
+| Research Study (create, edit, manage universe, full lifecycle, retrieve)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                    |
+| CustomField (define on Procedure Type; record/retrieve values on Surgery/Control)              | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Backend complete (Milestone 8.6, ADR 0018/0019); `packages/web` UI not yet built |
+| `api` security baseline (validation, forwarded-IP rate limiting, headers)                      | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                                      |
+| `web` security baseline (headers/CSP, client-IP forwarding)                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)                           |
+| Public reachability                                                                            | N/A    | N/A         | N/A         | N/A       | N/A      | N/A | ❌        | Railway-provided domain live (Milestone 8); custom domain + human walkthrough — Milestone 9                                 |
+| Physician-facing IA/navigation reorganized by clinical workflow                                | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Proposed, not started — see Milestone 10 (proposed)                                                                         |
+| Design system / visual redesign                                                                | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Proposed, not started — see Milestone 10 (proposed)                                                                         |
+| Platform Admin visibility                                                                      | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                          |
 
 **Nothing is Human-E2E complete yet.** Every MVP-required backend
 capability (Milestones 1–7) is now `TECHNICALLY_COMPLETE` — proven
@@ -1303,6 +1341,120 @@ into a numbered milestone here.
 
 ---
 
+### Milestone 8.6 — CustomField / structured clinical extensibility (ADR 0018/0019)
+
+**Objective**: a physician can define `CustomField`s on their own
+Procedure Types (name, description, unit, magnitude, `valueType`,
+constraint, `scope`), and record/retrieve values against a Surgery
+(`SURGERY`-scoped fields) or against each Control of a Surgery
+(`CONTROL`-scoped fields) — end to end, through Domain, Application,
+Infrastructure, HTTP, and `web`.
+
+**Why it exists**: promoted to MVP-required by explicit product owner
+decision (see MVP Definition above), on the grounds that a physician
+cannot complete the product's actual core workflow for their own real
+practice without structured fields specific to their specialty and
+procedures. This was triggered by the product owner's own scripted
+re-verification pass ahead of Milestone 9 and a review of a working
+prototype independently built by the physician who is this project's
+clinical source — see
+[`physician-prototype-analysis.md`](../domain/physician-prototype-analysis.md).
+That review supplied the structural evidence (an enumerated value fixed
+once per Surgery; a numeric value recorded repeatedly across Controls at
+fixed timepoints) that let [ADR 0018](../decisions/0018-customfield-value-representation.md)
+resolve `CustomField`'s value model — something ADR 0005 had explicitly
+left blocked pending exactly this kind of input. It does **not** supply
+any pterygium-specific field content, and none is assumed: the mechanism
+is specialty-agnostic by design.
+
+**Prerequisites**: Milestones 1–8.5 (the Procedure Type/Surgery/Control
+core loop, already `COMPLETED`). No dependency on Milestone 9 itself,
+though see Sequencing below.
+
+**Scope**:
+
+- **Domain** (`packages/domain`): extend the existing `CustomField` value
+  object (`packages/domain/src/shared/custom-field.ts`) with `valueType`
+  (`NUMBER | ENUM | TEXT | DATE`), a type-coherent constraint, and
+  `scope` (`SURGERY | CONTROL`); add a `CustomField` definition
+  collection to the `ProcedureType` entity/aggregate (no new aggregate,
+  no new repository — mirrors how `Control` lives inside `Surgery`, ADR
+  0004); add recorded-value handling to `Surgery`/`Control` for the
+  values themselves.
+- **Application** (`packages/application`): add `modify-procedure-type`
+  (does not exist yet, despite Domain's `modify()` already supporting
+  it) so `CustomField` definitions can actually be added/edited; add
+  operations to record/retrieve `CustomField` values on Surgery/Control.
+- **Infrastructure** (`packages/infrastructure`): Prisma migration for
+  `custom_field_definitions` and `custom_field_values` (normalized,
+  typed columns per ADR 0019 — not a JSON column); repository changes
+  scoped to `ProcedureTypeRepository`/`SurgeryRepository`, no new
+  repository.
+- **HTTP** (`packages/http`) and **`web`**: routes/UI to define
+  `CustomField`s on a Procedure Type and to fill in values when
+  registering a Surgery or recording a Control.
+
+**Explicitly out of scope**: any specific clinical field content
+(pterygium or otherwise) — the platform ships the generic mechanism
+only, the physician defines their own fields; any `valueType` beyond the
+four listed; making `CONTROL`-scoped fields mandatory; cross-field
+validation. See ADR 0018/0019's own "Not decided here" sections.
+
+**Deliverables**: the mechanism above, tested at every layer following
+this project's existing per-layer testing conventions, plus a short UI
+flow letting the product owner's own physician define a real
+`CustomField` set for pterygium as the first real usage (data they
+enter, not code this project writes).
+
+**Definition of Done**: the CustomField row in the Capability Map above
+reaches ✅ at Domain/Application/Persistence/API write/API read; UI and
+Human E2E follow Milestone 9's own walkthrough.
+
+**Sequencing**: this milestone's backend/UI work should land before
+Milestone 9's human walkthrough is signed off, so that walkthrough
+validates the MVP's actual final scope (including CustomField) rather
+than needing to be repeated. It does not block Milestone 9's already-
+completed scripted re-verification or domain-decision work.
+
+**Status**: `IN_PROGRESS` — backend complete (Domain, Application,
+Infrastructure, HTTP); `packages/web` UI not yet built (deliberately
+deferred to a follow-up pass, per the chosen backend-first sequencing).
+
+What's done: `CustomField` (`packages/domain/src/shared/custom-field.ts`)
+now carries `valueType`/constraint/`scope`, validated for internal
+coherence at construction; `ProcedureType` owns a `CustomField`
+collection (`addCustomField`, uniqueness-by-name enforced,
+`reconstitute()` added); `Surgery`/`Control` accept optional
+`customFieldValues` at creation. `packages/application` gained
+`modifyProcedureType` and `addCustomField`, and `registerSurgery`/
+`recordControl` validate incoming CustomField values against the owning
+ProcedureType's definitions (`validateCustomFieldValues`) before
+delegating to Domain. `packages/infrastructure` has a migration adding
+`custom_field_definitions`/`custom_field_values` (normalized, typed
+columns per ADR 0019, applied to the real Railway Postgres instance),
+with `PrismaProcedureTypeRepository`/`PrismaSurgeryRepository` extended
+accordingly. `packages/http` exposes `PATCH /procedure-types/:id`,
+`POST /procedure-types/:id/custom-fields`, and
+`customFieldValues` on the surgery/control write routes. Full workspace
+quality gate green: 94 Domain + 158 Application + 84 Infrastructure + 40
+HTTP tests, including a dedicated e2e test exercising the whole
+CustomField flow over real HTTP against real Postgres.
+
+Two real bugs were found and fixed during implementation, worth
+recording: (1) Fastify/AJV's `coerceTypes` silently turned a numeric
+CustomField value into a string, because an `anyOf: [string, number]`
+schema tries branches in order — fixed by ordering `number` first: see
+the code comment on `customFieldValueSchema` in `core-loop.ts`; (2) the
+`custom_field_definitions`/`custom_field_values` FK-to-`procedure_types`
+had no cascade, so both `packages/infrastructure` and `packages/http`
+test-cleanup helpers needed updating to delete CustomField rows before
+their parent Surgery/ProcedureType, mirroring the existing
+children-before-parents convention.
+
+Not yet done: `packages/web` UI for defining/filling CustomFields.
+
+---
+
 ### Milestone 9 — Public domain + human E2E validation
 
 **Objective**: a real physician (starting with the product owner)
@@ -1450,6 +1602,9 @@ Milestones 1–7 (DONE, deployed)
                           Milestone 8.5 (Self-registration + Resident auth)
                                     │
                                     ▼
+                          Milestone 8.6 (CustomField extensibility, ADR 0018/0019)
+                                    │
+                                    ▼
                           Milestone 9 (Public domain for web + human E2E)
 
                           Milestone 10 (IA/design rework, PROPOSED —
@@ -1467,15 +1622,20 @@ sequenced against each other while the schema-free milestones (4, 7)
 ran fully in parallel. All four are now `COMPLETED` and merged.
 
 **Blocked**: nothing remains blocked on a framework decision — Next.js
-App Router + BFF is confirmed. Milestone 9 remains blocked on Milestone
-8.5 completing (it now is — Milestones 4–8.5 are all done). Milestone 10
-is not sequenced against 9 at all — it's blocked only on the product
+App Router + BFF is confirmed. Milestone 8.6 (CustomField) is ready to
+start — Milestones 1–8.5 it depends on are all done. Milestone 9's human
+walkthrough should ideally wait for Milestone 8.6 to land first (see
+Milestone 8.6's Sequencing note), though its already-completed scripted
+re-verification and domain decision are unaffected. Milestone 10 is not
+sequenced against 9 or 8.6 at all — it's blocked only on the product
 owner supplying an actual design direction, not on any other milestone.
 
-**Deferred, not scheduled**: CustomField/clinical measurements (blocked
-on physician consultation), notifications, payments, Platform Admin,
-CI/CD hardening, file storage, backup/recovery strategy,
-security/regulatory certification work beyond Milestone 7's baseline.
+**Deferred, not scheduled**: pterygium-specific (or other specialty)
+clinical field _content_ (still requires physician input, but no longer
+blocks any platform capability — see Milestone 8.6), notifications,
+payments, Platform Admin, CI/CD hardening, file storage, backup/recovery
+strategy, security/regulatory certification work beyond Milestone 7's
+baseline.
 
 ---
 
@@ -1659,10 +1819,17 @@ Milestone 9).
   the first point where real physicians might actually trigger this
   pattern, so it is worth re-checking after Milestone 9's human
   walkthrough, not before.
-- CustomField's value model remains blocked on a physician consultation
-  (ADR 0005) and cannot be scheduled into any milestone until that input
-  exists — unaffected by Resident/Research becoming MVP-required, since
-  neither touches CustomField.
+- **CustomField's value model is resolved and scheduled.** What ADR 0005
+  left blocked on a physician consultation is now closed by ADR 0018
+  (value model: `valueType`/constraint/`scope`, placement inside the
+  `ProcedureType`/`Surgery` aggregates) and ADR 0019 (normalized-SQL
+  persistence, not a JSON column), informed by reviewing a working
+  prototype independently built by the project's physician — see
+  `physician-prototype-analysis.md`. CustomField moved from "blocked by
+  discovery" to MVP-required and is scheduled as Milestone 8.6. Note what
+  did _not_ change: pterygium-specific (or other specialty) field
+  _content_ is still not to be guessed or hard-coded — only the generic
+  mechanism was unblocked.
 - HTTP framework and authentication mechanism were resolved (Fastify;
   email + password with PostgreSQL-backed server-side sessions) and
   implemented in Milestone 3 — no longer an open risk.

@@ -239,10 +239,14 @@ postoperative follow-up.
 
 **Modification and deletion (confirmed):**
 
-- Only the **Physician** may modify a Control.
-- Only the **Physician** may delete a Control.
+- The **Physician** may modify or delete **any** Control in their
+  tenant, regardless of who authored it.
+- A **Resident** may modify — never delete — a Control **they
+  themselves authored**, once they have their own login (see §10a).
+  Editing a Control authored by someone else (the Physician, or another
+  Resident) remains Physician-only.
   (Note: a Resident may _perform_/record a Control if participating in
-  that surgery, but only the Physician may modify or delete it.)
+  that surgery — unchanged.)
 
 A Surgery may exist without any Controls — the domain must not require
 one to be created at surgery-creation time.
@@ -343,7 +347,33 @@ These remain out of implementation scope until explicitly resolved.
   preserved and cannot be removed. This reflects potential
   professional/civil responsibility for that participation, not merely
   technical immutability (see §1c).
-- No additional resident permission rules are assumed.
+
+### 10a. Resident authentication and access (confirmed — extends the above)
+
+A Resident is no longer a pure roster/attribution record: since ADR
+[0017](../decisions/0017-resident-authentication-physician-issued-temporary-password.md),
+a Resident has their own login, identified by `email` like the
+Physician (§4, ADR [0012](../decisions/0012-physician-identified-by-email.md)).
+Confirmed rules:
+
+- The Physician creates the Resident's account; the system issues a
+  random temporary password, which the Physician can read back (until
+  the Resident changes it) to hand off out of band. The Resident must
+  change it on first login.
+- Logged in as themselves, a Resident's access is scoped to exactly the
+  Surgeries they participate in: full read of each (including every
+  Control on it, and the Patient/ProcedureType it's for — see §1b/§7),
+  creating a Control on it, and modifying only a Control they
+  themselves authored (see §7's amended rule above). Nothing else in
+  the tenant is visible to a Resident session — not other Surgeries,
+  Patients, ProcedureTypes, ResearchStudies, or Residents.
+- The Physician can deactivate a Resident (blocks login, closes any
+  session they currently hold) and reactivate them, and can reissue a
+  fresh temporary password at any time.
+
+This is a real, confirmed permission model — the previous statement
+that "no additional resident permission rules are assumed" no longer
+holds. See ADR 0017 for the full decision record.
 
 ---
 

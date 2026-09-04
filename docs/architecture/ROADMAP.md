@@ -69,6 +69,13 @@ gets corrected — it is not meant to be treated as fixed once written.
   service) and `NODE_ENV=production` are set on the service. No public
   domain is attached yet — the service is only reachable on Railway's
   private network for now.
+- **Physician self-registration + Resident authentication (Milestone
+  8.5, ADR 0015/0016/0017)** — done after Milestone 8's original
+  closure, ahead of Milestone 9: a physician can create their own
+  account through `web` (no manual provisioning), and a Resident now
+  has their own login — issued a temporary password by the Physician,
+  scoped read/write access to only the Surgeries they participate in.
+  See Milestone 8.5's entry below for full detail.
 
 ### Partially completed
 
@@ -150,7 +157,10 @@ reasoning and Milestone 8 for its scope.
 
 ### MVP-required
 
-- Physician registration + authentication (done — Milestone 3).
+- Physician registration + authentication (Application/HTTP done —
+  Milestone 3; self-registration through `web`, with the email-
+  confirmation step paused for MVP — done, Milestone 8.5, ADR
+  0015/0016).
 - Register **and retrieve** a Patient, within the acting physician's
   tenant (read was missing; see Milestone 4).
 - Register **and retrieve** a Procedure Type.
@@ -159,10 +169,15 @@ reasoning and Milestone 8 for its scope.
 - Record and modify a Control against a Surgery — the capability
   DOMAIN.md itself names as the product's core purpose — and be able to
   **read it back** (implicit in retrieving the owning Surgery).
-- **Resident**: register a Resident, assign/remove them on a Surgery
-  (assignment already implemented), and retrieve a physician's own
-  Residents. Scope is exactly what Domain already defines — no additional
-  resident permission model (DOMAIN.md §10 explicitly assumes none).
+- **Resident**: register a Resident, assign/remove them on a Surgery,
+  and retrieve a physician's own Residents (Milestone 5) — plus, since
+  Milestone 8.5 (ADR 0017), the Resident's own authentication and
+  scoped access: login with a Physician-issued temporary password,
+  mandatory first-login change, a Surgery panel scoped to what they
+  participate in, and record/edit-own-Control rights. This is a real,
+  confirmed permission model now — see `DOMAIN.md` §10a (the earlier
+  "no additional resident permission rules are assumed" no longer
+  holds).
 - **Research Study**: create, edit its four text fields, manage its
   Surgery universe, move it through its full lifecycle
   (`DRAFT ⇄ IN_PROGRESS ⇄ COMPLETED`), delete while DRAFT, and retrieve a
@@ -217,19 +232,23 @@ reasoning and Milestone 8 for its scope.
 > "usable by a physician through the product" are no longer treated as
 > equivalent — see Progress Measurement below.
 
-| Capability                                                                | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                           |
-| ------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | -------------------------------------------------------------------------------------------------------- |
-| Physician authentication (login/logout)                                   | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
-| Physician self-registration                                               | N/A    | ✅          | ✅          | ✅        | N/A      | ❌  | ❌        | Not part of Milestone 8's documented Scope (no signup screen); reachable via `api` only                  |
-| Patient (register + retrieve)                                             | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
-| Procedure Type (register + retrieve)                                      | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
-| Surgery + Control history (register/record/modify + retrieve)             | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
-| Resident (register, assign/remove on Surgery, retrieve)                   | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
-| Research Study (create, edit, manage universe, full lifecycle, retrieve)  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
-| `api` security baseline (validation, forwarded-IP rate limiting, headers) | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                   |
-| `web` security baseline (headers/CSP, client-IP forwarding)               | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)        |
-| Public reachability                                                       | N/A    | N/A         | N/A         | N/A       | N/A      | N/A | ❌        | Railway-provided domain live (Milestone 8); custom domain + human walkthrough — Milestone 9              |
-| Platform Admin visibility                                                 | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                       |
+| Capability                                                                                     | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                           |
+| ---------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | -------------------------------------------------------------------------------------------------------- |
+| Physician authentication (login/logout)                                                        | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
+| Physician self-registration                                                                    | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation dormant, not enforced (ADR 0016)     |
+| Resident authentication (login, forced password change, temp-password issue/reset, deactivate) | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED; no human walkthrough yet                                                       |
+| Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                     | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType by id, not name — known gap, see Risks             |
+| Patient (register + retrieve)                                                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
+| Procedure Type (register + retrieve)                                                           | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
+| Surgery + Control history (register/record/modify + retrieve)                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
+| Resident (register, assign/remove on Surgery, retrieve, credential mgmt)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, credential actions added Milestone 8.5); no human walkthrough yet                 |
+| Research Study (create, edit, manage universe, full lifecycle, retrieve)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
+| `api` security baseline (validation, forwarded-IP rate limiting, headers)                      | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                   |
+| `web` security baseline (headers/CSP, client-IP forwarding)                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)        |
+| Public reachability                                                                            | N/A    | N/A         | N/A         | N/A       | N/A      | N/A | ❌        | Railway-provided domain live (Milestone 8); custom domain + human walkthrough — Milestone 9              |
+| Physician-facing IA/navigation reorganized by clinical workflow                                | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Proposed, not started — see Milestone 10 (proposed)                                                      |
+| Design system / visual redesign                                                                | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Proposed, not started — see Milestone 10 (proposed)                                                      |
+| Platform Admin visibility                                                                      | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                       |
 
 **Nothing is Human-E2E complete yet.** Every MVP-required backend
 capability (Milestones 1–7) is now `TECHNICALLY_COMPLETE` — proven
@@ -1115,6 +1134,132 @@ any ADR.
 
 ---
 
+### Milestone 8.5 — Physician self-registration + Resident authentication (ADR 0015/0016/0017)
+
+**Objective**: a physician can create their own account through `web`
+(no manual provisioning), and a Resident becomes a real authenticated
+principal in their own right — able to log in and record/edit their own
+Controls as themselves, instead of every "resident-authored" Control
+actually being typed by the Physician on their behalf.
+
+**Why it exists**: not originally part of Milestone 8's Scope (which
+explicitly left self-registration out — see the Capability Map's prior
+"not part of Milestone 8's documented Scope" note). Requested directly
+by the product owner once Milestone 8 was live: there was no way for a
+second physician to obtain an account, and Residents had no way to act
+as themselves. Landed between Milestone 8's closure and Milestone 9
+(human walkthrough), by explicit instruction — not a reordering of the
+plan.
+
+**Scope**:
+
+- **ADR 0015 (physician self-registration + email confirmation) and ADR
+  0016 (that confirmation gate paused for MVP)**: `POST /physicians`
+  self-registration; a confirmation-email/token mechanism was built in
+  full (`EmailConfirmationTokenRepository`, `ResendEmailSender`, the
+  `/confirm-email` page) but its enforcement in `login` was then paused
+  per ADR 0016 — registering and logging in work immediately, with no
+  confirmation step. The machinery stays in the codebase, dormant, for
+  a small, reversible Post-MVP re-enable.
+- **ADR 0017 (Resident authentication)**: a Resident gets credentials
+  when the Physician creates them (system-generated temporary password,
+  mandatory change on first login, viewable-until-changed by the
+  Physician, resettable/"blanqueo", deactivatable — forcing immediate
+  session closure). `Session` gained an explicit `userType`
+  (`"physician" | "resident"`). A Resident's own session is scoped to
+  exactly the Surgeries they participate in: full read (including every
+  Control on it, not only their own), record a Control, and edit —
+  never delete — only a Control they themselves authored. This amends
+  ADR 0004's "only the Physician may modify a Control" rule (see
+  `docs/domain/DOMAIN.md` §7/§10a).
+
+**Explicitly out of scope**: re-enabling the email-confirmation gate
+(Post-MVP, ADR 0016); resolving Patient/ProcedureType **names** (not
+just ids) for a Resident's own Surgery panel (see Not yet done, below);
+any UX for a Resident whose session was just force-closed by
+deactivation beyond the already-enforced 401 (see Not yet done).
+
+**Deliverables**: `/signup`, `/signup/check-email`, `/confirm-email`
+pages; `registerAction` (`web`); `EmailConfirmationToken`/
+`ResendEmailSender` (Application/Infrastructure, dormant); `Session`
+schema change (`userType`/`residentId`); `ResidentCredentialRepository`/
+`TemporaryPasswordGenerator` ports + Prisma/Infrastructure
+implementations; `changeResidentPassword`/`resetResidentPassword`/
+`setResidentActive`/`viewResidentTemporaryPassword`/
+`listSurgeriesForResident`/`getSurgeryForResident` (Application);
+`requirePhysicianAuth`/`requireResidentAuth`/
+`requireResidentPasswordChanged` (HTTP); `GET/POST /residents/:id/...`
+credential routes, `PATCH /me/password`, `GET /me/surgeries(/:id)`,
+`GET /me` (HTTP); `packages/web/src/app/resident/*` (own layout, forced
+change-password, Surgery panel, Surgery detail), `features/
+resident-session/*`, and inline credential actions on the Physician's
+Resident list (`ResidentCredentialActions.tsx`).
+
+**Definition of Done**: a physician can self-register and log in
+immediately (no confirmation required); a physician can create a
+Resident, view/reset their temporary password, and deactivate/
+reactivate them; a Resident can log in with the temporary password, is
+forced to change it before reaching anything else, then sees only the
+Surgeries they participate in, can record a Control, can edit only
+their own.
+
+**Measurable completion criteria**: e2e test covering the full Resident
+lifecycle (issue → login → forced change → Surgery panel → edit-own
+vs. edit-other rejected → blanqueo → deactivate/reactivate), plus
+cross-tenant rejection for every new Physician-side credential route.
+
+**Dependencies**: Milestone 8 (needs `web` to exist).
+
+**Status**: `COMPLETED` — implemented across all five layers, with new
+tests at every layer (Domain: `Surgery.modifyControl`'s amended
+authorization; Application: new operations per the Deliverables list
+above; Infrastructure: `PrismaResidentCredentialRepository`,
+`PrismaSessionRepository`'s `userType`/`deleteByResidentId`,
+`PrismaSurgeryRepository.findByResidentId`, all against real Postgres;
+HTTP: `packages/http/src/e2e/resident-auth.test.ts`'s full lifecycle,
+`auth.test.ts` updated for the paused confirmation gate; Web: `features/
+resident-session/*` and the credential-action components). Full
+workspace quality gate green: 84 Domain + 137 Application + 63
+Infrastructure + 39 HTTP + 174 web = 497 tests. Manually verified live
+in the browser (not just automated tests): physician self-registration
+and login without confirming email, resident creation with visible
+temp password, forced first-login password change, and the resulting
+Surgery panel.
+
+**Bug found via manual browser verification, not the test suite**:
+every bodyless `authedApiRequest` (e.g. the "reset password" button)
+sent `content-type: application/json` with no body, which Fastify's
+default JSON parser rejects with 400
+(`FST_ERR_CTP_EMPTY_JSON_BODY`) before the route handler ever runs.
+Every prior bodyless call in this codebase happened to use `DELETE`,
+which Fastify doesn't route through body parsing the same way, so no
+existing test caught it. Fixed in `packages/web/src/lib/api-client.ts`:
+the `content-type` header is now only sent when there is an actual
+body. Confirmed against the real API with `curl` before/after the fix;
+covered by two new tests. Recorded here as the same pattern Milestone
+8's own closure already flagged twice (the timezone bug, the
+bare-array-vs-envelope bug) — the mandatory manual browser walkthrough
+keeps finding real defects no unit/e2e suite alone catches.
+
+**Not yet done** (tracked, not blocking MVP):
+
+- The Resident's Surgery panel and detail page show the Patient and
+  ProcedureType by raw **id**, not by name —
+  `packages/web/src/features/resident-session/mappers.ts` documents
+  why: a Resident session has no route to resolve those names (the
+  Physician-side pages resolve them via `listPatients()`/
+  `listProcedureTypes()`, both Physician-only). Fixing this needs a
+  small, deliberate `api` decision (embed the names in `serializeSurgery`
+  for a Resident caller, or add a narrow `/me`-scoped lookup) — not
+  decided yet.
+- No dedicated `web` UX for a Resident whose session was just
+  force-closed by deactivation — their next request simply gets a 401
+  and `authedApiRequest` redirects to `/login`, with no explanation
+  shown. The security behavior is correct and already enforced
+  server-side; only the messaging is missing.
+
+---
+
 ### Milestone 9 — Public domain + human E2E validation
 
 **Objective**: a real physician (starting with the product owner)
@@ -1198,6 +1343,57 @@ above.
 
 ---
 
+### Milestone 10 — Physician-facing IA & design system rework (proposed, not yet approved)
+
+**Status**: `PROPOSED` — raised by the product owner, captured here as
+planning context. **No scope, menu structure, or visual design is
+decided by this entry** — it records the problem and the product
+owner's stated intent, nothing more. Do not treat anything below as an
+approved design.
+
+**Problem, as stated by the product owner**: the product currently
+organizes itself around loose backend-mirroring concepts — a navbar
+listing Patients / Procedure Types / Surgeries / Residents / Research
+Studies as flat, independent links (`(dashboard)/layout.tsx`) — which
+reflects how the vertical slices are built (§5 of
+`frontend-architecture-discovery.md`), not how a physician actually
+works. "Tenemos todo conceptualmente distribuído pero no verdaderamente
+por oficio" — the product owner's own framing: distributed by concept,
+not yet organized by the physician's actual clinical workflow.
+
+**Second, related problem, also as stated by the product owner**: the
+current visual design (`components/ui/*` — plain semantic HTML +
+`class-variance-authority`, chosen deliberately minimal for Milestone 8,
+see that milestone's "Deviations and decisions" note) was never meant
+as the product's final look. The product owner wants a deliberate
+redesign pass, and is concerned that **continuing to build new
+components against the current ad-hoc styling makes that redesign more
+expensive the longer it's deferred** — every new component added under
+today's styling is a component that redesign will later have to touch
+again.
+
+**Why this is its own milestone, not folded into Milestone 9**: Milestone
+9 is human validation of what already exists; this is a deliberate
+redesign of the physician-facing experience itself — a different kind of
+work, with its own set of decisions to make first (information
+architecture grouped by clinical workflow rather than by resource type;
+a chosen design system/direction) before any component is touched.
+
+**Explicitly not decided here**:
+
+- What the reorganized navigation/IA should actually look like (which
+  workflows, which groupings) — the product owner has ideas, not yet
+  captured as a decision.
+- Which design system, component library, or visual direction to adopt.
+- Whether this happens before or interleaved with Milestone 9's human
+  walkthrough — a sequencing call for the product owner, not inferred
+  here.
+
+**Dependencies**: none technical. Blocked only on the product owner's
+own design direction — not a code or architecture blocker.
+
+---
+
 ## Dependency Graph
 
 ```
@@ -1208,10 +1404,17 @@ Milestones 1–7 (DONE, deployed)
                                     │
         Milestone 7 (private network to api) ───┤
                                     ▼
+                          Milestone 8.5 (Self-registration + Resident auth)
+                                    │
+                                    ▼
                           Milestone 9 (Public domain for web + human E2E)
+
+                          Milestone 10 (IA/design rework, PROPOSED —
+                          not sequenced against 9; blocked only on the
+                          product owner's own design direction)
 ```
 
-**Sequential (hard)**: Milestones 1–3 → {4, 5, 6, 7} → 8 → 9.
+**Sequential (hard)**: Milestones 1–3 → {4, 5, 6, 7} → 8 → 8.5 → 9.
 
 **Completed in parallel**: Milestones 4, 5, 6, and 7 had no dependency
 on each other and were implemented simultaneously (separate git
@@ -1222,7 +1425,9 @@ ran fully in parallel. All four are now `COMPLETED` and merged.
 
 **Blocked**: nothing remains blocked on a framework decision — Next.js
 App Router + BFF is confirmed. Milestone 9 remains blocked on Milestone
-8 completing (Milestones 4–7 are done).
+8.5 completing (it now is — Milestones 4–8.5 are all done). Milestone 10
+is not sequenced against 9 at all — it's blocked only on the product
+owner supplying an actual design direction, not on any other milestone.
 
 **Deferred, not scheduled**: CustomField/clinical measurements (blocked
 on physician consultation), notifications, payments, Platform Admin,
@@ -1270,30 +1475,37 @@ own job (public custom domain + human validation).
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: 9 — Public domain + human E2E validation. `NOT_STARTED`. Milestone 8 (frontend) is `COMPLETED`: all five vertical slices are built and verified, `web`'s own security headers/CSP are in place, `web` is deployed to Railway with its private-network path to `api` proven, and the scripted Playwright walkthrough passes against a real stack.**
+> **CURRENT MILESTONE: 9 — Public domain + human E2E validation. `NOT_STARTED`. Milestones 8 (frontend) and 8.5 (self-registration + Resident authentication) are both `COMPLETED`. The product owner has also asked for Milestone 10 (physician-facing IA + design system rework) to be planned before the MVP is considered closed — `PROPOSED`, not yet approved or scoped; see that milestone's entry for what's actually decided (nothing beyond the problem statement).**
 
-Milestones 1 through 8 are complete (see their entries above and
+Milestones 1 through 8.5 are complete (see their entries above and
 Historical Progress below): the full core loop plus read/query,
-Resident, Research, the `api` security baseline, and the frontend are
-all done, with the full workspace quality gate (lint, format-check,
-typecheck, test — 81 Domain + 102 Application + 45 Infrastructure + 31
-HTTP + 139 web = 398 tests) green, including the M4–M7 conformance-review
-fixes (see the Risks and Unknowns entry above and
-`docs/architecture/m4-m7-conformance-review.md`) and Milestone 8's own
-closure audit (see that milestone's entry above for the full evidence
-table).
+Resident, Research, the `api` security baseline, the frontend, physician
+self-registration, and Resident authentication are all done, with the
+full workspace quality gate (lint, format-check, typecheck, test — 84
+Domain + 137 Application + 63 Infrastructure + 39 HTTP + 174 web = 497
+tests) green, including the M4–M7 conformance-review fixes (see the
+Risks and Unknowns entry above and
+`docs/architecture/m4-m7-conformance-review.md`), Milestone 8's own
+closure audit, and Milestone 8.5's own evidence (see each milestone's
+entry above).
 
-Milestone 8's Definition of Done is now met: every MVP-required backend
-capability has a reachable screen, `web` is verified able to reach `api`
-over Railway's private network (proven by a real login succeeding
-through the public, deployed `web` URL), and a scripted browser-level
-walkthrough of the full workflow passes against that real stack
-(Milestone 8's own Measurable completion criteria). What remains before
-the product is genuinely usable by a physician is Milestone 9 — a real
-custom domain (the current one is Railway's own generated
-`*.up.railway.app` address) and, more importantly, an actual human
-walking through the deployed product for the first time; nothing about
-that milestone has started.
+Milestone 8's Definition of Done was met when every MVP-required
+backend capability got a reachable screen, `web` was verified able to
+reach `api` over Railway's private network, and a scripted browser-level
+walkthrough passed against that real stack. Milestone 8.5 then closed a
+real gap Milestone 8 had explicitly left out of scope (no way for a
+second physician to get an account; Residents with no login of their
+own). What remains before the product is genuinely usable by a
+physician is still Milestone 9 — a real custom domain (the current one
+is Railway's own generated `*.up.railway.app` address) and, more
+importantly, an actual human walking through the deployed product for
+the first time; nothing about that milestone has started. **Separately**,
+the product owner has raised Milestone 10 (IA reorganization +
+design-system rework) as something to plan — not yet scoped, not
+blocking Milestone 9's own readiness, but explicitly not something the
+product owner wants left implicit while more UI keeps getting built
+against today's ad-hoc styling (see Milestone 10's own entry for the
+stated reasoning).
 
 ---
 
@@ -1315,10 +1527,34 @@ that milestone has started.
 
 No open architectural decision blocks starting this milestone.
 
+**Also pending, raised by the product owner, not yet scoped**: Milestone
+10 — a physician-facing IA/navigation reorganization and a visual
+design-system rework. See that milestone's entry for the stated problem
+and for what remains genuinely undecided (the actual menu structure, the
+design direction, and whether it happens before or interleaved with
+Milestone 9).
+
 ---
 
 ## Risks and Unknowns
 
+- **Two known gaps left open by Milestone 8.5, tracked here, not
+  blocking MVP**: (1) a Resident's own Surgery panel/detail page shows
+  the Patient and ProcedureType by raw id, not by name — fixing it needs
+  a small `api` decision (see Milestone 8.5's "Not yet done"); (2) no
+  dedicated `web` UX for a Resident whose session was just force-closed
+  by deactivation (their next request 401s and redirects to `/login`
+  with no explanation) — the security behavior is correct and already
+  enforced, only the messaging is missing.
+- **Componentizing cost risk, raised by the product owner ahead of
+  Milestone 10**: every screen built against the current minimal
+  `components/ui/*` primitives (chosen deliberately for Milestone 8,
+  not as a final design — see that milestone's "Deviations and
+  decisions") is a screen a future redesign pass will have to revisit.
+  The product owner has flagged this explicitly and wants Milestone 10
+  planned before much more UI is added on top of the current styling —
+  see that milestone's entry. Not yet a decision to pause other UI
+  work, just a named risk to weigh when deciding what to build next.
 - **Two tension points found and resolved during the post-decision
   documentation review that followed confirming Next.js/BFF** (not
   Milestone defects — the plan was updated before either was
@@ -1464,6 +1700,13 @@ separate `api`/`web` services — are not re-listed here.)_
    inferable from the repository alone.
 3. **Backup/recovery policy for the Postgres instance** — plan-tier and
    risk-tolerance decision on Railway, not inferable from the repository.
+4. **Milestone 10's actual scope** — the product owner has stated the
+   problem (navbar/IA organized by backend resource, not clinical
+   workflow; a visual redesign is wanted before more UI accumulates
+   against today's minimal styling) but not yet the resolution: what the
+   reorganized navigation should look like, and which design system/
+   direction to adopt. See Milestone 10's own entry — this is captured
+   as planning context, not a decision.
 
 When any of these is explicitly approved, update the relevant section of
 this roadmap (MVP Definition, the affected milestone's Status/scope)
@@ -1511,3 +1754,4 @@ rather than leaving the resolved question listed here as still open.
 | **Milestones 4–7 integration** — merged in sequence into `main` from four parallel git worktrees                                                                            | COMPLETED | Full workspace quality gate (lint, format-check, typecheck, test) green with all four milestones combined: 81 Domain + 97 Application + 45 Infrastructure + 23 HTTP tests passing against a real Railway Postgres instance; `prisma migrate status` confirms no drift across all migrations                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **M4–M7 conformance-review fix pass** — corrected the two actionable findings from `docs/architecture/m4-m7-conformance-review.md`, before Milestone 8 implementation began | COMPLETED | `resident.ts`/`research-study.ts` now declare request-body/params JSON schemas (previously zero — a malformed `POST /research-studies` body returned 500, not the clean 400 Milestone 7's DoD requires); `listResidents`/`getResident` added to `packages/application`, `resident.ts` now calls them instead of `ResidentRepository` directly, matching every other resource's read pattern; the Domain→wire-shape convention question was resolved as a documented decision (`application-layer-discovery.md` §8), not a refactor — both existing conventions kept, one recorded as the default for new work. `ResearchStudy.reconstitute` re-verified against the same criteria as `Surgery.reconstitute` (§7.1) — no persistence logic hidden in Domain. 5 new Application tests + 8 new HTTP tests; full workspace quality gate green: 81 Domain + 102 Application + 45 Infrastructure + 31 HTTP tests (259 total)                                                                                                                                                                                                                                 |
 | Milestone 8 — Minimal physician-facing frontend (Next.js App Router, BFF)                                                                                                   | COMPLETED | `packages/web` added (Next.js App Router, Server Components by default, Server Actions for writes, `web_session` cookie relaying `api`'s own session id, centralized typed error contract). Five vertical slices built and manually + automatically verified: Authentication + Patients, Procedure Type, Surgery + Control (Aggregate with nested Control history/participants), Resident (cross-feature composition — assign/remove live on Surgery's own actions, mirroring `api`'s module boundaries), Research Study (full `DRAFT ⇄ IN_PROGRESS ⇄ COMPLETED` lifecycle, surgery-universe management). Milestone 8 closure: `web`'s own security headers + strict nonce-based CSP (`lib/security-headers.ts`), `web` deployed to Railway (`https://web-production-c686b1.up.railway.app`) with its private-network path to `api` proven by a real login through the public URL, and a scripted Playwright walkthrough (`packages/web/e2e/full-workflow.spec.ts`) passing end to end against a real stack. 139 web tests (was 0); full workspace quality gate green: 81 Domain + 102 Application + 45 Infrastructure + 31 HTTP + 139 web = 398 tests |
+| Milestone 8.5 — Physician self-registration + Resident authentication (ADR 0015/0016/0017)                                                                                  | COMPLETED | `/signup`+`/confirm-email` self-registration (ADR 0015); its email-confirmation login gate paused for MVP, machinery left dormant (ADR 0016); Resident authentication (ADR 0017) — `Session` gains `userType`; `ResidentCredentialRepository`/`TemporaryPasswordGenerator` (temp password issue/view/reset/deactivate, forced first-login change); a Resident's own scoped Surgery panel + Control record/edit-own (`packages/web/src/app/resident/*`), amending ADR 0004's Physician-only Control-modification rule. Bug found via manual browser verification (not the test suite): bodyless `authedApiRequest` calls sent a `content-type: application/json` header Fastify's parser rejects on an empty body — fixed in `lib/api-client.ts`. Full workspace quality gate green: 84 Domain + 137 Application + 63 Infrastructure + 39 HTTP + 174 web = 497 tests. Known gaps tracked, not blocking: Resident panel shows Patient/ProcedureType by id not name; no dedicated UX for a force-deactivated Resident's stale session beyond the already-enforced 401.                                                                                    |

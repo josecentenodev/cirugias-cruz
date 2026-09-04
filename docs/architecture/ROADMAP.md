@@ -1258,6 +1258,49 @@ keeps finding real defects no unit/e2e suite alone catches.
   shown. The security behavior is correct and already enforced
   server-side; only the messaging is missing.
 
+**Additional gaps found via the product owner's own manual walkthrough
+(2026-09-04, tracked, not blocking MVP)**:
+
+- **Forms reset on error across the app, not just on success.**
+  `LoginForm`, `RegisterForm`, and `ResidentForm` all use `useActionState`
+  with an uncontrolled `<form action={...}>` (React 19 / Next 16), and
+  their Server Actions never throw for a domain-level failure (wrong
+  credentials, duplicate email) — they catch it and `return { error }`.
+  Since the action completes without throwing, React 19 resets the
+  uncontrolled fields regardless of whether `state` carries an error,
+  wiping what the user typed (including the email) right when they most
+  need it preserved. This is one root-cause pattern, hand-copied into at
+  least 3 confirmed components and potentially more of the ~20 components
+  under `packages/web/src/features/**/components/*.tsx` that use
+  `useActionState` — not three independent bugs. No component-level
+  render tests exist for these forms (only `actions.test.ts`, which
+  checks the action's return value, not DOM behavior), which is why this
+  wasn't caught earlier.
+- **Deactivating a Resident gives the physician no feedback.** The
+  mutation works (`PATCH /residents/:id/active`), but the only signal is
+  the button being briefly disabled during the `useTransition` — no
+  toast, no success/error message, and `ResidentList` has no
+  active/inactive status column at all (consistent with the
+  already-documented gap above: `GET /residents` doesn't report the
+  field). This is the Physician-side counterpart of the Resident-side gap
+  already tracked above — related but distinct.
+- **Contradictory empty-state messages on a Surgery's resident
+  assignment panel.** `SurgeryDetail.tsx` renders "No residents assigned
+  yet" when `participants.length === 0`, and `AssignResidentForm.tsx`
+  independently renders "Every registered resident is already assigned"
+  when `availableResidents.length === 0` — the two conditions aren't
+  coordinated, so both can render together, and in a tenant with zero
+  Residents registered at all, the second message is actively wrong (it
+  implies Residents exist and are all assigned, when none exist). Needs a
+  third explicit state distinguishing "no Residents exist" from "all
+  existing Residents are already assigned."
+
+Planning for these (whether to unify the duplicated form-reset pattern
+into one small shared utility, add component-level tests, and how to
+sequence the two Resident-management gaps together) is captured outside
+this repo, in the product owner's own testing notes — not yet scoped
+into a numbered milestone here.
+
 ---
 
 ### Milestone 9 — Public domain + human E2E validation
@@ -1538,14 +1581,21 @@ Milestone 9).
 
 ## Risks and Unknowns
 
-- **Two known gaps left open by Milestone 8.5, tracked here, not
-  blocking MVP**: (1) a Resident's own Surgery panel/detail page shows
-  the Patient and ProcedureType by raw id, not by name — fixing it needs
-  a small `api` decision (see Milestone 8.5's "Not yet done"); (2) no
-  dedicated `web` UX for a Resident whose session was just force-closed
-  by deactivation (their next request 401s and redirects to `/login`
-  with no explanation) — the security behavior is correct and already
-  enforced, only the messaging is missing.
+- **Gaps left open by Milestone 8.5, tracked here, not blocking MVP**:
+  (1) a Resident's own Surgery panel/detail page shows the Patient and
+  ProcedureType by raw id, not by name — fixing it needs a small `api`
+  decision; (2) no dedicated `web` UX for a Resident whose session was
+  just force-closed by deactivation (their next request 401s and
+  redirects to `/login` with no explanation) — the security behavior is
+  correct and already enforced, only the messaging is missing; (3) a
+  form-reset-on-error bug found via the product owner's manual
+  walkthrough, confirmed as one root-cause pattern copied across at
+  least 3 forms (Login, Registration, Resident creation) and potentially
+  more; (4) deactivating a Resident gives the physician no visual
+  feedback and no active/inactive status indicator; (5) a Surgery's
+  resident-assignment panel can show two contradictory empty-state
+  messages at once when a tenant has zero Residents registered. See
+  Milestone 8.5's "Not yet done" for full detail on all five.
 - **Componentizing cost risk, raised by the product owner ahead of
   Milestone 10**: every screen built against the current minimal
   `components/ui/*` primitives (chosen deliberately for Milestone 8,

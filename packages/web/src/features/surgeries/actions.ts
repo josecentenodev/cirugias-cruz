@@ -3,13 +3,36 @@
 import { redirect } from "next/navigation";
 import { authedApiRequest } from "@/lib/authed-api-request";
 import { ApiDomainError, ApiNotFoundError } from "@/lib/api-errors";
+import {
+  collectCustomFieldValues,
+  hasCustomFieldInputs,
+  type CollectedCustomFieldValue,
+} from "@/features/procedure-types/custom-field-values";
+import type { CustomFieldDto } from "@/features/procedure-types/dtos";
+import { listProcedureTypes } from "@/features/procedure-types/queries";
 import type { RecordControlResponse, RegisterSurgeryResponse } from "./dtos";
+import { getSurgery } from "./queries";
 import {
   assignResidentSchema,
   modifyControlSchema,
   recordControlSchema,
   registerSurgerySchema,
 } from "./schemas";
+
+/**
+ * The `SURGERY`/`CONTROL`-scoped CustomField definitions for a Procedure
+ * Type, re-read server-side so the Server Action never trusts the client
+ * about a field's type or scope — `collectCustomFieldValues` coerces
+ * against these, and `api` re-validates regardless.
+ */
+async function scopedCustomFields(
+  procedureTypeId: string,
+  scope: CustomFieldDto["scope"],
+): Promise<CustomFieldDto[]> {
+  const procedureTypes = await listProcedureTypes();
+  const procedureType = procedureTypes.find((candidate) => candidate.id === procedureTypeId);
+  return (procedureType?.customFields ?? []).filter((field) => field.scope === scope);
+}
 
 export interface RegisterSurgeryFormState {
   error?: string;
@@ -37,12 +60,19 @@ export async function registerSurgeryAction(
     return { error: "Please select a patient, a procedure type, and a performed date." };
   }
 
+  const customFieldValues = hasCustomFieldInputs(formData)
+    ? collectCustomFieldValues(
+        formData,
+        await scopedCustomFields(parsed.data.procedureTypeId, "SURGERY"),
+      )
+    : [];
+
   let response: RegisterSurgeryResponse;
   try {
     response = await authedApiRequest<RegisterSurgeryResponse>({
       method: "POST",
       path: "/surgeries",
-      body: parsed.data,
+      body: customFieldValues.length > 0 ? { ...parsed.data, customFieldValues } : parsed.data,
     });
   } catch (error) {
     if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
@@ -89,6 +119,15 @@ export async function recordControlAction(
     return { error: "Please fill in every required field." };
   }
 
+  let customFieldValues: CollectedCustomFieldValue[] = [];
+  if (hasCustomFieldInputs(formData)) {
+    const surgery = await getSurgery(surgeryId);
+    customFieldValues = collectCustomFieldValues(
+      formData,
+      await scopedCustomFields(surgery.procedureTypeId, "CONTROL"),
+    );
+  }
+
   try {
     await authedApiRequest<RecordControlResponse>({
       method: "POST",
@@ -100,6 +139,7 @@ export async function recordControlAction(
           parsed.data.authorType === "resident"
             ? { type: "resident", residentId: parsed.data.residentId }
             : { type: "physician" },
+        ...(customFieldValues.length > 0 ? { customFieldValues } : {}),
       },
     });
   } catch (error) {

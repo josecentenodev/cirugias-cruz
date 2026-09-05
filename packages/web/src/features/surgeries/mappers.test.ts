@@ -1,6 +1,21 @@
 import { describe, expect, it } from "vitest";
+import type { CustomFieldDto } from "@/features/procedure-types/dtos";
 import { toControlView, toSurgeryDetailView, toSurgeryListView } from "./mappers.js";
 import type { ControlDto, SurgeryDto } from "./dtos.js";
+
+const evaDef: CustomFieldDto = {
+  id: "eva",
+  name: "Dolor (EVA)",
+  scope: "CONTROL",
+  constraint: { valueType: "NUMBER", unit: "0-10" },
+};
+const techDef: CustomFieldDto = {
+  id: "tech",
+  name: "Técnica",
+  scope: "SURGERY",
+  constraint: { valueType: "ENUM", options: ["Autograft"] },
+};
+const defs = new Map([evaDef, techDef].map((d) => [d.id, d]));
 
 function buildSurgery(overrides: Partial<SurgeryDto> = {}): SurgeryDto {
   return {
@@ -11,6 +26,7 @@ function buildSurgery(overrides: Partial<SurgeryDto> = {}): SurgeryDto {
     performedAt: "2026-01-15T00:00:00.000Z",
     state: "DONE",
     participatingResidentIds: [],
+    customFieldValues: [],
     controls: [],
     ...overrides,
   };
@@ -22,6 +38,7 @@ function buildControl(overrides: Partial<ControlDto> = {}): ControlDto {
     observations: "Evolución favorable",
     recordedAt: "2026-01-16T14:30:00.000Z",
     author: { type: "physician", physicianId: "physician-1" },
+    customFieldValues: [],
     ...overrides,
   };
 }
@@ -138,5 +155,35 @@ describe("toSurgeryDetailView", () => {
     const view = toSurgeryDetailView(surgery, new Map(), new Map(), new Map());
 
     expect(view.controls.map((c) => c.id)).toEqual(["newer", "older"]);
+  });
+
+  it("resolves recorded CustomField values to their definition's name, with a NUMBER field's unit", () => {
+    const surgery = buildSurgery({
+      customFieldValues: [{ definitionId: "tech", value: "Autograft" }],
+      controls: [
+        buildControl({ id: "control-1", customFieldValues: [{ definitionId: "eva", value: 3 }] }),
+      ],
+    });
+
+    const view = toSurgeryDetailView(surgery, new Map(), new Map(), new Map(), defs);
+
+    expect(view.customFieldValues).toEqual([
+      { definitionId: "tech", label: "Técnica", displayValue: "Autograft" },
+    ]);
+    expect(view.controls[0]?.customFieldValues).toEqual([
+      { definitionId: "eva", label: "Dolor (EVA)", displayValue: "3 0-10" },
+    ]);
+  });
+
+  it("falls back to the raw definition id when no definition is known", () => {
+    const surgery = buildSurgery({
+      customFieldValues: [{ definitionId: "gone", value: "x" }],
+    });
+
+    const view = toSurgeryDetailView(surgery, new Map(), new Map(), new Map());
+
+    expect(view.customFieldValues).toEqual([
+      { definitionId: "gone", label: "gone", displayValue: "x" },
+    ]);
   });
 });

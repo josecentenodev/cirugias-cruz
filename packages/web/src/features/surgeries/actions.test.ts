@@ -57,6 +57,62 @@ describe("registerSurgeryAction", () => {
     });
   });
 
+  it("re-reads the procedure type's SURGERY-scoped fields and forwards coerced values", async () => {
+    authedApiRequestMock.mockImplementation(
+      ({ method, path }: { method: string; path: string }) => {
+        if (method === "GET" && path === "/procedure-types") {
+          return Promise.resolve([
+            {
+              id: "pt-1",
+              name: "Pterigión",
+              physicianId: "phys-1",
+              customFields: [
+                {
+                  id: "tech",
+                  name: "Técnica",
+                  scope: "SURGERY",
+                  constraint: { valueType: "ENUM", options: ["Autograft"] },
+                },
+                {
+                  id: "eva",
+                  name: "EVA",
+                  scope: "CONTROL",
+                  constraint: { valueType: "NUMBER" },
+                },
+              ],
+            },
+          ]);
+        }
+        return Promise.resolve({ surgeryId: "surgery-1" });
+      },
+    );
+
+    await expect(
+      registerSurgeryAction(
+        {},
+        formData({
+          patientId: "patient-1",
+          procedureTypeId: "pt-1",
+          performedAt: "2026-01-15",
+          "customField:tech": "Autograft",
+          "customField:eva": "5",
+        }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT:/surgeries/surgery-1");
+
+    // Only the SURGERY-scoped field is forwarded; the CONTROL-scoped one is dropped.
+    expect(authedApiRequestMock).toHaveBeenCalledWith({
+      method: "POST",
+      path: "/surgeries",
+      body: {
+        patientId: "patient-1",
+        procedureTypeId: "pt-1",
+        performedAt: "2026-01-15",
+        customFieldValues: [{ definitionId: "tech", value: "Autograft" }],
+      },
+    });
+  });
+
   it("rejects an incomplete selection before ever calling api", async () => {
     const result = await registerSurgeryAction(
       {},
@@ -164,6 +220,63 @@ describe("recordControlAction", () => {
         observations: "Evolución favorable",
         recordedAt: "2026-01-16T14:30",
         author: { type: "resident", residentId: "resident-1" },
+      },
+    });
+  });
+
+  it("re-reads the surgery's procedure type and forwards coerced CONTROL-scoped values", async () => {
+    authedApiRequestMock.mockImplementation(
+      ({ method, path }: { method: string; path: string }) => {
+        if (method === "GET" && path === "/surgeries/surgery-1") {
+          return Promise.resolve({
+            id: "surgery-1",
+            procedureTypeId: "pt-1",
+            participatingResidentIds: [],
+            customFieldValues: [],
+            controls: [],
+          });
+        }
+        if (method === "GET" && path === "/procedure-types") {
+          return Promise.resolve([
+            {
+              id: "pt-1",
+              name: "Pterigión",
+              customFields: [
+                {
+                  id: "eva",
+                  name: "EVA",
+                  scope: "CONTROL",
+                  constraint: { valueType: "NUMBER", unit: "0-10" },
+                },
+              ],
+            },
+          ]);
+        }
+        return Promise.resolve({ surgeryId: "surgery-1", controlId: "control-1" });
+      },
+    );
+
+    await expect(
+      recordControlAction(
+        "surgery-1",
+        {},
+        formData({
+          authorType: "physician",
+          observations: "Evolución favorable",
+          recordedAt: "2026-01-16T14:30",
+          "customField:eva": "3",
+        }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT:/surgeries/surgery-1");
+
+    expect(authedApiRequestMock).toHaveBeenCalledWith({
+      method: "POST",
+      path: "/surgeries/surgery-1/controls",
+      body: {
+        observations: "Evolución favorable",
+        recordedAt: "2026-01-16T14:30",
+        author: { type: "physician" },
+        customFieldValues: [{ definitionId: "eva", value: 3 }],
       },
     });
   });

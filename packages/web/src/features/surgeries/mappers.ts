@@ -1,4 +1,38 @@
-import type { ControlDto, SurgeryDto } from "./dtos";
+import type { CustomFieldDto } from "@/features/procedure-types/dtos";
+import type { ControlDto, CustomFieldValueDto, SurgeryDto } from "./dtos";
+
+/** One recorded CustomField value, resolved to its definition's name/unit for display. */
+export interface CustomFieldValueView {
+  definitionId: string;
+  label: string;
+  displayValue: string;
+}
+
+/**
+ * Looks each recorded value's definition up in `definitions` (a
+ * `Map<definitionId, CustomFieldDto>` the page builds from the Surgery's
+ * Procedure Type — the same presentation-layer join used for
+ * patient/procedure/resident names). A value whose definition is missing
+ * (e.g. a field deleted after the fact — not possible today, but
+ * defensive) falls back to the raw id.
+ */
+export function resolveCustomFieldValues(
+  values: readonly CustomFieldValueDto[],
+  definitions: Map<string, CustomFieldDto>,
+): CustomFieldValueView[] {
+  return values.map((recorded) => {
+    const definition = definitions.get(recorded.definitionId);
+    const unit =
+      definition?.constraint.valueType === "NUMBER" && definition.constraint.unit
+        ? ` ${definition.constraint.unit}`
+        : "";
+    return {
+      definitionId: recorded.definitionId,
+      label: definition?.name ?? recorded.definitionId,
+      displayValue: `${recorded.value}${unit}`,
+    };
+  });
+}
 
 export interface ControlView {
   id: string;
@@ -6,6 +40,7 @@ export interface ControlView {
   recordedAtLabel: string;
   recordedAtInputValue: string;
   authorLabel: string;
+  customFieldValues: CustomFieldValueView[];
 }
 
 export interface SurgeryListView {
@@ -27,6 +62,7 @@ export interface SurgeryDetailView {
   procedureTypeName: string;
   performedAtLabel: string;
   participants: ParticipantView[];
+  customFieldValues: CustomFieldValueView[];
   controls: ControlView[];
 }
 
@@ -47,7 +83,11 @@ function resolveName(id: string, lookup: NameLookup, fallback: string): string {
   return lookup.get(id) ?? fallback;
 }
 
-export function toControlView(dto: ControlDto, residentNames: NameLookup): ControlView {
+export function toControlView(
+  dto: ControlDto,
+  residentNames: NameLookup,
+  customFieldDefs: Map<string, CustomFieldDto> = new Map(),
+): ControlView {
   return {
     id: dto.id,
     observations: dto.observations,
@@ -57,6 +97,7 @@ export function toControlView(dto: ControlDto, residentNames: NameLookup): Contr
       dto.author.type === "physician"
         ? "You (physician)"
         : resolveName(dto.author.residentId, residentNames, "Unknown resident"),
+    customFieldValues: resolveCustomFieldValues(dto.customFieldValues, customFieldDefs),
   };
 }
 
@@ -79,6 +120,7 @@ export function toSurgeryDetailView(
   patientNames: NameLookup,
   procedureTypeNames: NameLookup,
   residentNames: NameLookup,
+  customFieldDefs: Map<string, CustomFieldDto> = new Map(),
 ): SurgeryDetailView {
   return {
     id: dto.id,
@@ -89,8 +131,9 @@ export function toSurgeryDetailView(
       id: residentId,
       name: resolveName(residentId, residentNames, "Unknown resident"),
     })),
+    customFieldValues: resolveCustomFieldValues(dto.customFieldValues, customFieldDefs),
     controls: dto.controls
-      .map((control) => toControlView(control, residentNames))
+      .map((control) => toControlView(control, residentNames, customFieldDefs))
       // Newest first — a physician reviewing follow-up cares most about
       // the most recent observation; `api` itself doesn't sort this.
       .sort((a, b) => b.recordedAtInputValue.localeCompare(a.recordedAtInputValue)),

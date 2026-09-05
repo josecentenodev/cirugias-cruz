@@ -24,7 +24,21 @@ export default async function SurgeryDetailPage({ params }: { params: Promise<{ 
   const procedureTypeNames = new Map(procedureTypes.map((pt) => [pt.id, pt.name]));
   const residentNames = new Map(residents.map((r) => [r.id, `${r.firstName} ${r.lastName}`]));
 
-  const view = toSurgeryDetailView(surgery, patientNames, procedureTypeNames, residentNames);
+  const procedureType = procedureTypes.find((pt) => pt.id === surgery.procedureTypeId);
+  const customFieldDefs = new Map(
+    (procedureType?.customFields ?? []).map((field) => [field.id, field]),
+  );
+  const controlScopedFields = (procedureType?.customFields ?? []).filter(
+    (field) => field.scope === "CONTROL",
+  );
+
+  const view = toSurgeryDetailView(
+    surgery,
+    patientNames,
+    procedureTypeNames,
+    residentNames,
+    customFieldDefs,
+  );
 
   const participatingIds = new Set(view.participants.map((p) => p.id));
   const availableResidents = residents
@@ -40,6 +54,7 @@ export default async function SurgeryDetailPage({ params }: { params: Promise<{ 
         surgery={view}
         availableResidents={availableResidents}
         totalResidentCount={residents.length}
+        controlCustomFields={controlScopedFields}
       />
     </div>
   );

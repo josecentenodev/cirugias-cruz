@@ -12,24 +12,28 @@ const baseSurgery: OwnSurgeryDto = {
   performedAt: "2026-01-10T00:00:00.000Z",
   state: "DONE",
   participatingResidentIds: ["resident-1"],
+  customFieldValues: [],
   controls: [
     {
       id: "control-1",
       observations: "By me",
       recordedAt: "2026-01-11T10:00:00.000Z",
       author: { type: "resident", residentId: "resident-1" },
+      customFieldValues: [],
     },
     {
       id: "control-2",
       observations: "By the physician",
       recordedAt: "2026-01-12T10:00:00.000Z",
       author: { type: "physician", physicianId: "physician-1" },
+      customFieldValues: [],
     },
     {
       id: "control-3",
       observations: "By another resident",
       recordedAt: "2026-01-13T10:00:00.000Z",
       author: { type: "resident", residentId: "resident-2" },
+      customFieldValues: [],
     },
   ],
 };

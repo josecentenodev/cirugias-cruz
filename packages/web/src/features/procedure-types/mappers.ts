@@ -19,7 +19,12 @@ export function toProcedureTypeView(dto: ProcedureTypeDto): ProcedureTypeView {
   };
 }
 
-/** What `CustomFieldList` renders — the constraint union collapsed into one human-readable summary. */
+/**
+ * What `CustomFieldList` renders — the `valueType` shown as its own
+ * column (`typeLabel`), separate from any bounds/options (`rulesSummary`),
+ * so an `ENUM` is never mistaken for `TEXT` the way a single merged
+ * "type / constraint" cell allowed.
+ */
 export interface CustomFieldView {
   id: string;
   name: string;
@@ -27,8 +32,15 @@ export interface CustomFieldView {
   /** Only a NUMBER field can carry a unit (ADR 0020); "—" otherwise. */
   unit: string;
   scope: "SURGERY" | "CONTROL";
-  constraintSummary: string;
+  typeLabel: string;
+  rulesSummary: string;
 }
+
+const TYPE_LABELS: Record<CustomFieldDto["constraint"]["valueType"], string> = {
+  NUMBER: "Number",
+  ENUM: "Options",
+  TEXT: "Text",
+};
 
 export function toCustomFieldView(dto: CustomFieldDto): CustomFieldView {
   return {
@@ -40,30 +52,31 @@ export function toCustomFieldView(dto: CustomFieldDto): CustomFieldView {
         ? dto.constraint.unit
         : EMPTY_PLACEHOLDER,
     scope: dto.scope,
-    constraintSummary: summarizeConstraint(dto.constraint),
+    typeLabel: TYPE_LABELS[dto.constraint.valueType],
+    rulesSummary: summarizeRules(dto.constraint),
   };
 }
 
-function summarizeConstraint(constraint: CustomFieldDto["constraint"]): string {
+function summarizeRules(constraint: CustomFieldDto["constraint"]): string {
   switch (constraint.valueType) {
     case "NUMBER": {
       if (constraint.min !== undefined && constraint.max !== undefined) {
-        return `Number (${constraint.min}–${constraint.max})`;
+        return `${constraint.min}–${constraint.max}`;
       }
       if (constraint.min !== undefined) {
-        return `Number (min ${constraint.min})`;
+        return `min ${constraint.min}`;
       }
       if (constraint.max !== undefined) {
-        return `Number (max ${constraint.max})`;
+        return `max ${constraint.max}`;
       }
-      return "Number";
+      return EMPTY_PLACEHOLDER;
     }
     case "ENUM":
-      return constraint.options.join(", ");
+      return `one of: ${constraint.options.join(", ")}`;
     case "TEXT":
       return constraint.maxLength !== undefined
-        ? `Text (up to ${constraint.maxLength} characters)`
-        : "Text";
+        ? `up to ${constraint.maxLength} characters`
+        : EMPTY_PLACEHOLDER;
   }
 }
 

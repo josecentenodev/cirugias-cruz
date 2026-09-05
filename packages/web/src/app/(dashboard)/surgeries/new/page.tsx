@@ -20,7 +20,7 @@ export default async function NewSurgeryPage() {
         <CardContent>
           <SurgeryForm
             patients={patients.map((p) => ({ id: p.id, label: `${p.firstName} ${p.lastName}` }))}
-            procedureTypes={procedureTypes.map((pt) => ({ id: pt.id, label: pt.name }))}
+            procedureTypes={procedureTypes}
           />
         </CardContent>
       </Card>

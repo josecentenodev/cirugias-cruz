@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { CustomFieldDto } from "@/features/procedure-types/dtos";
 import type { SurgeryDetailView } from "../mappers";
 import { AssignResidentForm } from "./AssignResidentForm";
 import { ControlRow } from "./ControlRow";
@@ -19,11 +20,14 @@ export function SurgeryDetail({
   surgery,
   availableResidents,
   totalResidentCount,
+  controlCustomFields,
 }: {
   surgery: SurgeryDetailView;
   availableResidents: { id: string; label: string }[];
   /** Total Residents registered in the tenant — lets `AssignResidentForm` tell "no Residents exist" apart from "all are already assigned" (see that component). */
   totalResidentCount: number;
+  /** The Procedure Type's `CONTROL`-scoped CustomField definitions, rendered as inputs by `RecordControlForm`. */
+  controlCustomFields: CustomFieldDto[];
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -34,6 +38,9 @@ export function SurgeryDetail({
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Field label="Procedure type" value={surgery.procedureTypeName} />
           <Field label="Performed" value={surgery.performedAtLabel} />
+          {surgery.customFieldValues.map((value) => (
+            <Field key={value.definitionId} label={value.label} value={value.displayValue} />
+          ))}
         </CardContent>
       </Card>
 
@@ -87,7 +94,11 @@ export function SurgeryDetail({
           <CardTitle>Record a control</CardTitle>
         </CardHeader>
         <CardContent>
-          <RecordControlForm surgeryId={surgery.id} participants={surgery.participants} />
+          <RecordControlForm
+            surgeryId={surgery.id}
+            participants={surgery.participants}
+            customFields={controlCustomFields}
+          />
         </CardContent>
       </Card>
     </div>

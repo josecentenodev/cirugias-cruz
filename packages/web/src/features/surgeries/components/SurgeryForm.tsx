@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CustomFieldValueInputs } from "@/features/procedure-types/components/CustomFieldValueInputs";
+import type { ProcedureTypeDto } from "@/features/procedure-types/dtos";
 import { registerSurgeryAction, type RegisterSurgeryFormState } from "../actions";
 
 const initialState: RegisterSurgeryFormState = {};
@@ -24,21 +26,34 @@ function SubmitButton() {
   );
 }
 
+const selectClassName =
+  "h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
 /**
  * `patients`/`procedureTypes` are fetched server-side by
  * `app/(dashboard)/surgeries/new/page.tsx` (reusing
  * `features/patients/queries.ts`/`features/procedure-types/queries.ts`
  * — no new `api` call introduced) and passed in as plain props; this
  * component only renders the selection, it never fetches.
+ *
+ * Selecting a Procedure Type reveals that type's `SURGERY`-scoped
+ * CustomFields (`CustomFieldValueInputs`) — same "conditional JSX on
+ * local state" technique `RecordControlForm` uses for `authorType`. The
+ * Server Action re-fetches the Procedure Type to coerce/validate those
+ * values; this form only shows the inputs.
  */
 export function SurgeryForm({
   patients,
   procedureTypes,
 }: {
   patients: Option[];
-  procedureTypes: Option[];
+  procedureTypes: ProcedureTypeDto[];
 }) {
   const [state, formAction] = useActionState(registerSurgeryAction, initialState);
+  const [procedureTypeId, setProcedureTypeId] = useState("");
+
+  const selected = procedureTypes.find((procedureType) => procedureType.id === procedureTypeId);
+  const surgeryFields = (selected?.customFields ?? []).filter((field) => field.scope === "SURGERY");
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -51,7 +66,7 @@ export function SurgeryForm({
           name="patientId"
           required
           defaultValue=""
-          className="h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={selectClassName}
         >
           <option value="" disabled>
             Select a patient
@@ -70,15 +85,16 @@ export function SurgeryForm({
           id="procedureTypeId"
           name="procedureTypeId"
           required
-          defaultValue=""
-          className="h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          value={procedureTypeId}
+          onChange={(event) => setProcedureTypeId(event.target.value)}
+          className={selectClassName}
         >
           <option value="" disabled>
             Select a procedure type
           </option>
           {procedureTypes.map((procedureType) => (
             <option key={procedureType.id} value={procedureType.id}>
-              {procedureType.label}
+              {procedureType.name}
             </option>
           ))}
         </select>
@@ -88,6 +104,8 @@ export function SurgeryForm({
         <Label htmlFor="performedAt">Performed date</Label>
         <Input id="performedAt" name="performedAt" type="date" required />
       </div>
+
+      <CustomFieldValueInputs fields={surgeryFields} />
 
       <div>
         <SubmitButton />

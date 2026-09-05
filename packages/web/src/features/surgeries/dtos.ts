@@ -10,11 +10,18 @@
 export type ControlAuthorDto =
   { type: "physician"; physicianId: string } | { type: "resident"; residentId: string };
 
+/** One recorded CustomField value — matches `serializeSurgery`'s `customFieldValues` entries. */
+export interface CustomFieldValueDto {
+  definitionId: string;
+  value: string | number;
+}
+
 export interface ControlDto {
   id: string;
   observations: string;
   recordedAt: string;
   author: ControlAuthorDto;
+  customFieldValues: CustomFieldValueDto[];
 }
 
 export interface SurgeryDto {
@@ -25,6 +32,7 @@ export interface SurgeryDto {
   performedAt: string;
   state: string;
   participatingResidentIds: string[];
+  customFieldValues: CustomFieldValueDto[];
   controls: ControlDto[];
 }
 

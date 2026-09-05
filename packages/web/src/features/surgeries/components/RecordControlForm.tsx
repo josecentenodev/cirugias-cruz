@@ -5,6 +5,8 @@ import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { CustomFieldValueInputs } from "@/features/procedure-types/components/CustomFieldValueInputs";
+import type { CustomFieldDto } from "@/features/procedure-types/dtos";
 import { recordControlAction, type RecordControlFormState } from "../actions";
 import type { ParticipantView } from "../mappers";
 
@@ -32,9 +34,12 @@ function SubmitButton() {
 export function RecordControlForm({
   surgeryId,
   participants,
+  customFields,
 }: {
   surgeryId: string;
   participants: ParticipantView[];
+  /** The Procedure Type's `CONTROL`-scoped CustomFields — rendered as optional inputs, coerced/validated server-side. */
+  customFields: CustomFieldDto[];
 }) {
   const boundAction = recordControlAction.bind(null, surgeryId);
   const [state, formAction] = useActionState(boundAction, initialState);
@@ -120,6 +125,8 @@ export function RecordControlForm({
           className="h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
+
+      <CustomFieldValueInputs fields={customFields} />
 
       <div>
         <SubmitButton />

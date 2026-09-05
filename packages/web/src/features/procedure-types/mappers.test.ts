@@ -45,32 +45,53 @@ describe("toProcedureTypeView", () => {
 });
 
 describe("toCustomFieldView", () => {
-  it("summarizes a NUMBER constraint with both bounds", () => {
-    const view = toCustomFieldView(
-      buildCustomFieldDto({ constraint: { valueType: "NUMBER", min: 0, max: 10 } }),
-    );
-    expect(view.constraintSummary).toBe("Number (0–10)");
+  it("shows the type as its own label, separate from the rules", () => {
+    expect(
+      toCustomFieldView(buildCustomFieldDto({ constraint: { valueType: "NUMBER" } })).typeLabel,
+    ).toBe("Number");
+    expect(
+      toCustomFieldView(
+        buildCustomFieldDto({ constraint: { valueType: "ENUM", options: ["Autograft"] } }),
+      ).typeLabel,
+    ).toBe("Options");
+    expect(
+      toCustomFieldView(buildCustomFieldDto({ constraint: { valueType: "TEXT" } })).typeLabel,
+    ).toBe("Text");
   });
 
-  it("summarizes a NUMBER constraint with no bounds", () => {
-    const view = toCustomFieldView(buildCustomFieldDto({ constraint: { valueType: "NUMBER" } }));
-    expect(view.constraintSummary).toBe("Number");
+  it("summarizes a NUMBER constraint's bounds", () => {
+    expect(
+      toCustomFieldView(
+        buildCustomFieldDto({ constraint: { valueType: "NUMBER", min: 0, max: 10 } }),
+      ).rulesSummary,
+    ).toBe("0–10");
+    expect(
+      toCustomFieldView(buildCustomFieldDto({ constraint: { valueType: "NUMBER", min: 0 } }))
+        .rulesSummary,
+    ).toBe("min 0");
+    expect(
+      toCustomFieldView(buildCustomFieldDto({ constraint: { valueType: "NUMBER" } })).rulesSummary,
+    ).toBe("—");
   });
 
   it("summarizes an ENUM constraint as its option list", () => {
-    const view = toCustomFieldView(
-      buildCustomFieldDto({
-        constraint: { valueType: "ENUM", options: ["Autograft", "Amniotic membrane"] },
-      }),
-    );
-    expect(view.constraintSummary).toBe("Autograft, Amniotic membrane");
+    expect(
+      toCustomFieldView(
+        buildCustomFieldDto({
+          constraint: { valueType: "ENUM", options: ["Autograft", "Amniotic membrane"] },
+        }),
+      ).rulesSummary,
+    ).toBe("one of: Autograft, Amniotic membrane");
   });
 
   it("summarizes a TEXT constraint with a max length", () => {
-    const view = toCustomFieldView(
-      buildCustomFieldDto({ constraint: { valueType: "TEXT", maxLength: 100 } }),
-    );
-    expect(view.constraintSummary).toBe("Text (up to 100 characters)");
+    expect(
+      toCustomFieldView(buildCustomFieldDto({ constraint: { valueType: "TEXT", maxLength: 100 } }))
+        .rulesSummary,
+    ).toBe("up to 100 characters");
+    expect(
+      toCustomFieldView(buildCustomFieldDto({ constraint: { valueType: "TEXT" } })).rulesSummary,
+    ).toBe("—");
   });
 
   it("shows a placeholder when description is absent", () => {

@@ -30,7 +30,8 @@ export function CustomFieldList({ customFields }: { customFields: CustomFieldVie
         <TableRow>
           <TableHead>Name</TableHead>
           <TableHead>Scope</TableHead>
-          <TableHead>Type / constraint</TableHead>
+          <TableHead>Type</TableHead>
+          <TableHead>Rules</TableHead>
           <TableHead>Unit</TableHead>
         </TableRow>
       </TableHeader>
@@ -39,7 +40,8 @@ export function CustomFieldList({ customFields }: { customFields: CustomFieldVie
           <TableRow key={field.id}>
             <TableCell className="font-medium">{field.name}</TableCell>
             <TableCell>{field.scope === "SURGERY" ? "Surgery" : "Control"}</TableCell>
-            <TableCell>{field.constraintSummary}</TableCell>
+            <TableCell>{field.typeLabel}</TableCell>
+            <TableCell>{field.rulesSummary}</TableCell>
             <TableCell>{field.unit}</TableCell>
           </TableRow>
         ))}

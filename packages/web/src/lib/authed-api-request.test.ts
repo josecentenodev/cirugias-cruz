@@ -42,11 +42,11 @@ describe("authedApiRequest", () => {
     });
   });
 
-  it("redirects to /login without calling api when no session id exists — fail closed", async () => {
+  it("redirects to /login?reason=session-expired without calling api when no session id exists — fail closed", async () => {
     getSessionIdMock.mockResolvedValue(undefined);
 
     await expect(authedApiRequest({ method: "GET", path: "/patients" })).rejects.toThrow(
-      "NEXT_REDIRECT:/login",
+      "NEXT_REDIRECT:/login?reason=session-expired",
     );
     expect(apiRequestMock).not.toHaveBeenCalled();
   });
@@ -66,12 +66,12 @@ describe("authedApiRequest", () => {
     });
   });
 
-  it("redirects to /login when api reports the session is invalid (401)", async () => {
+  it("redirects to /login?reason=session-expired when api reports the session is invalid (401)", async () => {
     getSessionIdMock.mockResolvedValue("stale-session");
     apiRequestMock.mockRejectedValue(new ApiAuthError());
 
     await expect(authedApiRequest({ method: "GET", path: "/patients" })).rejects.toThrow(
-      "NEXT_REDIRECT:/login",
+      "NEXT_REDIRECT:/login?reason=session-expired",
     );
   });
 

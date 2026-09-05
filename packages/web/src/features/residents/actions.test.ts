@@ -67,19 +67,25 @@ describe("registerResidentAction", () => {
     });
   });
 
-  it("rejects a missing required field before ever calling api", async () => {
+  it("rejects a missing required field before ever calling api, preserving what was typed", async () => {
     const result = await registerResidentAction({}, formData(validResidentFields({ email: "" })));
 
-    expect(result).toEqual({ error: "Please fill in every required field." });
+    expect(result).toEqual({
+      error: "Please fill in every required field.",
+      values: validResidentFields({ email: "" }),
+    });
     expect(authedApiRequestMock).not.toHaveBeenCalled();
   });
 
-  it("expectable error: surfaces api's DomainError message inline, unchanged", async () => {
+  it("expectable error: surfaces api's DomainError message inline, unchanged, preserving what was typed", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiDomainError("firstName is required"));
 
     const result = await registerResidentAction({}, formData(validResidentFields()));
 
-    expect(result).toEqual({ error: "firstName is required" });
+    expect(result).toEqual({
+      error: "firstName is required",
+      values: validResidentFields(),
+    });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
@@ -143,10 +149,10 @@ describe("resetResidentPasswordAction (ADR 0017 blanqueo)", () => {
 describe("setResidentActiveAction (ADR 0017)", () => {
   afterEach(() => vi.clearAllMocks());
 
-  it("PATCHes the active flag and revalidates the residents list", async () => {
+  it("PATCHes the active flag, revalidates the residents list, and reports success", async () => {
     authedApiRequestMock.mockResolvedValue(undefined);
 
-    await setResidentActiveAction("resident-1", false);
+    const result = await setResidentActiveAction("resident-1", false, {});
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
       method: "PATCH",
@@ -154,5 +160,15 @@ describe("setResidentActiveAction (ADR 0017)", () => {
       body: { active: false },
     });
     expect(revalidatePathMock).toHaveBeenCalledWith("/residents");
+    expect(result).toEqual({ succeededActive: false });
+  });
+
+  it("surfaces a domain error inline instead of throwing", async () => {
+    authedApiRequestMock.mockRejectedValue(new ApiDomainError("Resident resident-1 was not found"));
+
+    const result = await setResidentActiveAction("resident-1", false, {});
+
+    expect(result).toEqual({ error: "Resident resident-1 was not found" });
+    expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 });

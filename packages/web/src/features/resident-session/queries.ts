@@ -2,20 +2,30 @@ import { authedApiRequest } from "@/lib/authed-api-request";
 import type { SurgeryDto } from "@/features/surgeries/dtos";
 
 /**
+ * The `/me/surgeries*` wire shape — `SurgeryDto` plus `patientName`/
+ * `procedureTypeName`, resolved server-side (`api`'s
+ * `serializeSurgeryForResident`, `packages/http/src/routes/resident.ts`)
+ * since a Resident's session has no route to the Physician-only Patient/
+ * ProcedureType reads `web` otherwise uses to build a name lookup.
+ */
+export interface OwnSurgeryDto extends SurgeryDto {
+  patientName: string;
+  procedureTypeName: string;
+}
+
+/**
  * A Resident's own "Surgery panel" (ADR 0017) — `GET /me/surgeries`,
  * distinct from the Physician's `GET /surgeries` (`listSurgeries` in
  * `features/surgeries/queries.ts`): scoped server-side to Surgeries this
- * Resident participates in, nothing else in the tenant. Reuses
- * `SurgeryDto` unchanged — same wire shape, same `serializeSurgery` on
- * `api`'s side (`packages/http/src/routes/core-loop.ts`).
+ * Resident participates in, nothing else in the tenant.
  */
-export async function listOwnSurgeries(): Promise<SurgeryDto[]> {
-  return authedApiRequest<SurgeryDto[]>({ method: "GET", path: "/me/surgeries" });
+export async function listOwnSurgeries(): Promise<OwnSurgeryDto[]> {
+  return authedApiRequest<OwnSurgeryDto[]>({ method: "GET", path: "/me/surgeries" });
 }
 
 /** `GET /me/surgeries/:id` — 404s (via `ApiNotFoundError`) for a Surgery this Resident doesn't participate in, same posture as `getSurgery`'s cross-tenant case. */
-export async function getOwnSurgery(surgeryId: string): Promise<SurgeryDto> {
-  return authedApiRequest<SurgeryDto>({ method: "GET", path: `/me/surgeries/${surgeryId}` });
+export async function getOwnSurgery(surgeryId: string): Promise<OwnSurgeryDto> {
+  return authedApiRequest<OwnSurgeryDto>({ method: "GET", path: `/me/surgeries/${surgeryId}` });
 }
 
 /**

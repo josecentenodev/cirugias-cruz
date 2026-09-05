@@ -1,16 +1,40 @@
 import { describe, expect, it } from "vitest";
-import { Surgery } from "@cirugias-cruz/domain";
-import { InMemorySurgeryRepository } from "../testing/fakes.js";
+import { Patient, ProcedureType, Surgery } from "@cirugias-cruz/domain";
+import {
+  InMemoryPatientRepository,
+  InMemoryProcedureTypeRepository,
+  InMemorySurgeryRepository,
+} from "../testing/fakes.js";
 import { getSurgeryForResident } from "./get-surgery-for-resident.js";
 
 const PHYSICIAN_ID = "physician-1";
 
 function buildDeps() {
-  return { surgeryRepository: new InMemorySurgeryRepository() };
+  const patientRepository = new InMemoryPatientRepository();
+  const procedureTypeRepository = new InMemoryProcedureTypeRepository();
+  patientRepository.seed(
+    Patient.create({
+      id: "patient-1",
+      physicianId: PHYSICIAN_ID,
+      firstName: "Ana",
+      lastName: "Gomez",
+      phone: "+54 11 5555-5555",
+      email: "ana@example.com",
+      dateOfBirth: new Date("1990-01-01"),
+    }),
+  );
+  procedureTypeRepository.seed(
+    ProcedureType.create({ id: "procedure-type-1", physicianId: PHYSICIAN_ID, name: "Pterigión" }),
+  );
+  return {
+    surgeryRepository: new InMemorySurgeryRepository(),
+    patientRepository,
+    procedureTypeRepository,
+  };
 }
 
 describe("getSurgeryForResident", () => {
-  it("returns the surgery, including every control on it, when the resident participates", async () => {
+  it("returns the surgery, including every control on it, with the patient/procedure type name resolved, when the resident participates", async () => {
     const deps = buildDeps();
     const surgery = Surgery.create({
       id: "surgery-1",
@@ -33,8 +57,10 @@ describe("getSurgeryForResident", () => {
       surgeryId: "surgery-1",
     });
 
-    expect(result.id).toBe("surgery-1");
-    expect(result.controls).toHaveLength(1);
+    expect(result.surgery.id).toBe("surgery-1");
+    expect(result.surgery.controls).toHaveLength(1);
+    expect(result.patientName).toBe("Ana Gomez");
+    expect(result.procedureTypeName).toBe("Pterigión");
   });
 
   it("returns not-found for a surgery the resident does not participate in", async () => {

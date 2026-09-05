@@ -23,13 +23,21 @@ function SubmitButton() {
  * someone the dropdown never offers, though `api`'s own
  * `assignResidentToSurgery` remains the authority either way
  * (`Surgery.assignResident` is idempotent-safe regardless).
+ *
+ * `totalResidentCount` (the tenant's full Resident count, before that
+ * filtering) distinguishes two different empty states that would
+ * otherwise collapse into the same message: a tenant with zero
+ * Residents registered at all, vs. one where every existing Resident is
+ * already assigned to this Surgery.
  */
 export function AssignResidentForm({
   surgeryId,
   residents,
+  totalResidentCount,
 }: {
   surgeryId: string;
   residents: { id: string; label: string }[];
+  totalResidentCount: number;
 }) {
   const boundAction = assignResidentAction.bind(null, surgeryId);
   const [state, formAction] = useActionState(boundAction, initialState);
@@ -37,7 +45,9 @@ export function AssignResidentForm({
   if (residents.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Every registered resident is already assigned.
+        {totalResidentCount === 0
+          ? "No residents registered yet — register one first."
+          : "Every registered resident is already assigned."}
       </p>
     );
   }

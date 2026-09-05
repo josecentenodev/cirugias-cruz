@@ -36,7 +36,11 @@ export default async function SurgeryDetailPage({ params }: { params: Promise<{ 
       <Link href="/surgeries" className="text-sm text-muted-foreground hover:text-foreground">
         ← Back to surgeries
       </Link>
-      <SurgeryDetail surgery={view} availableResidents={availableResidents} />
+      <SurgeryDetail
+        surgery={view}
+        availableResidents={availableResidents}
+        totalResidentCount={residents.length}
+      />
     </div>
   );
 }

@@ -4,11 +4,21 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { authedApiRequest } from "@/lib/authed-api-request";
 import { ApiDomainError, ApiNotFoundError } from "@/lib/api-errors";
+import { valuesFromFormData } from "@/lib/form-values";
 import type { TemporaryPasswordResponse } from "./dtos";
 import { registerResidentSchema } from "./schemas";
 
+const REGISTER_RESIDENT_ECHO_FIELDS = [
+  "firstName",
+  "lastName",
+  "phone",
+  "email",
+  "dateOfBirth",
+] as const;
+
 export interface RegisterResidentFormState {
   error?: string;
+  values?: Record<string, string>;
 }
 
 /** `POST /residents`, through `authedApiRequest`. Mirrors `registerPatientAction` exactly. */
@@ -23,15 +33,16 @@ export async function registerResidentAction(
     email: formData.get("email"),
     dateOfBirth: formData.get("dateOfBirth"),
   });
+  const values = valuesFromFormData(formData, REGISTER_RESIDENT_ECHO_FIELDS);
   if (!parsed.success) {
-    return { error: "Please fill in every required field." };
+    return { error: "Please fill in every required field.", values };
   }
 
   try {
     await authedApiRequest({ method: "POST", path: "/residents", body: parsed.data });
   } catch (error) {
     if (error instanceof ApiDomainError) {
-      return { error: error.message };
+      return { error: error.message, values };
     }
     throw error;
   }
@@ -93,18 +104,37 @@ export async function resetResidentPasswordAction(
   }
 }
 
+export interface SetResidentActiveFormState {
+  error?: string;
+  succeededActive?: boolean;
+}
+
 /**
  * `PATCH /residents/:id/active` — deactivating forces the immediate
  * closure of any session that Resident currently holds (`api`'s own
  * behavior, ADR 0017 decision item 9; nothing extra needed here).
  * `revalidatePath`, not `redirect`: called from a small inline form on
- * the list page itself, which should just refresh in place.
+ * the list page itself, which should just refresh in place. Returns a
+ * result (rather than `void`) so the calling component can show visible
+ * success/error feedback instead of a silent mutation.
  */
-export async function setResidentActiveAction(residentId: string, active: boolean): Promise<void> {
-  await authedApiRequest({
-    method: "PATCH",
-    path: `/residents/${residentId}/active`,
-    body: { active },
-  });
+export async function setResidentActiveAction(
+  residentId: string,
+  active: boolean,
+  _previousState: SetResidentActiveFormState,
+): Promise<SetResidentActiveFormState> {
+  try {
+    await authedApiRequest({
+      method: "PATCH",
+      path: `/residents/${residentId}/active`,
+      body: { active },
+    });
+  } catch (error) {
+    if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
+      return { error: error.message };
+    }
+    throw error;
+  }
   revalidatePath("/residents");
+  return { succeededActive: active };
 }

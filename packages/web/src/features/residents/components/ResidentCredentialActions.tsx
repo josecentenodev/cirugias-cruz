@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useTransition } from "react";
+import { useActionState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,11 +8,13 @@ import {
   setResidentActiveAction,
   viewResidentTemporaryPasswordAction,
   type ResetPasswordFormState,
+  type SetResidentActiveFormState,
   type ViewTemporaryPasswordFormState,
 } from "../actions";
 
 const viewInitialState: ViewTemporaryPasswordFormState = {};
 const resetInitialState: ResetPasswordFormState = {};
+const activeInitialState: SetResidentActiveFormState = {};
 
 /**
  * Per-resident credential controls (ADR 0017): view the temporary
@@ -22,25 +24,39 @@ const resetInitialState: ResetPasswordFormState = {};
  * `features/residents/queries.ts`), and these are the only credential
  * actions ADR 0017 defines.
  *
- * Known simplification: the list doesn't currently know whether a
- * Resident is already active or deactivated (`GET /residents` doesn't
- * report it), so both actions are always offered rather than only the
- * one that applies — `api` itself is what actually enforces state
- * either way; this is a UX gap, not a security one.
+ * `active` (from `GET /residents`) is used only to show the one
+ * deactivate/reactivate button that applies — `api` itself is still what
+ * actually enforces state either way.
  */
-export function ResidentCredentialActions({ residentId }: { residentId: string }) {
+export function ResidentCredentialActions({
+  residentId,
+  active,
+}: {
+  residentId: string;
+  active: boolean;
+}) {
   const boundView = viewResidentTemporaryPasswordAction.bind(null, residentId);
   const [viewState, viewAction, viewPending] = useActionState(boundView, viewInitialState);
 
   const boundReset = resetResidentPasswordAction.bind(null, residentId);
   const [resetState, resetAction, resetPending] = useActionState(boundReset, resetInitialState);
 
-  const [isActivating, startActivating] = useTransition();
+  const boundSetActive = setResidentActiveAction.bind(null, residentId, !active);
+  const [activeState, activeAction, activePending] = useActionState(
+    boundSetActive,
+    activeInitialState,
+  );
 
   return (
     <div className="flex flex-col gap-2">
       {viewState.error ? <Alert>{viewState.error}</Alert> : null}
       {resetState.error ? <Alert>{resetState.error}</Alert> : null}
+      {activeState.error ? <Alert>{activeState.error}</Alert> : null}
+      {activeState.succeededActive !== undefined ? (
+        <Alert variant="muted">
+          {activeState.succeededActive ? "Resident reactivated." : "Resident deactivated."}
+        </Alert>
+      ) : null}
 
       {viewState.revealed ? (
         <p className="text-xs">
@@ -70,24 +86,11 @@ export function ResidentCredentialActions({ residentId }: { residentId: string }
             Reset password
           </Button>
         </form>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={isActivating}
-          onClick={() => startActivating(() => setResidentActiveAction(residentId, false))}
-        >
-          Deactivate
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={isActivating}
-          onClick={() => startActivating(() => setResidentActiveAction(residentId, true))}
-        >
-          Reactivate
-        </Button>
+        <form action={activeAction}>
+          <Button type="submit" variant="ghost" size="sm" disabled={activePending}>
+            {active ? "Deactivate" : "Reactivate"}
+          </Button>
+        </form>
       </div>
     </div>
   );

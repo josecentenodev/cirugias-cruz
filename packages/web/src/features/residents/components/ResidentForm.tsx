@@ -28,11 +28,17 @@ export function ResidentForm() {
       {state.error ? <Alert>{state.error}</Alert> : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="firstName" label="First name" required />
-        <Field id="lastName" label="Last name" required />
-        <Field id="phone" label="Phone" required />
-        <Field id="email" label="Email" type="email" required />
-        <Field id="dateOfBirth" label="Date of birth" type="date" required />
+        <Field id="firstName" label="First name" required defaultValue={state.values?.firstName} />
+        <Field id="lastName" label="Last name" required defaultValue={state.values?.lastName} />
+        <Field id="phone" label="Phone" required defaultValue={state.values?.phone} />
+        <Field id="email" label="Email" type="email" required defaultValue={state.values?.email} />
+        <Field
+          id="dateOfBirth"
+          label="Date of birth"
+          type="date"
+          required
+          defaultValue={state.values?.dateOfBirth}
+        />
       </div>
 
       <div>
@@ -47,16 +53,18 @@ function Field({
   label,
   type = "text",
   required,
+  defaultValue,
 }: {
   id: string;
   label: string;
   type?: string;
   required?: boolean;
+  defaultValue?: string;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <Input id={id} name={id} type={type} required={required} />
+      <Input id={id} name={id} type={type} required={required} defaultValue={defaultValue ?? ""} />
     </div>
   );
 }

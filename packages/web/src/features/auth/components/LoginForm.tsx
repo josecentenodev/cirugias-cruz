@@ -43,6 +43,7 @@ export function LoginForm() {
           type="email"
           required
           autoComplete="username"
+          defaultValue={state.values?.email ?? ""}
           aria-invalid={state.error ? true : undefined}
         />
       </div>

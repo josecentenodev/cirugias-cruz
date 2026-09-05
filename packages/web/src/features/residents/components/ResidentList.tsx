@@ -37,6 +37,7 @@ export function ResidentList({ residents }: { residents: ResidentView[] }) {
             <TableHead>Phone</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Date of birth</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Credential</TableHead>
           </TableRow>
         </TableHeader>
@@ -48,7 +49,18 @@ export function ResidentList({ residents }: { residents: ResidentView[] }) {
               <TableCell>{resident.email}</TableCell>
               <TableCell>{resident.dateOfBirthLabel}</TableCell>
               <TableCell>
-                <ResidentCredentialActions residentId={resident.id} />
+                <span
+                  className={
+                    resident.active
+                      ? "rounded-full border border-border px-2 py-0.5 text-xs font-medium"
+                      : "rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                  }
+                >
+                  {resident.active ? "Active" : "Inactive"}
+                </span>
+              </TableCell>
+              <TableCell>
+                <ResidentCredentialActions residentId={resident.id} active={resident.active} />
               </TableCell>
             </TableRow>
           ))}

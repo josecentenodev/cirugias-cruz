@@ -35,27 +35,59 @@ export function RegisterForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="firstName">First name</Label>
-          <Input id="firstName" name="firstName" required autoComplete="given-name" />
+          <Input
+            id="firstName"
+            name="firstName"
+            required
+            autoComplete="given-name"
+            defaultValue={state.values?.firstName ?? ""}
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="lastName">Last name</Label>
-          <Input id="lastName" name="lastName" required autoComplete="family-name" />
+          <Input
+            id="lastName"
+            name="lastName"
+            required
+            autoComplete="family-name"
+            defaultValue={state.values?.lastName ?? ""}
+          />
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" name="phone" required autoComplete="tel" />
+        <Input
+          id="phone"
+          name="phone"
+          required
+          autoComplete="tel"
+          defaultValue={state.values?.phone ?? ""}
+        />
       </div>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" required autoComplete="username" />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          required
+          autoComplete="username"
+          defaultValue={state.values?.email ?? ""}
+        />
       </div>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="dateOfBirth">Date of birth</Label>
-        <Input id="dateOfBirth" name="dateOfBirth" type="date" required autoComplete="bday" />
+        <Input
+          id="dateOfBirth"
+          name="dateOfBirth"
+          type="date"
+          required
+          autoComplete="bday"
+          defaultValue={state.values?.dateOfBirth ?? ""}
+        />
       </div>
 
       <div className="flex flex-col gap-1.5">

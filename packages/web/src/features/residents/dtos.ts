@@ -13,6 +13,7 @@ export interface ResidentDto {
   email: string;
   dateOfBirth: string;
   metadata?: Record<string, unknown>;
+  active: boolean;
 }
 
 /**

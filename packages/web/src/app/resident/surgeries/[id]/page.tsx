@@ -27,7 +27,7 @@ export default async function ResidentSurgeryDetailPage({
       <div>
         <h1 className="text-lg font-semibold">Surgery</h1>
         <p className="text-sm text-muted-foreground">
-          Patient {view.patientId} · Procedure {view.procedureTypeId} · {view.performedAtLabel}
+          Patient {view.patientName} · Procedure {view.procedureTypeName} · {view.performedAtLabel}
         </p>
       </div>
 

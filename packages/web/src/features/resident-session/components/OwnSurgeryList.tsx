@@ -43,10 +43,10 @@ export function OwnSurgeryList({ surgeries }: { surgeries: OwnSurgeryListView[] 
                   href={`/resident/surgeries/${surgery.id}`}
                   className="font-medium hover:underline"
                 >
-                  {surgery.patientId}
+                  {surgery.patientName}
                 </Link>
               </TableCell>
-              <TableCell>{surgery.procedureTypeId}</TableCell>
+              <TableCell>{surgery.procedureTypeName}</TableCell>
               <TableCell>{surgery.performedAtLabel}</TableCell>
               <TableCell>{surgery.controlCount}</TableCell>
             </TableRow>

@@ -1,20 +1,10 @@
-import type { ControlDto, SurgeryDto } from "@/features/surgeries/dtos";
+import type { ControlDto } from "@/features/surgeries/dtos";
+import type { OwnSurgeryDto } from "./queries";
 
-/**
- * A Resident's session cannot call the Physician-only Patient/
- * ProcedureType read routes (`requirePhysicianAuth`), unlike
- * `features/surgeries/mappers.ts`'s `toSurgeryListView`/
- * `toSurgeryDetailView`, which resolve `patientId`/`procedureTypeId` to
- * display names via those exact reads. Known, deliberate simplification
- * for this iteration: shown by id here, not by name. Resolving them for
- * a Resident would need its own dedicated `api` read (e.g. embedding a
- * name in `serializeSurgery`'s response, or a `/me`-scoped lookup) —
- * not built by this ADR.
- */
 export interface OwnSurgeryListView {
   id: string;
-  patientId: string;
-  procedureTypeId: string;
+  patientName: string;
+  procedureTypeName: string;
   performedAtLabel: string;
   controlCount: number;
 }
@@ -30,8 +20,8 @@ export interface OwnControlView {
 
 export interface OwnSurgeryDetailView {
   id: string;
-  patientId: string;
-  procedureTypeId: string;
+  patientName: string;
+  procedureTypeName: string;
   performedAtLabel: string;
   controls: OwnControlView[];
 }
@@ -75,11 +65,11 @@ function toDatetimeLocalValue(iso: string): string {
   );
 }
 
-export function toOwnSurgeryListView(dto: SurgeryDto): OwnSurgeryListView {
+export function toOwnSurgeryListView(dto: OwnSurgeryDto): OwnSurgeryListView {
   return {
     id: dto.id,
-    patientId: dto.patientId,
-    procedureTypeId: dto.procedureTypeId,
+    patientName: dto.patientName,
+    procedureTypeName: dto.procedureTypeName,
     performedAtLabel: formatDate(dto.performedAt),
     controlCount: dto.controls.length,
   };
@@ -110,13 +100,13 @@ function toOwnControlView(dto: ControlDto, ownResidentId: string): OwnControlVie
  * would reject anyway, never a false "yes you can edit this").
  */
 export function toOwnSurgeryDetailView(
-  dto: SurgeryDto,
+  dto: OwnSurgeryDto,
   ownResidentId: string | null,
 ): OwnSurgeryDetailView {
   return {
     id: dto.id,
-    patientId: dto.patientId,
-    procedureTypeId: dto.procedureTypeId,
+    patientName: dto.patientName,
+    procedureTypeName: dto.procedureTypeName,
     performedAtLabel: formatDate(dto.performedAt),
     controls: dto.controls
       .map((control) => toOwnControlView(control, ownResidentId ?? "__none__"))

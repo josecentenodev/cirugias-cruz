@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import type { SurgeryDto } from "@/features/surgeries/dtos";
+import type { OwnSurgeryDto } from "./queries";
 import { toOwnSurgeryDetailView, toOwnSurgeryListView } from "./mappers";
 
-const baseSurgery: SurgeryDto = {
+const baseSurgery: OwnSurgeryDto = {
   id: "surgery-1",
   physicianId: "physician-1",
   patientId: "patient-1",
   procedureTypeId: "procedure-type-1",
+  patientName: "Ana Gomez",
+  procedureTypeName: "Pterigión",
   performedAt: "2026-01-10T00:00:00.000Z",
   state: "DONE",
   participatingResidentIds: ["resident-1"],
@@ -33,11 +35,11 @@ const baseSurgery: SurgeryDto = {
 };
 
 describe("toOwnSurgeryListView", () => {
-  it("shows patient/procedure type by id (no name-resolution available to a resident session)", () => {
+  it("shows patient/procedure type by name, as resolved server-side", () => {
     const view = toOwnSurgeryListView(baseSurgery);
 
-    expect(view.patientId).toBe("patient-1");
-    expect(view.procedureTypeId).toBe("procedure-type-1");
+    expect(view.patientName).toBe("Ana Gomez");
+    expect(view.procedureTypeName).toBe("Pterigión");
     expect(view.controlCount).toBe(3);
   });
 });

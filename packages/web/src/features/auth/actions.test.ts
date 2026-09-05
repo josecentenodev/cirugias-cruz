@@ -126,7 +126,10 @@ describe("loginAction", () => {
 
     const result = await loginAction({}, formData({ email: "doc@example.com", password: "wrong" }));
 
-    expect(result).toEqual({ error: "Invalid email or password." });
+    expect(result).toEqual({
+      error: "Invalid email or password.",
+      values: { email: "doc@example.com" },
+    });
     expect(setSessionCookieMock).not.toHaveBeenCalled();
     expect(redirectMock).not.toHaveBeenCalled();
   });
@@ -143,7 +146,10 @@ describe("loginAction", () => {
       formData({ email: "doc@example.com", password: "s3cret" }),
     );
 
-    expect(result).toEqual({ error: "Please confirm your email before logging in" });
+    expect(result).toEqual({
+      error: "Please confirm your email before logging in",
+      values: { email: "doc@example.com" },
+    });
   });
 
   it("rejects a rate-limited attempt (429) with its own inline message", async () => {
@@ -157,7 +163,10 @@ describe("loginAction", () => {
   it("rejects a blank field before ever calling api", async () => {
     const result = await loginAction({}, formData({ email: "", password: "" }));
 
-    expect(result).toEqual({ error: "Please enter both an email and a password." });
+    expect(result).toEqual({
+      error: "Please enter both an email and a password.",
+      values: { email: "" },
+    });
     expect(apiRequestRawMock).not.toHaveBeenCalled();
   });
 
@@ -169,7 +178,10 @@ describe("loginAction", () => {
       formData({ email: "doc@example.com", password: "s3cret" }),
     );
 
-    expect(result).toEqual({ error: "Login failed — please try again." });
+    expect(result).toEqual({
+      error: "Login failed — please try again.",
+      values: { email: "doc@example.com" },
+    });
     expect(setSessionCookieMock).not.toHaveBeenCalled();
     expect(redirectMock).not.toHaveBeenCalled();
   });
@@ -266,7 +278,16 @@ describe("registerAction", () => {
   it("rejects a blank field before ever calling api", async () => {
     const result = await registerAction({}, registerFormData({ firstName: "" }));
 
-    expect(result).toEqual({ error: "Please fill in every field." });
+    expect(result).toEqual({
+      error: "Please fill in every field.",
+      values: {
+        firstName: "",
+        lastName: "García",
+        phone: "555-0101",
+        email: "ana@example.com",
+        dateOfBirth: "1980-01-01",
+      },
+    });
     expect(apiRequestMock).not.toHaveBeenCalled();
   });
 
@@ -277,7 +298,16 @@ describe("registerAction", () => {
 
     const result = await registerAction({}, registerFormData());
 
-    expect(result).toEqual({ error: "A physician with this email is already registered" });
+    expect(result).toEqual({
+      error: "A physician with this email is already registered",
+      values: {
+        firstName: "Ana",
+        lastName: "García",
+        phone: "555-0101",
+        email: "ana@example.com",
+        dateOfBirth: "1980-01-01",
+      },
+    });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 

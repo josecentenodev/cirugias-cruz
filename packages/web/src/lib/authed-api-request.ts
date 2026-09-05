@@ -28,7 +28,7 @@ export async function authedApiRequest<T>(
     // Defensive: middleware already checks cookie presence before a
     // protected page/action runs, but a Server Action can be invoked in
     // ways that don't guarantee middleware re-ran first — fail closed.
-    redirect("/login");
+    redirect("/login?reason=session-expired");
   }
 
   const clientIp = await getForwardedClientIp();
@@ -37,7 +37,7 @@ export async function authedApiRequest<T>(
     return await apiRequest<T>({ ...options, sessionId, clientIp });
   } catch (error) {
     if (error instanceof ApiAuthError) {
-      redirect("/login");
+      redirect("/login?reason=session-expired");
     }
     throw error;
   }

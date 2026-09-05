@@ -6,6 +6,7 @@ export interface ResidentView {
   phone: string;
   email: string;
   dateOfBirthLabel: string;
+  active: boolean;
 }
 
 /** Mirrors `features/patients/mappers.ts`'s `toPatientView` exactly. */
@@ -16,6 +17,7 @@ export function toResidentView(dto: ResidentDto): ResidentView {
     phone: dto.phone,
     email: dto.email,
     dateOfBirthLabel: formatDate(dto.dateOfBirth),
+    active: dto.active,
   };
 }
 

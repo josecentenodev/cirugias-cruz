@@ -1,5 +1,6 @@
 import type { Resident } from "@cirugias-cruz/domain";
 import { NotFoundError } from "../shared/not-found-error.js";
+import type { ResidentCredentialRepository } from "./resident-credential-repository.js";
 import type { ResidentRepository } from "./resident-repository.js";
 
 export interface GetResidentInput {
@@ -7,23 +8,33 @@ export interface GetResidentInput {
   residentId: string;
 }
 
+export interface ResidentWithActive {
+  resident: Resident;
+  active: boolean;
+}
+
 export interface GetResidentDeps {
   residentRepository: ResidentRepository;
+  residentCredentialRepository: ResidentCredentialRepository;
 }
 
 /**
  * Retrieves a single Resident, verifying it belongs to the acting
- * physician's tenant. A resident belonging to a different physician is
- * reported as not found (404), never as forbidden (403) — mirrors
- * getPatient/getSurgery exactly.
+ * physician's tenant, alongside whether it's currently active (see
+ * `listResidents`'s doc-comment for why that's merged in from
+ * `ResidentCredentialRepository` rather than living on Domain). A
+ * resident belonging to a different physician is reported as not found
+ * (404), never as forbidden (403) — mirrors getPatient/getSurgery
+ * exactly.
  */
 export function getResident(deps: GetResidentDeps) {
-  return async function execute(input: GetResidentInput): Promise<Resident> {
+  return async function execute(input: GetResidentInput): Promise<ResidentWithActive> {
     const resident = await deps.residentRepository.findById(input.residentId);
     if (!resident || resident.physicianId !== input.physicianId) {
       throw new NotFoundError(`Resident ${input.residentId} was not found`);
     }
 
-    return resident;
+    const credential = await deps.residentCredentialRepository.findByResidentId(resident.id);
+    return { resident, active: credential?.active ?? true };
   };
 }

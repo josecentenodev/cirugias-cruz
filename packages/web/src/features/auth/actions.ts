@@ -4,12 +4,17 @@ import { redirect } from "next/navigation";
 import { apiRequest, apiRequestRaw } from "@/lib/api-client";
 import { ApiDomainError } from "@/lib/api-errors";
 import { getForwardedClientIp } from "@/lib/client-ip";
+import { valuesFromFormData } from "@/lib/form-values";
 import { clearSessionCookie, getSessionId, setSessionCookie } from "@/lib/session";
 import { parseSessionCookie } from "./parse-session-cookie";
 import { loginSchema, registerSchema } from "./schemas";
 
+const REGISTER_ECHO_FIELDS = ["firstName", "lastName", "phone", "email", "dateOfBirth"] as const;
+const LOGIN_ECHO_FIELDS = ["email"] as const;
+
 export interface RegisterFormState {
   error?: string;
+  values?: Record<string, string>;
 }
 
 /**
@@ -32,15 +37,16 @@ export async function registerAction(
     dateOfBirth: formData.get("dateOfBirth"),
     password: formData.get("password"),
   });
+  const values = valuesFromFormData(formData, REGISTER_ECHO_FIELDS);
   if (!parsed.success) {
-    return { error: "Please fill in every field." };
+    return { error: "Please fill in every field.", values };
   }
 
   try {
     await apiRequest({ method: "POST", path: "/physicians", body: parsed.data });
   } catch (error) {
     if (error instanceof ApiDomainError) {
-      return { error: error.message };
+      return { error: error.message, values };
     }
     throw error;
   }
@@ -50,6 +56,7 @@ export async function registerAction(
 
 export interface LoginFormState {
   error?: string;
+  values?: Record<string, string>;
 }
 
 /**
@@ -70,8 +77,9 @@ export async function loginAction(
     email: formData.get("email"),
     password: formData.get("password"),
   });
+  const values = valuesFromFormData(formData, LOGIN_ECHO_FIELDS);
   if (!parsed.success) {
-    return { error: "Please enter both an email and a password." };
+    return { error: "Please enter both an email and a password.", values };
   }
 
   const clientIp = await getForwardedClientIp();
@@ -84,7 +92,7 @@ export async function loginAction(
 
   if (!response.ok) {
     if (response.status === 429) {
-      return { error: "Too many attempts — please wait a moment and try again." };
+      return { error: "Too many attempts — please wait a moment and try again.", values };
     }
     // 400 (DomainError) is the only other case `api` returns for this
     // route — shown exactly as `api` phrased it, not reworded here.
@@ -107,7 +115,7 @@ export async function loginAction(
       } catch {
         // Malformed/empty body — fall back to the generic message above.
       }
-      return { error: message };
+      return { error: message, values };
     }
     throw new Error(`Unexpected response from the API: ${response.status}`);
   }
@@ -118,7 +126,7 @@ export async function loginAction(
   // call setSessionCookie with an empty/undefined value.
   const parsedCookie = parseSessionCookie(response.headers.get("set-cookie"));
   if (!parsedCookie) {
-    return { error: "Login failed — please try again." };
+    return { error: "Login failed — please try again.", values };
   }
 
   await setSessionCookie(parsedCookie.sessionId, parsedCookie.expiresAt);

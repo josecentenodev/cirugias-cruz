@@ -18,9 +18,12 @@ import { RemoveResidentButton } from "./RemoveResidentButton";
 export function SurgeryDetail({
   surgery,
   availableResidents,
+  totalResidentCount,
 }: {
   surgery: SurgeryDetailView;
   availableResidents: { id: string; label: string }[];
+  /** Total Residents registered in the tenant — lets `AssignResidentForm` tell "no Residents exist" apart from "all are already assigned" (see that component). */
+  totalResidentCount: number;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -54,7 +57,11 @@ export function SurgeryDetail({
               ))}
             </ul>
           )}
-          <AssignResidentForm surgeryId={surgery.id} residents={availableResidents} />
+          <AssignResidentForm
+            surgeryId={surgery.id}
+            residents={availableResidents}
+            totalResidentCount={totalResidentCount}
+          />
         </CardContent>
       </Card>
 

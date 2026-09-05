@@ -20,6 +20,24 @@ import { requireResidentAuth } from "../shared/require-resident-auth.js";
 import { requireResidentPasswordChanged } from "../shared/require-resident-password-changed.js";
 import { serializeSurgery } from "./core-loop.js";
 
+/**
+ * `/me/surgeries*` only — adds `patientName`/`procedureTypeName` to the
+ * shared `serializeSurgery` shape. Kept local to this file rather than
+ * widening `serializeSurgery` itself, which the Physician-facing routes
+ * in `core-loop.ts` also use and already resolve names client-side.
+ */
+function serializeSurgeryForResident(entry: {
+  surgery: Parameters<typeof serializeSurgery>[0];
+  patientName: string;
+  procedureTypeName: string;
+}) {
+  return {
+    ...serializeSurgery(entry.surgery),
+    patientName: entry.patientName,
+    procedureTypeName: entry.procedureTypeName,
+  };
+}
+
 interface RegisterResidentBody {
   firstName: string;
   lastName: string;
@@ -97,16 +115,20 @@ const changePasswordBodySchema = {
   properties: { newPassword: { type: "string" } },
 } as const;
 
-function toResidentDto(resident: {
-  id: string;
-  physicianId: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  email: string;
-  dateOfBirth: Date;
-  metadata?: Record<string, unknown>;
+function toResidentDto(entry: {
+  resident: {
+    id: string;
+    physicianId: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    dateOfBirth: Date;
+    metadata?: Record<string, unknown>;
+  };
+  active: boolean;
 }) {
+  const { resident, active } = entry;
   return {
     id: resident.id,
     physicianId: resident.physicianId,
@@ -116,6 +138,7 @@ function toResidentDto(resident: {
     email: resident.email,
     dateOfBirth: resident.dateOfBirth.toISOString(),
     metadata: resident.metadata,
+    active,
   };
 }
 
@@ -312,7 +335,7 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
       const surgeries = await listSurgeriesForResident(deps)({
         residentId: request.residentId as string,
       });
-      return await reply.code(200).send(surgeries.map(serializeSurgery));
+      return await reply.code(200).send(surgeries.map(serializeSurgeryForResident));
     } catch (error) {
       return replyForError(error, reply);
     }
@@ -332,7 +355,7 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
           residentId: request.residentId as string,
           surgeryId: request.params.id,
         });
-        return await reply.code(200).send(serializeSurgery(surgery));
+        return await reply.code(200).send(serializeSurgeryForResident(surgery));
       } catch (error) {
         return replyForError(error, reply);
       }

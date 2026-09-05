@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import {
   BcryptPasswordHasher,
   PrismaEmailConfirmationTokenRepository,
@@ -50,7 +51,12 @@ async function main(): Promise<void> {
   await app.listen({ port, host: "0.0.0.0" });
 }
 
-const isMain = process.argv[1] && import.meta.url === new URL(process.argv[1], "file://").href;
+// `new URL(process.argv[1], "file://")` mis-parses a Windows path
+// (backslashes, a drive letter) into an invalid file:// URL, so this
+// entrypoint check silently never matched on Windows — `main()` never
+// ran, and `tsx src/index.ts` exited immediately with no error.
+// `pathToFileURL` is Node's own cross-platform-correct conversion.
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMain) {
   main().catch((error: unknown) => {
     console.error(error);

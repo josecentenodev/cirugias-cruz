@@ -197,3 +197,77 @@ source of truth for business logic, persistence, and authorization —
 re-implement or duplicate a rule that already lives in Domain or
 Application. This mirrors the same discipline `application-layer-discovery.md`
 established for the Application layer: orchestrate, don't reimplement.
+
+## 8. Navigation IA (Milestone 10, decided)
+
+§5's flat navigation — `patients`, `procedure-types`, `surgeries`,
+`residents`, `research-studies` as independent top-level links — was
+Milestone 8's interim shape, mirroring the backend's vertical slices
+one-to-one. The product owner named this a real problem (see
+`ROADMAP.md`'s Milestone 10 entry: "distribuído por concepto, no por
+oficio") and, during the Milestone 8.6 (CustomField) UI planning
+conversation, approved a navigation IA grouped by how a physician
+actually works, not by backend resource:
+
+```
+(dashboard)/
+  patients/                    # "Pacientes"
+    page.tsx                   # list
+    [id]/page.tsx               # detail: this patient's Surgeries
+    [id]/surgeries/new/page.tsx  # register a Surgery for this patient
+    [id]/surgeries/[surgeryId]/page.tsx           # Surgery detail: its Controls
+    [id]/surgeries/[surgeryId]/controls/new/page.tsx  # record a Control
+  staff/                        # "Plantilla"
+    residents/                  # only collaborator type today
+      page.tsx
+      new/page.tsx
+  research-studies/             # "Investigaciones" (unchanged in scope)
+    page.tsx
+    [id]/page.tsx
+  settings/                     # "Configuración"
+    procedure-types/
+      page.tsx
+      new/page.tsx
+      [id]/page.tsx              # edit + this Procedure Type's CustomFields
+      [id]/custom-fields/new/page.tsx
+```
+
+Four top-level nav sections: **Pacientes**, **Plantilla**,
+**Investigaciones**, **Configuración**. Key reasoning, from the planning
+conversation:
+
+- **Pacientes nests Surgery and Control under the owning Patient**,
+  rather than listing Surgeries and Controls as independent top-level
+  resources. A physician never thinks "create a Control" in the
+  abstract — always "this Surgery, of this Patient, needs a Control." A
+  flat top-level `/surgeries` or `/controls` list can still exist as an
+  internal route if useful, but it is not a primary nav item.
+- **"Plantilla" groups staff the physician assigns to patients/
+  surgeries.** It holds only `Resident` today. The name is deliberately
+  broader than "Residentes" to leave room for a future collaborator type
+  — but that is only a navigation label. It does **not** imply any
+  Domain change: `Resident` remains the sole staff Entity
+  (ADR 0007/0010 unchanged), and no generalized "Collaborator" concept
+  is introduced by this document. If a second collaborator type is ever
+  actually needed, that is a future Domain decision on its own merits,
+  not something this navigation grouping pre-decides.
+- **"Configuración" separates practice setup from daily charting.**
+  Procedure Types and their CustomField definitions (Milestone 8.6,
+  ADR 0018) live here because defining them is a different mode of work
+  from entering a Patient's Surgery/Control data — "set up my practice
+  once" versus "chart a patient today." This is also where any future
+  physician-level settings would belong.
+- **"Investigaciones" stays its own top-level section**, unchanged in
+  scope from ADR 0006 — it was already conceptually distinct from the
+  charting workflow, so no regrouping was needed there.
+
+What this changes vs. §5: only route grouping and nav labels.
+`features/<slice>` stays one directory per backend vertical (Patient,
+ProcedureType, Surgery, Resident, ResearchStudy) — the code organization
+§5 already established is unaffected; only which URL segment and nav
+group a page's route lives under changes.
+
+**Not decided here**: the visual design/component library (Milestone
+10's other, still-open half) and the exact wording of nav labels in the
+shipped UI (Spanish labels above are the product owner's own working
+names, not necessarily final UI copy).

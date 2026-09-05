@@ -15,7 +15,7 @@ export default async function ProcedureTypesPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Procedure types</h1>
-        <Link href="/procedure-types/new" className={cn(buttonVariants())}>
+        <Link href="/settings/procedure-types/new" className={cn(buttonVariants())}>
           Register procedure type
         </Link>
       </div>

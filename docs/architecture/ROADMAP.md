@@ -269,24 +269,24 @@ field content, which remains deferred exactly as before.
 > "usable by a physician through the product" are no longer treated as
 > equivalent — see Progress Measurement below.
 
-| Capability                                                                                     | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                              |
-| ---------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Physician authentication (login/logout)                                                        | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                    |
-| Physician self-registration                                                                    | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation dormant, not enforced (ADR 0016)                        |
-| Resident authentication (login, forced password change, temp-password issue/reset, deactivate) | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED; no human walkthrough yet                                                                          |
-| Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                     | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType by id, not name — known gap, see Risks                                |
-| Patient (register + retrieve)                                                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                    |
-| Procedure Type (register + retrieve)                                                           | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                    |
-| Surgery + Control history (register/record/modify + retrieve)                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                    |
-| Resident (register, assign/remove on Surgery, retrieve, credential mgmt)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, credential actions added Milestone 8.5); no human walkthrough yet                                    |
-| Research Study (create, edit, manage universe, full lifecycle, retrieve)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                    |
-| CustomField (define on Procedure Type; record/retrieve values on Surgery/Control)              | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Backend complete (Milestone 8.6, ADR 0018/0019); `packages/web` UI not yet built |
-| `api` security baseline (validation, forwarded-IP rate limiting, headers)                      | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                                      |
-| `web` security baseline (headers/CSP, client-IP forwarding)                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)                           |
-| Public reachability                                                                            | N/A    | N/A         | N/A         | N/A       | N/A      | N/A | ❌        | Railway-provided domain live (Milestone 8); custom domain + human walkthrough — Milestone 9                                 |
-| Physician-facing IA/navigation reorganized by clinical workflow                                | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Proposed, not started — see Milestone 10 (proposed)                                                                         |
-| Design system / visual redesign                                                                | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Proposed, not started — see Milestone 10 (proposed)                                                                         |
-| Platform Admin visibility                                                                      | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                          |
+| Capability                                                                                     | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                           |
+| ---------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | -------------------------------------------------------------------------------------------------------- |
+| Physician authentication (login/logout)                                                        | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
+| Physician self-registration                                                                    | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation dormant, not enforced (ADR 0016)     |
+| Resident authentication (login, forced password change, temp-password issue/reset, deactivate) | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED; no human walkthrough yet                                                       |
+| Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                     | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType by id, not name — known gap, see Risks             |
+| Patient (register + retrieve)                                                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
+| Procedure Type (register + retrieve)                                                           | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
+| Surgery + Control history (register/record/modify + retrieve)                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
+| Resident (register, assign/remove on Surgery, retrieve, credential mgmt)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, credential actions added Milestone 8.5); no human walkthrough yet                 |
+| Research Study (create, edit, manage universe, full lifecycle, retrieve)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9) |
+| CustomField (define on Procedure Type; record/retrieve values on Surgery/Control)              | ✅     | ✅          | ✅          | ✅        | ✅       | ❌  | ❌        | Backend complete (Milestone 8.6, ADR 0018/0019); `packages/web` UI not yet built                         |
+| `api` security baseline (validation, forwarded-IP rate limiting, headers)                      | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                   |
+| `web` security baseline (headers/CSP, client-IP forwarding)                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)        |
+| Public reachability                                                                            | N/A    | N/A         | N/A         | N/A       | N/A      | N/A | ❌        | Railway-provided domain live (Milestone 8); custom domain + human walkthrough — Milestone 9              |
+| Physician-facing IA/navigation reorganized by clinical workflow                                | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | IA decided (Milestone 10); not yet built — see Milestone 8.6's `packages/web` follow-up                  |
+| Design system / visual redesign                                                                | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Still proposed, not started — see Milestone 10                                                           |
+| Platform Admin visibility                                                                      | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                       |
 
 **Nothing is Human-E2E complete yet.** Every MVP-required backend
 capability (Milestones 1–7) is now `TECHNICALLY_COMPLETE` — proven
@@ -1538,54 +1538,74 @@ above.
 
 ---
 
-### Milestone 10 — Physician-facing IA & design system rework (proposed, not yet approved)
+### Milestone 10 — Physician-facing IA & design system rework
 
-**Status**: `PROPOSED` — raised by the product owner, captured here as
-planning context. **No scope, menu structure, or visual design is
-decided by this entry** — it records the problem and the product
-owner's stated intent, nothing more. Do not treat anything below as an
-approved design.
+**Status**: `IN_PROGRESS` — the navigation/IA half of this milestone is
+now **decided** (below), reached during the CustomField (Milestone 8.6)
+UI planning conversation, since CustomField's own screens (Configuración)
+needed a home in the navigation before they could be built. The visual
+design/component-library half remains open — see "Still not decided"
+below.
 
-**Problem, as stated by the product owner**: the product currently
-organizes itself around loose backend-mirroring concepts — a navbar
+**Problem, as originally stated by the product owner**: the product
+organized itself around loose backend-mirroring concepts — a navbar
 listing Patients / Procedure Types / Surgeries / Residents / Research
 Studies as flat, independent links (`(dashboard)/layout.tsx`) — which
-reflects how the vertical slices are built (§5 of
+reflected how the vertical slices were built (§5 of
 `frontend-architecture-discovery.md`), not how a physician actually
 works. "Tenemos todo conceptualmente distribuído pero no verdaderamente
 por oficio" — the product owner's own framing: distributed by concept,
-not yet organized by the physician's actual clinical workflow.
+not organized by the physician's actual clinical workflow.
 
-**Second, related problem, also as stated by the product owner**: the
-current visual design (`components/ui/*` — plain semantic HTML +
-`class-variance-authority`, chosen deliberately minimal for Milestone 8,
-see that milestone's "Deviations and decisions" note) was never meant
-as the product's final look. The product owner wants a deliberate
-redesign pass, and is concerned that **continuing to build new
-components against the current ad-hoc styling makes that redesign more
-expensive the longer it's deferred** — every new component added under
-today's styling is a component that redesign will later have to touch
-again.
+**Approved navigation IA (product owner decision)**: four top-level
+sections, replacing the flat resource list:
 
-**Why this is its own milestone, not folded into Milestone 9**: Milestone
-9 is human validation of what already exists; this is a deliberate
-redesign of the physician-facing experience itself — a different kind of
-work, with its own set of decisions to make first (information
-architecture grouped by clinical workflow rather than by resource type;
-a chosen design system/direction) before any component is touched.
+1. **Pacientes** — Patient list/detail, with that patient's Surgeries
+   nested under it, and each Surgery's Controls nested under it in turn.
+   Reflects the physician's actual mental model: a Control is never
+   created in the abstract, it belongs to a specific Surgery of a
+   specific Patient.
+2. **Plantilla** — staff the physician assigns to their patients/
+   surgeries. Contains Residents today; deliberately named to leave room
+   for other collaborator types later **without implying any Domain
+   change now** — `Resident` remains the only staff Entity that exists
+   (ADR 0007/0010 unchanged); "Plantilla" is a navigation grouping label
+   only, not a new Domain concept. If/when a second collaborator type is
+   actually needed, that is its own future Domain decision, not
+   pre-empted by this label.
+3. **Investigaciones** — Research Studies, unchanged in scope from
+   ADR 0006.
+4. **Configuración** — where the physician parameterizes their own
+   practice rather than enters clinical data day-to-day: Procedure Types,
+   and (new, Milestone 8.6) each Procedure Type's CustomField
+   definitions. This is the deliberate separation between "set up my
+   practice once" and "chart a patient today."
 
-**Explicitly not decided here**:
+This supersedes §5's flat `(dashboard)/patients`, `/procedure-types`,
+`/surgeries`, `/residents`, `/research-studies` navigation shape — see
+`frontend-architecture-discovery.md` §8 for the updated routing
+structure. The underlying `features/<slice>` vertical-slice code
+organization (one directory per backend resource) is **not** changed by
+this — only how those slices are grouped and routed in navigation.
 
-- What the reorganized navigation/IA should actually look like (which
-  workflows, which groupings) — the product owner has ideas, not yet
-  captured as a decision.
+**Second problem, still open**: the current visual design
+(`components/ui/*` — plain semantic HTML + `class-variance-authority`,
+chosen deliberately minimal for Milestone 8) was never meant as the
+product's final look. The product owner wants a deliberate redesign
+pass, and is concerned that continuing to build new components against
+the current ad-hoc styling makes that redesign more expensive the longer
+it's deferred.
+
+**Still not decided**:
+
 - Which design system, component library, or visual direction to adopt.
-- Whether this happens before or interleaved with Milestone 9's human
-  walkthrough — a sequencing call for the product owner, not inferred
-  here.
+- Whether the visual redesign happens before, after, or interleaved with
+  Milestone 9's human walkthrough — a sequencing call for the product
+  owner, not inferred here.
 
-**Dependencies**: none technical. Blocked only on the product owner's
-own design direction — not a code or architecture blocker.
+**Dependencies**: none technical for the navigation IA (decided, ready to
+build against — see Milestone 8.6's `packages/web` follow-up). The visual
+redesign remains blocked only on the product owner's own direction.
 
 ---
 
@@ -1607,9 +1627,11 @@ Milestones 1–7 (DONE, deployed)
                                     ▼
                           Milestone 9 (Public domain for web + human E2E)
 
-                          Milestone 10 (IA/design rework, PROPOSED —
-                          not sequenced against 9; blocked only on the
-                          product owner's own design direction)
+                          Milestone 10 (IA navigation decided, feeding
+                          Milestone 8.6's web work directly; visual
+                          redesign half still not sequenced against 9,
+                          blocked only on the product owner's own
+                          design direction)
 ```
 
 **Sequential (hard)**: Milestones 1–3 → {4, 5, 6, 7} → 8 → 8.5 → 9.

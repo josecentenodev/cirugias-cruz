@@ -15,9 +15,9 @@ import type { ProcedureTypeView } from "../mappers";
 /**
  * Purely presentational — receives already-mapped view models, does no
  * fetching or error handling of its own. Mirrors
- * `features/patients/components/PatientList.tsx`. No row links to a
- * detail page — there isn't one for Procedure Type in this slice's
- * scope (see `queries.ts`).
+ * `features/patients/components/PatientList.tsx`. Each row links to its
+ * detail page (`/settings/procedure-types/[id]`), where a physician
+ * edits the Procedure Type and defines its CustomFields (Milestone 8.6).
  */
 export function ProcedureTypeList({ procedureTypes }: { procedureTypes: ProcedureTypeView[] }) {
   if (procedureTypes.length === 0) {
@@ -25,7 +25,7 @@ export function ProcedureTypeList({ procedureTypes }: { procedureTypes: Procedur
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
           <p className="text-sm text-muted-foreground">No procedure types registered yet.</p>
-          <Link href="/procedure-types/new" className={cn(buttonVariants())}>
+          <Link href="/settings/procedure-types/new" className={cn(buttonVariants())}>
             Register your first procedure type
           </Link>
         </CardContent>
@@ -46,7 +46,14 @@ export function ProcedureTypeList({ procedureTypes }: { procedureTypes: Procedur
         <TableBody>
           {procedureTypes.map((procedureType) => (
             <TableRow key={procedureType.id}>
-              <TableCell className="font-medium">{procedureType.name}</TableCell>
+              <TableCell className="font-medium">
+                <Link
+                  href={`/settings/procedure-types/${procedureType.id}`}
+                  className="hover:underline"
+                >
+                  {procedureType.name}
+                </Link>
+              </TableCell>
               <TableCell>{procedureType.description}</TableCell>
               <TableCell>{procedureType.technique}</TableCell>
             </TableRow>

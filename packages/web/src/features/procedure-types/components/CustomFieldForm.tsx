@@ -57,17 +57,6 @@ export function CustomFieldForm({ procedureTypeId }: { procedureTypeId: string }
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="unit">Unit</Label>
-          <Input id="unit" name="unit" required />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="magnitude">Magnitude</Label>
-          <Input id="magnitude" name="magnitude" required />
-        </div>
-      </div>
-
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="scope">Recorded on</Label>
         <select id="scope" name="scope" required defaultValue="SURGERY" className={selectClassName}>
@@ -93,16 +82,22 @@ export function CustomFieldForm({ procedureTypeId }: { procedureTypeId: string }
       </div>
 
       {valueType === "NUMBER" ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="min">Minimum (optional)</Label>
-            <Input id="min" name="min" type="number" step="any" />
+            <Label htmlFor="unit">Unit (optional)</Label>
+            <Input id="unit" name="unit" placeholder="e.g. mmHg, 0-10" />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="max">Maximum (optional)</Label>
-            <Input id="max" name="max" type="number" step="any" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="min">Minimum (optional)</Label>
+              <Input id="min" name="min" type="number" step="any" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="max">Maximum (optional)</Label>
+              <Input id="max" name="max" type="number" step="any" />
+            </div>
           </div>
-        </div>
+        </>
       ) : null}
 
       {valueType === "ENUM" ? (

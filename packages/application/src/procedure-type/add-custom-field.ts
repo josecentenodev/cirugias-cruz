@@ -12,8 +12,6 @@ export interface AddCustomFieldInput {
   id: string;
   name: string;
   description?: string;
-  unit: string;
-  magnitude: string;
   scope: CustomFieldScope;
   constraint: CustomFieldConstraint;
 }
@@ -44,8 +42,6 @@ export function addCustomField(deps: AddCustomFieldDeps) {
       id: input.id,
       name: input.name,
       description: input.description,
-      unit: input.unit,
-      magnitude: input.magnitude,
       scope: input.scope,
       constraint: input.constraint,
     });

@@ -110,8 +110,6 @@ export async function addCustomFieldAction(
   const shared = {
     name: formData.get("name"),
     description: formData.get("description") || undefined,
-    unit: formData.get("unit"),
-    magnitude: formData.get("magnitude"),
     scope: formData.get("scope"),
   };
 
@@ -123,6 +121,7 @@ export async function addCustomFieldAction(
         : {
             ...shared,
             valueType: "NUMBER",
+            unit: formData.get("unit") || undefined,
             min: formData.get("min") || undefined,
             max: formData.get("max") || undefined,
           },
@@ -131,10 +130,15 @@ export async function addCustomFieldAction(
     return { error: "Please fill in every required field." };
   }
 
-  const { name, description, unit, magnitude, scope } = parsed.data;
+  const { name, description, scope } = parsed.data;
   const constraint =
     parsed.data.valueType === "NUMBER"
-      ? { valueType: "NUMBER" as const, min: parsed.data.min, max: parsed.data.max }
+      ? {
+          valueType: "NUMBER" as const,
+          unit: parsed.data.unit,
+          min: parsed.data.min,
+          max: parsed.data.max,
+        }
       : parsed.data.valueType === "ENUM"
         ? { valueType: "ENUM" as const, options: parsed.data.options }
         : { valueType: "TEXT" as const, maxLength: parsed.data.maxLength };
@@ -143,7 +147,7 @@ export async function addCustomFieldAction(
     await authedApiRequest<AddCustomFieldResponse>({
       method: "POST",
       path: `/procedure-types/${procedureTypeId}/custom-fields`,
-      body: { name, description, unit, magnitude, scope, constraint },
+      body: { name, description, scope, constraint },
     });
   } catch (error) {
     if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {

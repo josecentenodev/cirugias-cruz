@@ -4,6 +4,10 @@
 
 Established (current iteration). **Amends** [0005](0005-customfields.md), resolving
 several of the points that ADR explicitly left open ("Not decided here").
+**Partially amended by [0020](0020-customfield-unit-is-numeric-only-no-magnitude.md)**:
+`magnitude` has since been removed entirely, and `unit` moved into the
+`NUMBER` constraint as an optional field — read the `unit`/`magnitude`
+bullets below in that light.
 Motivated by a domain-modeling conversation triggered by reviewing a
 working prototype built independently by the physician who is the source
 of clinical requirements for this project — see
@@ -18,14 +22,17 @@ deferred:
 
 - `name` — required (unchanged)
 - `description` — optional (unchanged)
-- `unit` — required (unchanged): the human-readable unit of measurement
-  (e.g. "escala 0-10", "mmHg")
-- `magnitude` — required (unchanged): the clinical dimension being
-  measured (e.g. "dolor", "presión intraocular")
+- `unit` — the human-readable unit of measurement (e.g. "escala 0-10",
+  "mmHg"). **Superseded by [0020](0020-customfield-unit-is-numeric-only-no-magnitude.md)**:
+  now optional and carried inside the `NUMBER` constraint only.
+- `magnitude` — the clinical dimension being measured (e.g. "dolor",
+  "presión intraocular"). **Removed by
+  [0020](0020-customfield-unit-is-numeric-only-no-magnitude.md)** as
+  redundant with `name`.
 - `valueType` — **new**, one of `NUMBER | ENUM | TEXT | DATE`
 - a **constraint**, whose shape depends on `valueType` and which only that
   type may carry:
-  - `NUMBER` → optional `min` / `max`
+  - `NUMBER` → optional `unit` (per 0020) + optional `min` / `max`
   - `ENUM` → a list of allowed options (minimum 1)
   - `TEXT` → optional `maxLength`
   - `DATE` → optional `min` / `max` date bounds

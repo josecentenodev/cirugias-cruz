@@ -152,7 +152,6 @@ describe("addCustomFieldAction", () => {
           valueType: "NUMBER",
           name: "Pain (EVA)",
           unit: "0-10",
-          magnitude: "pain",
           scope: "CONTROL",
           min: "0",
           max: "10",
@@ -166,10 +165,8 @@ describe("addCustomFieldAction", () => {
       body: {
         name: "Pain (EVA)",
         description: undefined,
-        unit: "0-10",
-        magnitude: "pain",
         scope: "CONTROL",
-        constraint: { valueType: "NUMBER", min: 0, max: 10 },
+        constraint: { valueType: "NUMBER", unit: "0-10", min: 0, max: 10 },
       },
     });
   });
@@ -184,8 +181,6 @@ describe("addCustomFieldAction", () => {
         formData({
           valueType: "ENUM",
           name: "Surgical technique",
-          unit: "n/a",
-          magnitude: "technique",
           scope: "SURGERY",
           options: "Autograft\n\nAmniotic membrane\n",
         }),
@@ -198,8 +193,6 @@ describe("addCustomFieldAction", () => {
       body: {
         name: "Surgical technique",
         description: undefined,
-        unit: "n/a",
-        magnitude: "technique",
         scope: "SURGERY",
         constraint: { valueType: "ENUM", options: ["Autograft", "Amniotic membrane"] },
       },
@@ -214,7 +207,6 @@ describe("addCustomFieldAction", () => {
         valueType: "NUMBER",
         name: "",
         unit: "0-10",
-        magnitude: "pain",
         scope: "CONTROL",
       }),
     );
@@ -230,8 +222,6 @@ describe("addCustomFieldAction", () => {
       formData({
         valueType: "ENUM",
         name: "Technique",
-        unit: "n/a",
-        magnitude: "technique",
         scope: "SURGERY",
         options: "",
       }),
@@ -253,7 +243,6 @@ describe("addCustomFieldAction", () => {
         valueType: "NUMBER",
         name: "Pain (EVA)",
         unit: "0-10",
-        magnitude: "pain",
         scope: "CONTROL",
       }),
     );

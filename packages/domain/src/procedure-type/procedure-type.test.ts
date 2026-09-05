@@ -6,10 +6,8 @@ const numberField = () =>
   CustomField.create({
     id: "cf-1",
     name: "Pain (EVA)",
-    unit: "0-10",
-    magnitude: "pain",
     scope: "CONTROL",
-    constraint: { valueType: "NUMBER", min: 0, max: 10 },
+    constraint: { valueType: "NUMBER", unit: "0-10", min: 0, max: 10 },
   });
 
 const validAttributes = {
@@ -96,8 +94,6 @@ describe("ProcedureType", () => {
     const duplicate = CustomField.create({
       id: "cf-2",
       name: "Pain (EVA)",
-      unit: "0-10",
-      magnitude: "pain",
       scope: "SURGERY",
       constraint: { valueType: "TEXT" },
     });
@@ -112,10 +108,8 @@ describe("ProcedureType", () => {
         {
           id: "cf-1",
           name: "Pain (EVA)",
-          unit: "0-10",
-          magnitude: "pain",
           scope: "CONTROL",
-          constraint: { valueType: "NUMBER", min: 0, max: 10 },
+          constraint: { valueType: "NUMBER", unit: "0-10", min: 0, max: 10 },
         },
       ],
     });

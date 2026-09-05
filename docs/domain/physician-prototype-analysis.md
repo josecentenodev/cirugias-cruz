@@ -109,6 +109,13 @@ calendario libre. Esto es evidencia real para destrabar el punto
 unresolved" de CustomField — no lo resuelve, pero da un caso concreto
 contra el cual validar cualquier propuesta futura.
 
+> Nota (posterior, ADRs 0018–0020): el modelo de valor de CustomField ya
+> quedó resuelto. EVA es un campo `NUMBER` con `constraint.unit = "0-10"`
+> y `scope = CONTROL`; no existe un atributo `magnitude` (el nombre del
+> campo — "EVA (dolor)" — ya expresa la dimensión). Lo único que sigue
+> abierto es asociar timepoints fijos (día 1/3/7) a los Controles, que
+> ADR 0018 deja fuera de alcance explícitamente.
+
 ## 3. Contraste explícito con decisiones ya cerradas de Epitaxy
 
 | Concepto del prototipo                                                  | Encaja con Epitaxy                                               | Nota                                                                                                                                                                                   |

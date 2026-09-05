@@ -2,7 +2,11 @@
 
 ## Status
 
-Established (current iteration). Resolves the persistence-representation
+Established (current iteration). **Amended by
+[0020](0020-customfield-unit-is-numeric-only-no-magnitude.md)**: the
+`magnitude` column is dropped and `unit` becomes nullable (populated for
+`NUMBER` definitions only) — the schema block below is shown pre-0020.
+Resolves the persistence-representation
 point that [0018](0018-customfield-value-representation.md) explicitly
 left open ("The exact persistence/technical representation of a recorded
 value — Infrastructure-layer concern"). This is an Infrastructure-layer

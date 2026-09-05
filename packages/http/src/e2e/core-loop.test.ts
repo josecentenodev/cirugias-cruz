@@ -271,8 +271,6 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       cookies,
       payload: {
         name: "Surgical technique",
-        unit: "n/a",
-        magnitude: "technique",
         scope: "SURGERY",
         constraint: { valueType: "ENUM", options: ["Autograft", "Amniotic membrane"] },
       },
@@ -288,10 +286,8 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       cookies,
       payload: {
         name: "Pain (EVA)",
-        unit: "0-10",
-        magnitude: "pain",
         scope: "CONTROL",
-        constraint: { valueType: "NUMBER", min: 0, max: 10 },
+        constraint: { valueType: "NUMBER", unit: "0-10", min: 0, max: 10 },
       },
     });
     const { customFieldId: evaFieldId } = evaFieldResponse.json<{ customFieldId: string }>();

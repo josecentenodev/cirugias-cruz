@@ -113,8 +113,6 @@ describe("PrismaProcedureTypeRepository", () => {
       CustomField.create({
         id: "cf-technique",
         name: "Surgical technique",
-        unit: "n/a",
-        magnitude: "technique",
         scope: "SURGERY",
         constraint: { valueType: "ENUM", options: ["Autograft", "Amniotic membrane"] },
       }),
@@ -124,10 +122,8 @@ describe("PrismaProcedureTypeRepository", () => {
       CustomField.create({
         id: "cf-eva",
         name: "Pain (EVA)",
-        unit: "0-10",
-        magnitude: "pain",
         scope: "CONTROL",
-        constraint: { valueType: "NUMBER", min: 0, max: 10 },
+        constraint: { valueType: "NUMBER", unit: "0-10", min: 0, max: 10 },
       }),
       PHYSICIAN_ID,
     );
@@ -143,6 +139,7 @@ describe("PrismaProcedureTypeRepository", () => {
       options: ["Autograft", "Amniotic membrane"],
     });
     const eva = found?.customFields.find((f) => f.id === "cf-eva");
-    expect(eva?.constraint).toEqual({ valueType: "NUMBER", min: 0, max: 10 });
+    expect(eva?.constraint).toEqual({ valueType: "NUMBER", unit: "0-10", min: 0, max: 10 });
+    expect(eva?.unit).toBe("0-10");
   });
 });

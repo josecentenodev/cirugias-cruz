@@ -125,10 +125,8 @@ describe("recordControl", () => {
       CustomField.create({
         id: "cf-eva",
         name: "Pain (EVA)",
-        unit: "0-10",
-        magnitude: "pain",
         scope: "CONTROL",
-        constraint: { valueType: "NUMBER", min: 0, max: 10 },
+        constraint: { valueType: "NUMBER", unit: "0-10", min: 0, max: 10 },
       }),
       PHYSICIAN_ID,
     );
@@ -156,10 +154,8 @@ describe("recordControl", () => {
       CustomField.create({
         id: "cf-eva",
         name: "Pain (EVA)",
-        unit: "0-10",
-        magnitude: "pain",
         scope: "CONTROL",
-        constraint: { valueType: "NUMBER", min: 0, max: 10 },
+        constraint: { valueType: "NUMBER", unit: "0-10", min: 0, max: 10 },
       }),
       PHYSICIAN_ID,
     );

@@ -45,7 +45,7 @@ interface ModifyProcedureTypeBody {
 }
 
 type CustomFieldConstraintBody =
-  | { valueType: "NUMBER"; min?: number; max?: number }
+  | { valueType: "NUMBER"; unit?: string; min?: number; max?: number }
   | { valueType: "ENUM"; options: string[] }
   | { valueType: "TEXT"; maxLength?: number }
   | { valueType: "DATE"; min?: string; max?: string };
@@ -53,8 +53,6 @@ type CustomFieldConstraintBody =
 interface AddCustomFieldBody {
   name: string;
   description?: string;
-  unit: string;
-  magnitude: string;
   scope: "SURGERY" | "CONTROL";
   constraint: CustomFieldConstraintBody;
 }
@@ -131,6 +129,7 @@ const customFieldConstraintSchema = {
       required: ["valueType"],
       properties: {
         valueType: { const: "NUMBER" },
+        unit: { type: "string" },
         min: { type: "number" },
         max: { type: "number" },
       },
@@ -166,12 +165,10 @@ const customFieldConstraintSchema = {
 
 const addCustomFieldBodySchema = {
   type: "object",
-  required: ["name", "unit", "magnitude", "scope", "constraint"],
+  required: ["name", "scope", "constraint"],
   properties: {
     name: { type: "string" },
     description: { type: "string" },
-    unit: { type: "string" },
-    magnitude: { type: "string" },
     scope: { enum: ["SURGERY", "CONTROL"] },
     constraint: customFieldConstraintSchema,
   },
@@ -288,8 +285,6 @@ function serializeProcedureType(procedureType: ProcedureType) {
       id: field.id,
       name: field.name,
       description: field.description,
-      unit: field.unit,
-      magnitude: field.magnitude,
       scope: field.scope,
       constraint: field.constraint,
     })),
@@ -413,8 +408,6 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
           id: randomUUID(),
           name: request.body.name,
           description: request.body.description,
-          unit: request.body.unit,
-          magnitude: request.body.magnitude,
           scope: request.body.scope,
           // DATE min/max would need string->Date conversion here; not
           // wired yet since no real usage of a DATE-valueType CustomField

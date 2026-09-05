@@ -9,8 +9,7 @@ export interface CustomFieldDefinitionRow {
   id: string;
   name: string;
   description: string | null;
-  unit: string;
-  magnitude: string;
+  unit: string | null;
   scope: string;
   valueType: string;
   constraintMin: string | null;
@@ -27,8 +26,7 @@ export function toCustomFieldDefinitionRow(
   procedureTypeId: string;
   name: string;
   description: string | undefined;
-  unit: string;
-  magnitude: string;
+  unit: string | undefined;
   scope: string;
   valueType: string;
   constraintMin: string | undefined;
@@ -42,8 +40,7 @@ export function toCustomFieldDefinitionRow(
     procedureTypeId,
     name: field.name,
     description: field.description,
-    unit: field.unit,
-    magnitude: field.magnitude,
+    unit: constraint.valueType === "NUMBER" ? constraint.unit : undefined,
     scope: field.scope,
     valueType: constraint.valueType,
     constraintMin:
@@ -68,8 +65,6 @@ export function fromCustomFieldDefinitionRow(row: CustomFieldDefinitionRow): Cus
     id: row.id,
     name: row.name,
     description: row.description ?? undefined,
-    unit: row.unit,
-    magnitude: row.magnitude,
     scope: row.scope as CustomFieldAttributes["scope"],
     constraint: toConstraint(row),
   };
@@ -80,6 +75,7 @@ function toConstraint(row: CustomFieldDefinitionRow): CustomFieldConstraint {
     case "NUMBER":
       return {
         valueType: "NUMBER",
+        unit: row.unit !== null ? row.unit : undefined,
         min: row.constraintMin !== null ? Number(row.constraintMin) : undefined,
         max: row.constraintMax !== null ? Number(row.constraintMax) : undefined,
       };

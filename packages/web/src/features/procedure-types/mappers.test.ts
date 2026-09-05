@@ -16,10 +16,8 @@ function buildCustomFieldDto(overrides: Partial<CustomFieldDto> = {}): CustomFie
   return {
     id: "cf-1",
     name: "Pain (EVA)",
-    unit: "0-10",
-    magnitude: "pain",
     scope: "CONTROL",
-    constraint: { valueType: "NUMBER" },
+    constraint: { valueType: "NUMBER", unit: "0-10" },
     ...overrides,
   };
 }
@@ -77,6 +75,21 @@ describe("toCustomFieldView", () => {
 
   it("shows a placeholder when description is absent", () => {
     expect(toCustomFieldView(buildCustomFieldDto()).description).toBe("—");
+  });
+
+  it("takes the unit from a NUMBER constraint, and shows a placeholder for other types", () => {
+    expect(
+      toCustomFieldView(buildCustomFieldDto({ constraint: { valueType: "NUMBER", unit: "mmHg" } }))
+        .unit,
+    ).toBe("mmHg");
+    expect(
+      toCustomFieldView(buildCustomFieldDto({ constraint: { valueType: "NUMBER" } })).unit,
+    ).toBe("—");
+    expect(
+      toCustomFieldView(
+        buildCustomFieldDto({ constraint: { valueType: "ENUM", options: ["Autograft"] } }),
+      ).unit,
+    ).toBe("—");
   });
 });
 

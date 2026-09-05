@@ -1,6 +1,6 @@
 /** Mirrors `api`'s CustomField constraint union (`packages/http/src/routes/core-loop.ts`) exactly. */
 export type CustomFieldConstraint =
-  | { valueType: "NUMBER"; min?: number; max?: number }
+  | { valueType: "NUMBER"; unit?: string; min?: number; max?: number }
   | { valueType: "ENUM"; options: string[] }
   | { valueType: "TEXT"; maxLength?: number };
 
@@ -9,8 +9,6 @@ export interface CustomFieldDto {
   id: string;
   name: string;
   description?: string;
-  unit: string;
-  magnitude: string;
   scope: "SURGERY" | "CONTROL";
   constraint: CustomFieldConstraint;
 }

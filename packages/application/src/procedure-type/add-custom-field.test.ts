@@ -19,10 +19,8 @@ const validInput = {
   procedureTypeId: "procedure-type-1",
   id: "cf-1",
   name: "Pain (EVA)",
-  unit: "0-10",
-  magnitude: "pain",
   scope: "CONTROL" as const,
-  constraint: { valueType: "NUMBER" as const, min: 0, max: 10 },
+  constraint: { valueType: "NUMBER" as const, unit: "0-10", min: 0, max: 10 },
 };
 
 describe("addCustomField", () => {

@@ -52,9 +52,8 @@ export const addCustomFieldSchema = z.discriminatedUnion("valueType", [
     valueType: z.literal("NUMBER"),
     name: z.string().trim().min(1, "Name is required"),
     description: z.string().trim().optional(),
-    unit: z.string().trim().min(1, "Unit is required"),
-    magnitude: z.string().trim().min(1, "Magnitude is required"),
     scope: z.enum(["SURGERY", "CONTROL"]),
+    unit: z.string().trim().optional(),
     min: z.coerce.number().optional(),
     max: z.coerce.number().optional(),
   }),
@@ -62,8 +61,6 @@ export const addCustomFieldSchema = z.discriminatedUnion("valueType", [
     valueType: z.literal("ENUM"),
     name: z.string().trim().min(1, "Name is required"),
     description: z.string().trim().optional(),
-    unit: z.string().trim().min(1, "Unit is required"),
-    magnitude: z.string().trim().min(1, "Magnitude is required"),
     scope: z.enum(["SURGERY", "CONTROL"]),
     options: z
       .string()
@@ -79,8 +76,6 @@ export const addCustomFieldSchema = z.discriminatedUnion("valueType", [
     valueType: z.literal("TEXT"),
     name: z.string().trim().min(1, "Name is required"),
     description: z.string().trim().optional(),
-    unit: z.string().trim().min(1, "Unit is required"),
-    magnitude: z.string().trim().min(1, "Magnitude is required"),
     scope: z.enum(["SURGERY", "CONTROL"]),
     maxLength: z.coerce.number().optional(),
   }),

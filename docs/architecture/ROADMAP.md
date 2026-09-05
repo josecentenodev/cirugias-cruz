@@ -228,10 +228,11 @@ field content, which remains deferred exactly as before.
 - A minimal persistence layer (Prisma + PostgreSQL) backing all of the
   above.
 - **CustomField**: a physician can define `CustomField`s (name,
-  description, unit, magnitude, `valueType`, constraint, `scope`) on
-  their own Procedure Types, and record/retrieve values against a Surgery
-  (`SURGERY` scope) or each of its Controls (`CONTROL` scope) — exactly
-  the mechanism `ADR 0018`/`ADR 0019` define, no more. No specific
+  description, `valueType`, constraint — a `NUMBER` constraint may carry
+  a `unit` — and `scope`) on their own Procedure Types, and
+  record/retrieve values against a Surgery (`SURGERY` scope) or each of
+  its Controls (`CONTROL` scope) — exactly the mechanism `ADR 0018`/
+  `ADR 0019`/`ADR 0020` define, no more. No specific
   clinical field content is assumed or hard-coded by the platform.
 
 ### Post-MVP
@@ -1341,11 +1342,12 @@ into a numbered milestone here.
 
 ---
 
-### Milestone 8.6 — CustomField / structured clinical extensibility (ADR 0018/0019)
+### Milestone 8.6 — CustomField / structured clinical extensibility (ADR 0018/0019/0020)
 
 **Objective**: a physician can define `CustomField`s on their own
-Procedure Types (name, description, unit, magnitude, `valueType`,
-constraint, `scope`), and record/retrieve values against a Surgery
+Procedure Types (name, description, `valueType`, constraint — a `NUMBER`
+constraint may carry a `unit` — and `scope`), and record/retrieve values
+against a Surgery
 (`SURGERY`-scoped fields) or against each Control of a Surgery
 (`CONTROL`-scoped fields) — end to end, through Domain, Application,
 Infrastructure, HTTP, and `web`.

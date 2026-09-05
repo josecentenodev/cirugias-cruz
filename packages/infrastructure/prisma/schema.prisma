@@ -152,13 +152,17 @@ model ProcedureType {
 // of columns can carry either a NUMBER's numeric bounds or a DATE's date
 // bounds (parsed/formatted by the mapper based on `valueType`) without a
 // separate column pair per type.
+//
+// `unit` is nullable and only ever populated for a `NUMBER` field (ADR
+// 0020, amending 0018): it is metadata of a numeric measurement, so the
+// mapper reads/writes it as part of the NUMBER constraint. There is no
+// `magnitude` column — a field's clinical dimension is its `name`.
 model CustomFieldDefinition {
   id                  String  @id
   procedureTypeId     String
   name                String
   description         String?
-  unit                String
-  magnitude           String
+  unit                String?
   scope               String
   valueType           String
   constraintMin       String?

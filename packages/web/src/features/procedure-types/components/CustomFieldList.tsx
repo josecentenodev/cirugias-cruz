@@ -32,7 +32,6 @@ export function CustomFieldList({ customFields }: { customFields: CustomFieldVie
           <TableHead>Scope</TableHead>
           <TableHead>Type / constraint</TableHead>
           <TableHead>Unit</TableHead>
-          <TableHead>Magnitude</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -42,7 +41,6 @@ export function CustomFieldList({ customFields }: { customFields: CustomFieldVie
             <TableCell>{field.scope === "SURGERY" ? "Surgery" : "Control"}</TableCell>
             <TableCell>{field.constraintSummary}</TableCell>
             <TableCell>{field.unit}</TableCell>
-            <TableCell>{field.magnitude}</TableCell>
           </TableRow>
         ))}
       </TableBody>

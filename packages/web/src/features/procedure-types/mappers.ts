@@ -24,8 +24,8 @@ export interface CustomFieldView {
   id: string;
   name: string;
   description: string;
+  /** Only a NUMBER field can carry a unit (ADR 0020); "—" otherwise. */
   unit: string;
-  magnitude: string;
   scope: "SURGERY" | "CONTROL";
   constraintSummary: string;
 }
@@ -35,8 +35,10 @@ export function toCustomFieldView(dto: CustomFieldDto): CustomFieldView {
     id: dto.id,
     name: dto.name,
     description: dto.description ?? EMPTY_PLACEHOLDER,
-    unit: dto.unit,
-    magnitude: dto.magnitude,
+    unit:
+      dto.constraint.valueType === "NUMBER" && dto.constraint.unit
+        ? dto.constraint.unit
+        : EMPTY_PLACEHOLDER,
     scope: dto.scope,
     constraintSummary: summarizeConstraint(dto.constraint),
   };

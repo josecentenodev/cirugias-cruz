@@ -296,17 +296,20 @@ form-builder. The platform owns the core domain concepts (Patient, Surgery,
 Control, Procedure Type, Research); the physician customizes the
 information captured _within_ those concepts.
 
-CustomField structure (as of [ADR 0018](../decisions/0018-customfield-value-representation.md),
-amending the original ADR 0005 structure below):
+CustomField structure (as of [ADR 0018](../decisions/0018-customfield-value-representation.md)
+and [ADR 0020](../decisions/0020-customfield-unit-is-numeric-only-no-magnitude.md),
+amending the original ADR 0005 structure):
 
-- `name` — required
+- `name` — required (this _is_ the clinical dimension the field measures —
+  there is no separate `magnitude`; ADR 0020 removed it as redundant)
 - `description` — optional
-- `unit` — required (the human-readable unit, e.g. "escala 0-10", "mmHg")
-- `magnitude` — required (the clinical dimension, e.g. "dolor", "presión intraocular")
 - `valueType` — required: `NUMBER | ENUM | TEXT | DATE`
-- a constraint matching `valueType` (`NUMBER`→ optional min/max, `ENUM` →
-  ≥1 options, `TEXT` → optional maxLength, `DATE` → optional min/max) —
-  a CustomField's constraint must always be coherent with its `valueType`
+- a constraint matching `valueType`, which only that type may carry:
+  `NUMBER` → optional `unit` (the human-readable unit, e.g. "escala 0-10",
+  "mmHg") + optional min/max; `ENUM` → ≥1 options; `TEXT` → optional
+  maxLength; `DATE` → optional min/max. A CustomField's constraint must
+  always be coherent with its `valueType`. A `unit` exists only for a
+  `NUMBER` field (ADR 0020).
 - `scope`: `SURGERY` (value fixed once, e.g. surgical technique) or
   `CONTROL` (value recorded once per Control, e.g. a pain scale at
   successive follow-ups)
@@ -507,7 +510,8 @@ correction, and not to be "improved" preemptively:
 - Manual Control creation (no scheduling/automation)
 - Physician-defined control timing
 - Custom Procedure Types
-- Flexible CustomFields (name/description/unit/magnitude)
+- Flexible CustomFields (name/description/valueType/constraint/scope; a
+  `NUMBER` field's constraint may carry a `unit`)
 
 A future meeting between the product owner and a physician is expected to
 provide the missing clinical knowledge (pterygium-specific measurements,
@@ -566,8 +570,10 @@ object, or something else is **not decided**:
   hypothesis/results/analysis/conclusion — no further structure is open
   for the text fields themselves; how the Surgery universe is represented
   remains an implementation question, not a business one)
-- CustomField `magnitude`/`unit` and value model — exact semantics not
-  defined (§9)
+- CustomField value model — definitions, per-type constraints, `scope`,
+  aggregate placement and persistence are now settled (ADRs 0018–0020;
+  `magnitude` removed, `unit` is optional `NUMBER`-only metadata). What
+  remains open is listed in ADR 0018's "Not decided here" (§9).
 
 ---
 
@@ -575,10 +581,11 @@ object, or something else is **not decided**:
 
 - Exact Admin permissions/tooling beyond activate/deactivate and the four
   listed metrics.
-- CustomField: exact value representation, the relationship between
-  `magnitude` and `unit`, exact value types, and how CustomField
-  definitions are associated with Procedure Types, Surgeries, and
-  Controls (§9) — explicitly unresolved, not to be implemented yet.
+- CustomField: value representation, value types, `scope`, and how
+  definitions attach to Procedure Types/Surgeries/Controls are resolved
+  (ADRs 0018–0020). Still open: additional `valueType`s, mandatory-vs-
+  optional `CONTROL`-scoped fields, and cross-field validation (§9,
+  ADR 0018's "Not decided here") — not to be implemented yet.
 - Pterygium-specific measurements and interpretation rules — to be
   obtained from the physician meeting.
 - Surgery `metadata` — intentionally unresolved, no further definition.

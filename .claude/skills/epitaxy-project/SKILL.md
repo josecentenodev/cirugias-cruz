@@ -83,10 +83,15 @@ changes.
   superseded an earlier hypothesis/conclusion-confirmation-gated,
   universe-locking version — see ADR 0006's amendments.)
 - **CustomField**: structure is `name` (required), `description`
-  (optional), `unit` (required), `magnitude` (required) — and nothing
-  more. Value representation, unit/magnitude semantics, and how
-  definitions attach to Procedure Types/Surgeries/Controls are
-  **explicitly unresolved**. Do not implement or assume any of that.
+  (optional), `valueType` (`NUMBER | ENUM | TEXT | DATE`), a per-type
+  `constraint` only that type may carry (a `NUMBER` constraint may carry
+  an optional `unit`; there is **no** `magnitude` — ADR 0020 removed it,
+  the field's `name` is its clinical dimension), and a `scope`
+  (`SURGERY` | `CONTROL`). Definitions live inside the `ProcedureType`
+  aggregate; values embed in `Surgery`/`Control` per `scope`; persistence
+  is normalized SQL (ADRs 0018–0020). Still unresolved: extra
+  `valueType`s, mandatory `CONTROL`-scoped fields, cross-field
+  validation — see ADR 0018's "Not decided here".
 
 ## Approved architecture
 

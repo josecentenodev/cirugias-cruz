@@ -6,8 +6,12 @@ Established (current iteration). Deliberately temporary/pragmatic — see
 "Temporary / evolving decisions" in [DOMAIN.md](../domain/DOMAIN.md#13-temporary--evolving-decisions).
 **Partially amended** by [0018](0018-customfield-value-representation.md),
 which resolves value representation, per-type constraints, scope, and
-aggregate placement — see that ADR before treating the "Not decided here"
-list below as still fully open.
+aggregate placement, and by
+[0020](0020-customfield-unit-is-numeric-only-no-magnitude.md), which
+removes `magnitude` and makes `unit` an optional part of the `NUMBER`
+constraint (closing the "relationship between `magnitude` and `unit`"
+point below) — see those ADRs before treating the "Not decided here" list
+below as still fully open.
 
 ## Decision
 
@@ -16,12 +20,13 @@ form-builder. The platform owns the core domain concepts (Patient,
 Surgery, Control, Procedure Type, Research); within those concepts, the
 physician can define the custom information they need via CustomFields.
 
-CustomField structure:
+CustomField structure (as originally decided — see ADRs 0018 and 0020 for
+the current shape):
 
 - `name` — required
 - `description` — optional
-- `unit` — required
-- `magnitude` — required
+- `unit` — required _(now optional and `NUMBER`-only, per ADR 0020)_
+- `magnitude` — required _(removed entirely by ADR 0020)_
 
 CustomFields can extend Procedure Types, Surgeries, Controls, and other
 predefined clinical concepts where appropriate.
@@ -45,7 +50,8 @@ recorded only once within a given Control
 
 - Exact value representation of a CustomField (how a recorded value is
   stored/typed).
-- The relationship between `magnitude` and `unit`.
+- The relationship between `magnitude` and `unit`. _(Resolved by ADR
+  0020: `magnitude` removed; `unit` is optional `NUMBER`-only metadata.)_
 - Exact value types allowed.
 - How CustomField _definitions_ are associated with Procedure Types,
   Surgeries, and Controls (i.e. definition vs. fill-in).

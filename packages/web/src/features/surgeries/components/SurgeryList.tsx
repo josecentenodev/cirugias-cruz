@@ -12,15 +12,25 @@ import {
 import { cn } from "@/lib/cn";
 import type { SurgeryListView } from "../mappers";
 
-/** Purely presentational — mirrors `features/patients/components/PatientList.tsx`. */
-export function SurgeryList({ surgeries }: { surgeries: SurgeryListView[] }) {
+/**
+ * Purely presentational. Always rendered inside a Patient page
+ * (Milestone 10 IA — a Surgery is navigated under its Patient), so rows
+ * link to the patient-nested URL and the Patient column is dropped.
+ */
+export function SurgeryList({
+  patientId,
+  surgeries,
+}: {
+  patientId: string;
+  surgeries: SurgeryListView[];
+}) {
   if (surgeries.length === 0) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
           <p className="text-sm text-muted-foreground">No surgeries registered yet.</p>
-          <Link href="/surgeries/new" className={cn(buttonVariants())}>
-            Register your first surgery
+          <Link href={`/patients/${patientId}/surgeries/new`} className={cn(buttonVariants())}>
+            Register the first surgery
           </Link>
         </CardContent>
       </Card>
@@ -32,7 +42,6 @@ export function SurgeryList({ surgeries }: { surgeries: SurgeryListView[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Patient</TableHead>
             <TableHead>Procedure type</TableHead>
             <TableHead>Performed</TableHead>
             <TableHead>Controls</TableHead>
@@ -42,11 +51,13 @@ export function SurgeryList({ surgeries }: { surgeries: SurgeryListView[] }) {
           {surgeries.map((surgery) => (
             <TableRow key={surgery.id}>
               <TableCell>
-                <Link href={`/surgeries/${surgery.id}`} className="font-medium hover:underline">
-                  {surgery.patientName}
+                <Link
+                  href={`/patients/${patientId}/surgeries/${surgery.id}`}
+                  className="font-medium hover:underline"
+                >
+                  {surgery.procedureTypeName}
                 </Link>
               </TableCell>
-              <TableCell>{surgery.procedureTypeName}</TableCell>
               <TableCell>{surgery.performedAtLabel}</TableCell>
               <TableCell>{surgery.controlCount}</TableCell>
             </TableRow>

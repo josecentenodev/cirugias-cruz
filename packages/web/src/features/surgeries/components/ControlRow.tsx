@@ -29,9 +29,17 @@ function SubmitButton() {
  * redirects back to this same page, which re-fetches — `isEditing`
  * naturally resets on that fresh render, no callback plumbing needed.
  */
-export function ControlRow({ surgeryId, control }: { surgeryId: string; control: ControlView }) {
+export function ControlRow({
+  patientId,
+  surgeryId,
+  control,
+}: {
+  patientId: string;
+  surgeryId: string;
+  control: ControlView;
+}) {
   const [isEditing, setIsEditing] = useState(false);
-  const boundAction = modifyControlAction.bind(null, surgeryId, control.id);
+  const boundAction = modifyControlAction.bind(null, patientId, surgeryId, control.id);
   const [state, formAction] = useActionState(boundAction, initialState);
 
   if (!isEditing) {

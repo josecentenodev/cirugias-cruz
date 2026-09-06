@@ -88,6 +88,46 @@ describe("recordOwnControlAction", () => {
     expect(call.body.observations).toBe("obs");
   });
 
+  it("re-reads its own surgery and forwards coerced CONTROL-scoped CustomField values", async () => {
+    authedApiRequestMock.mockImplementation(
+      ({ method, path }: { method: string; path: string }) => {
+        if (method === "GET" && path === "/me/surgeries/s1") {
+          return Promise.resolve({
+            id: "s1",
+            controls: [],
+            customFieldValues: [],
+            customFields: [
+              {
+                id: "eva",
+                name: "EVA",
+                scope: "CONTROL",
+                constraint: { valueType: "NUMBER", unit: "0-10" },
+              },
+            ],
+          });
+        }
+        return Promise.resolve({ surgeryId: "s1", controlId: "c1" });
+      },
+    );
+
+    await expect(
+      recordOwnControlAction(
+        "s1",
+        {},
+        formData({
+          observations: "obs",
+          recordedAt: "2026-01-11T10:00",
+          "customField:eva": "3",
+        }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT:/resident/surgeries/s1");
+
+    const post = authedApiRequestMock.mock.calls.find(
+      (call) => (call[0] as { method: string }).method === "POST",
+    )?.[0] as { body: { customFieldValues: unknown } };
+    expect(post.body.customFieldValues).toEqual([{ definitionId: "eva", value: 3 }]);
+  });
+
   it("rejects a blank observations field before calling api", async () => {
     const result = await recordOwnControlAction(
       "s1",

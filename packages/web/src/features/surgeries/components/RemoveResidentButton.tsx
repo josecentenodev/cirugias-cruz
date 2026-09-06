@@ -25,13 +25,15 @@ function SubmitButton() {
  * control in `controls`.
  */
 export function RemoveResidentButton({
+  patientId,
   surgeryId,
   residentId,
 }: {
+  patientId: string;
   surgeryId: string;
   residentId: string;
 }) {
-  const boundAction = removeResidentAction.bind(null, surgeryId, residentId);
+  const boundAction = removeResidentAction.bind(null, patientId, surgeryId, residentId);
   const [state, formAction] = useActionState(boundAction, initialState);
 
   return (

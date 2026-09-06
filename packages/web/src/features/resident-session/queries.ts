@@ -1,4 +1,5 @@
 import { authedApiRequest } from "@/lib/authed-api-request";
+import type { CustomFieldDto } from "@/features/procedure-types/dtos";
 import type { SurgeryDto } from "@/features/surgeries/dtos";
 
 /**
@@ -11,6 +12,13 @@ import type { SurgeryDto } from "@/features/surgeries/dtos";
 export interface OwnSurgeryDto extends SurgeryDto {
   patientName: string;
   procedureTypeName: string;
+  /**
+   * The owning Procedure Type's CustomField definitions. Populated on
+   * `GET /me/surgeries/:id` (so the record-Control form can render
+   * CONTROL-scoped inputs); the list read (`GET /me/surgeries`) returns
+   * `[]`.
+   */
+  customFields: CustomFieldDto[];
 }
 
 /**

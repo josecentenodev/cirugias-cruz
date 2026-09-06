@@ -3,7 +3,13 @@
 import { redirect } from "next/navigation";
 import { authedApiRequest } from "@/lib/authed-api-request";
 import { ApiDomainError, ApiNotFoundError } from "@/lib/api-errors";
+import {
+  collectCustomFieldValues,
+  hasCustomFieldInputs,
+  type CollectedCustomFieldValue,
+} from "@/features/procedure-types/custom-field-values";
 import type { RecordControlResponse } from "@/features/surgeries/dtos";
+import { getOwnSurgery } from "./queries";
 import { changePasswordSchema, recordOwnControlSchema } from "./schemas";
 
 export interface ChangePasswordFormState {
@@ -65,6 +71,17 @@ export async function recordOwnControlAction(
     return { error: "Please fill in every required field." };
   }
 
+  // Same shape as the Physician's `recordControlAction`: re-read the
+  // definitions server-side and coerce by `valueType`; `api` re-validates.
+  let customFieldValues: CollectedCustomFieldValue[] = [];
+  if (hasCustomFieldInputs(formData)) {
+    const surgery = await getOwnSurgery(surgeryId);
+    customFieldValues = collectCustomFieldValues(
+      formData,
+      surgery.customFields.filter((field) => field.scope === "CONTROL"),
+    );
+  }
+
   try {
     await authedApiRequest<RecordControlResponse>({
       method: "POST",
@@ -73,7 +90,11 @@ export async function recordOwnControlAction(
       // a Resident session (forced to themselves) — sending the
       // "resident" shape here is honest about who's asking, even though
       // the residentId named is never trusted.
-      body: { ...parsed.data, author: { type: "resident", residentId: "self" } },
+      body: {
+        ...parsed.data,
+        author: { type: "resident", residentId: "self" },
+        ...(customFieldValues.length > 0 ? { customFieldValues } : {}),
+      },
     });
   } catch (error) {
     if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {

@@ -274,6 +274,17 @@ function serializePatient(patient: Patient) {
   };
 }
 
+/** One CustomField definition in wire shape — shared by the Physician's `serializeProcedureType` and the Resident's `serializeSurgeryForResident`. */
+export function serializeCustomField(field: ProcedureType["customFields"][number]) {
+  return {
+    id: field.id,
+    name: field.name,
+    description: field.description,
+    scope: field.scope,
+    constraint: field.constraint,
+  };
+}
+
 function serializeProcedureType(procedureType: ProcedureType) {
   return {
     id: procedureType.id,
@@ -281,13 +292,7 @@ function serializeProcedureType(procedureType: ProcedureType) {
     name: procedureType.name,
     description: procedureType.description,
     technique: procedureType.technique,
-    customFields: procedureType.customFields.map((field) => ({
-      id: field.id,
-      name: field.name,
-      description: field.description,
-      scope: field.scope,
-      constraint: field.constraint,
-    })),
+    customFields: procedureType.customFields.map(serializeCustomField),
   };
 }
 

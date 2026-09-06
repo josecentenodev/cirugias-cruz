@@ -17,11 +17,14 @@ import { RemoveResidentButton } from "./RemoveResidentButton";
  * own operations — see `features/surgeries/actions.ts`).
  */
 export function SurgeryDetail({
+  patientId,
   surgery,
   availableResidents,
   totalResidentCount,
   controlCustomFields,
 }: {
+  /** Owning Patient — Surgeries are navigated under their Patient (Milestone 10 IA); used only for redirect targets in the nested forms. */
+  patientId: string;
   surgery: SurgeryDetailView;
   availableResidents: { id: string; label: string }[];
   /** Total Residents registered in the tenant — lets `AssignResidentForm` tell "no Residents exist" apart from "all are already assigned" (see that component). */
@@ -59,12 +62,17 @@ export function SurgeryDetail({
                   className="flex items-center justify-between rounded-md border border-border p-2"
                 >
                   <span className="text-sm">{participant.name}</span>
-                  <RemoveResidentButton surgeryId={surgery.id} residentId={participant.id} />
+                  <RemoveResidentButton
+                    patientId={patientId}
+                    surgeryId={surgery.id}
+                    residentId={participant.id}
+                  />
                 </li>
               ))}
             </ul>
           )}
           <AssignResidentForm
+            patientId={patientId}
             surgeryId={surgery.id}
             residents={availableResidents}
             totalResidentCount={totalResidentCount}
@@ -82,7 +90,12 @@ export function SurgeryDetail({
           ) : (
             <ul className="flex flex-col gap-2">
               {surgery.controls.map((control) => (
-                <ControlRow key={control.id} surgeryId={surgery.id} control={control} />
+                <ControlRow
+                  key={control.id}
+                  patientId={patientId}
+                  surgeryId={surgery.id}
+                  control={control}
+                />
               ))}
             </ul>
           )}
@@ -95,6 +108,7 @@ export function SurgeryDetail({
         </CardHeader>
         <CardContent>
           <RecordControlForm
+            patientId={patientId}
             surgeryId={surgery.id}
             participants={surgery.participants}
             customFields={controlCustomFields}

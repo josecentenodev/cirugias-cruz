@@ -18,7 +18,7 @@ import { replyForError } from "../shared/errors.js";
 import { requirePhysicianAuth } from "../shared/require-physician-auth.js";
 import { requireResidentAuth } from "../shared/require-resident-auth.js";
 import { requireResidentPasswordChanged } from "../shared/require-resident-password-changed.js";
-import { serializeSurgery } from "./core-loop.js";
+import { serializeCustomField, serializeSurgery } from "./core-loop.js";
 
 /**
  * `/me/surgeries*` only — adds `patientName`/`procedureTypeName` to the
@@ -30,11 +30,15 @@ function serializeSurgeryForResident(entry: {
   surgery: Parameters<typeof serializeSurgery>[0];
   patientName: string;
   procedureTypeName: string;
+  procedureTypeCustomFields?: readonly Parameters<typeof serializeCustomField>[0][];
 }) {
   return {
     ...serializeSurgery(entry.surgery),
     patientName: entry.patientName,
     procedureTypeName: entry.procedureTypeName,
+    // Present on the single-Surgery read (so the Resident's record-Control
+    // form can render CONTROL-scoped inputs); the list read omits it.
+    customFields: (entry.procedureTypeCustomFields ?? []).map(serializeCustomField),
   };
 }
 

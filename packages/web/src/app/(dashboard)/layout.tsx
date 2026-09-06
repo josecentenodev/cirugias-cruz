@@ -19,16 +19,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Link>
           <nav className="flex items-center gap-4 text-sm">
             <Link href="/patients" className="text-muted-foreground hover:text-foreground">
-              Patients
+              Pacientes
             </Link>
-            <Link href="/surgeries" className="text-muted-foreground hover:text-foreground">
-              Surgeries
-            </Link>
-            <Link href="/residents" className="text-muted-foreground hover:text-foreground">
-              Residents
+            <Link href="/staff/residents" className="text-muted-foreground hover:text-foreground">
+              Plantilla
             </Link>
             <Link href="/research-studies" className="text-muted-foreground hover:text-foreground">
-              Research studies
+              Investigaciones
             </Link>
             <Link
               href="/settings/procedure-types"

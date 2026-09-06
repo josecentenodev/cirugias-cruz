@@ -13,6 +13,7 @@ const baseSurgery: OwnSurgeryDto = {
   state: "DONE",
   participatingResidentIds: ["resident-1"],
   customFieldValues: [],
+  customFields: [],
   controls: [
     {
       id: "control-1",
@@ -74,5 +75,37 @@ describe("toOwnSurgeryDetailView", () => {
     const view = toOwnSurgeryDetailView(baseSurgery, "resident-1");
 
     expect(view.controls.map((c) => c.id)).toEqual(["control-3", "control-2", "control-1"]);
+  });
+
+  it("exposes the CONTROL-scoped CustomField definitions and resolves recorded values", () => {
+    const view = toOwnSurgeryDetailView(
+      {
+        ...baseSurgery,
+        customFields: [
+          {
+            id: "eva",
+            name: "EVA",
+            scope: "CONTROL",
+            constraint: { valueType: "NUMBER", unit: "0-10" },
+          },
+          { id: "tech", name: "Técnica", scope: "SURGERY", constraint: { valueType: "TEXT" } },
+        ],
+        controls: [
+          {
+            id: "control-1",
+            observations: "x",
+            recordedAt: "2026-01-11T10:00:00.000Z",
+            author: { type: "resident", residentId: "resident-1" },
+            customFieldValues: [{ definitionId: "eva", value: 4 }],
+          },
+        ],
+      },
+      "resident-1",
+    );
+
+    expect(view.controlCustomFields.map((f) => f.id)).toEqual(["eva"]);
+    expect(view.controls[0]?.customFieldValues).toEqual([
+      { definitionId: "eva", label: "EVA", displayValue: "4 0-10" },
+    ]);
   });
 });

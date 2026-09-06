@@ -32,16 +32,18 @@ function SubmitButton() {
  * never offer a choice `api` would reject.
  */
 export function RecordControlForm({
+  patientId,
   surgeryId,
   participants,
   customFields,
 }: {
+  patientId: string;
   surgeryId: string;
   participants: ParticipantView[];
   /** The Procedure Type's `CONTROL`-scoped CustomFields — rendered as optional inputs, coerced/validated server-side. */
   customFields: CustomFieldDto[];
 }) {
-  const boundAction = recordControlAction.bind(null, surgeryId);
+  const boundAction = recordControlAction.bind(null, patientId, surgeryId);
   const [state, formAction] = useActionState(boundAction, initialState);
   const [authorType, setAuthorType] = useState<"physician" | "resident">("physician");
   const hasParticipants = participants.length > 0;

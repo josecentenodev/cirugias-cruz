@@ -51,6 +51,16 @@ export function OwnControlRow({
           ) : null}
         </div>
         <p className="mt-1 whitespace-pre-wrap text-sm">{control.observations}</p>
+        {control.customFieldValues.length > 0 ? (
+          <dl className="mt-2 flex flex-col gap-0.5">
+            {control.customFieldValues.map((value) => (
+              <div key={value.definitionId} className="flex gap-1.5 text-xs">
+                <dt className="text-muted-foreground">{value.label}:</dt>
+                <dd>{value.displayValue}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
       </li>
     );
   }

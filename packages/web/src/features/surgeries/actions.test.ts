@@ -48,7 +48,7 @@ describe("registerSurgeryAction", () => {
         {},
         formData({ patientId: "patient-1", procedureTypeId: "pt-1", performedAt: "2026-01-15" }),
       ),
-    ).rejects.toThrow("NEXT_REDIRECT:/surgeries/surgery-1");
+    ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
       method: "POST",
@@ -98,7 +98,7 @@ describe("registerSurgeryAction", () => {
           "customField:eva": "5",
         }),
       ),
-    ).rejects.toThrow("NEXT_REDIRECT:/surgeries/surgery-1");
+    ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
 
     // Only the SURGERY-scoped field is forwarded; the CONTROL-scoped one is dropped.
     expect(authedApiRequestMock).toHaveBeenCalledWith({
@@ -176,6 +176,7 @@ describe("recordControlAction", () => {
 
     await expect(
       recordControlAction(
+        "patient-1",
         "surgery-1",
         {},
         formData({
@@ -184,7 +185,7 @@ describe("recordControlAction", () => {
           recordedAt: "2026-01-16T14:30",
         }),
       ),
-    ).rejects.toThrow("NEXT_REDIRECT:/surgeries/surgery-1");
+    ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
       method: "POST",
@@ -202,6 +203,7 @@ describe("recordControlAction", () => {
 
     await expect(
       recordControlAction(
+        "patient-1",
         "surgery-1",
         {},
         formData({
@@ -211,7 +213,7 @@ describe("recordControlAction", () => {
           recordedAt: "2026-01-16T14:30",
         }),
       ),
-    ).rejects.toThrow("NEXT_REDIRECT:/surgeries/surgery-1");
+    ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
       method: "POST",
@@ -258,6 +260,7 @@ describe("recordControlAction", () => {
 
     await expect(
       recordControlAction(
+        "patient-1",
         "surgery-1",
         {},
         formData({
@@ -267,7 +270,7 @@ describe("recordControlAction", () => {
           "customField:eva": "3",
         }),
       ),
-    ).rejects.toThrow("NEXT_REDIRECT:/surgeries/surgery-1");
+    ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
       method: "POST",
@@ -283,6 +286,7 @@ describe("recordControlAction", () => {
 
   it("rejects a resident-authored submission missing which resident, before calling api", async () => {
     const result = await recordControlAction(
+      "patient-1",
       "surgery-1",
       {},
       formData({ authorType: "resident", observations: "x", recordedAt: "2026-01-16T14:30" }),
@@ -294,6 +298,7 @@ describe("recordControlAction", () => {
 
   it("rejects missing observations before calling api", async () => {
     const result = await recordControlAction(
+      "patient-1",
       "surgery-1",
       {},
       formData({ authorType: "physician", observations: "", recordedAt: "2026-01-16T14:30" }),
@@ -309,6 +314,7 @@ describe("recordControlAction", () => {
     );
 
     const result = await recordControlAction(
+      "patient-1",
       "surgery-1",
       {},
       formData({
@@ -329,6 +335,7 @@ describe("recordControlAction", () => {
 
     await expect(
       recordControlAction(
+        "patient-1",
         "surgery-1",
         {},
         formData({ authorType: "physician", observations: "x", recordedAt: "2026-01-16T14:30" }),
@@ -350,12 +357,13 @@ describe("modifyControlAction", () => {
 
     await expect(
       modifyControlAction(
+        "patient-1",
         "surgery-1",
         "control-1",
         {},
         formData({ observations: "Updated observations" }),
       ),
-    ).rejects.toThrow("NEXT_REDIRECT:/surgeries/surgery-1");
+    ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
       method: "PATCH",
@@ -368,6 +376,7 @@ describe("modifyControlAction", () => {
     authedApiRequestMock.mockRejectedValue(new ApiDomainError("Control control-1 was not found"));
 
     const result = await modifyControlAction(
+      "patient-1",
       "surgery-1",
       "control-1",
       {},
@@ -382,7 +391,13 @@ describe("modifyControlAction", () => {
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
     await expect(
-      modifyControlAction("surgery-1", "control-1", {}, formData({ observations: "x" })),
+      modifyControlAction(
+        "patient-1",
+        "surgery-1",
+        "control-1",
+        {},
+        formData({ observations: "x" }),
+      ),
     ).rejects.toBeInstanceOf(ApiUnexpectedError);
   });
 });
@@ -402,8 +417,8 @@ describe("assignResidentAction", () => {
     });
 
     await expect(
-      assignResidentAction("surgery-1", {}, formData({ residentId: "resident-1" })),
-    ).rejects.toThrow("NEXT_REDIRECT:/surgeries/surgery-1");
+      assignResidentAction("patient-1", "surgery-1", {}, formData({ residentId: "resident-1" })),
+    ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
       method: "POST",
@@ -413,7 +428,12 @@ describe("assignResidentAction", () => {
   });
 
   it("rejects an empty selection before ever calling api", async () => {
-    const result = await assignResidentAction("surgery-1", {}, formData({ residentId: "" }));
+    const result = await assignResidentAction(
+      "patient-1",
+      "surgery-1",
+      {},
+      formData({ residentId: "" }),
+    );
 
     expect(result).toEqual({ error: "Please select a resident." });
     expect(authedApiRequestMock).not.toHaveBeenCalled();
@@ -427,6 +447,7 @@ describe("assignResidentAction", () => {
     );
 
     const result = await assignResidentAction(
+      "patient-1",
       "surgery-1",
       {},
       formData({ residentId: "resident-1" }),
@@ -441,7 +462,7 @@ describe("assignResidentAction", () => {
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
     await expect(
-      assignResidentAction("surgery-1", {}, formData({ residentId: "resident-1" })),
+      assignResidentAction("patient-1", "surgery-1", {}, formData({ residentId: "resident-1" })),
     ).rejects.toBeInstanceOf(ApiUnexpectedError);
   });
 });
@@ -460,8 +481,8 @@ describe("removeResidentAction", () => {
       participatingResidentIds: [],
     });
 
-    await expect(removeResidentAction("surgery-1", "resident-1", {})).rejects.toThrow(
-      "NEXT_REDIRECT:/surgeries/surgery-1",
+    await expect(removeResidentAction("patient-1", "surgery-1", "resident-1", {})).rejects.toThrow(
+      "NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1",
     );
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
@@ -475,7 +496,7 @@ describe("removeResidentAction", () => {
       new ApiDomainError("A resident who has recorded a control cannot be removed"),
     );
 
-    const result = await removeResidentAction("surgery-1", "resident-1", {});
+    const result = await removeResidentAction("patient-1", "surgery-1", "resident-1", {});
 
     expect(result).toEqual({ error: "A resident who has recorded a control cannot be removed" });
     expect(redirectMock).not.toHaveBeenCalled();
@@ -484,8 +505,8 @@ describe("removeResidentAction", () => {
   it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
-    await expect(removeResidentAction("surgery-1", "resident-1", {})).rejects.toBeInstanceOf(
-      ApiUnexpectedError,
-    );
+    await expect(
+      removeResidentAction("patient-1", "surgery-1", "resident-1", {}),
+    ).rejects.toBeInstanceOf(ApiUnexpectedError);
   });
 });

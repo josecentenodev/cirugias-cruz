@@ -5,6 +5,8 @@ import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { CustomFieldValueInputs } from "@/features/procedure-types/components/CustomFieldValueInputs";
+import type { CustomFieldDto } from "@/features/procedure-types/dtos";
 import { recordOwnControlAction, type RecordOwnControlFormState } from "../actions";
 
 const initialState: RecordOwnControlFormState = {};
@@ -19,7 +21,14 @@ function SubmitButton() {
 }
 
 /** No author picker — unlike the Physician's `RecordControlForm`, a Resident is always recording as themselves (ADR 0017). */
-export function RecordOwnControlForm({ surgeryId }: { surgeryId: string }) {
+export function RecordOwnControlForm({
+  surgeryId,
+  customFields,
+}: {
+  surgeryId: string;
+  /** The Procedure Type's `CONTROL`-scoped CustomFields — same optional inputs the Physician's form renders. */
+  customFields: CustomFieldDto[];
+}) {
   const boundAction = recordOwnControlAction.bind(null, surgeryId);
   const [state, formAction] = useActionState(boundAction, initialState);
 
@@ -48,6 +57,8 @@ export function RecordOwnControlForm({ surgeryId }: { surgeryId: string }) {
           className="h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
+
+      <CustomFieldValueInputs fields={customFields} />
 
       <div>
         <SubmitButton />

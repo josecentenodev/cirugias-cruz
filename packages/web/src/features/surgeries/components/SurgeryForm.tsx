@@ -12,11 +12,6 @@ import { registerSurgeryAction, type RegisterSurgeryFormState } from "../actions
 
 const initialState: RegisterSurgeryFormState = {};
 
-interface Option {
-  id: string;
-  label: string;
-}
-
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -30,11 +25,12 @@ const selectClassName =
   "h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
- * `patients`/`procedureTypes` are fetched server-side by
- * `app/(dashboard)/surgeries/new/page.tsx` (reusing
- * `features/patients/queries.ts`/`features/procedure-types/queries.ts`
- * — no new `api` call introduced) and passed in as plain props; this
- * component only renders the selection, it never fetches.
+ * The Patient is fixed by the route (`patients/[id]/surgeries/new`) and
+ * passed as `patientId` — a Surgery is always registered from inside its
+ * Patient (Milestone 10 IA), so there is no patient picker here.
+ * `procedureTypes` is fetched server-side by the page (reusing
+ * `features/procedure-types/queries.ts` — no new `api` call) and passed
+ * in; this component only renders the selection, it never fetches.
  *
  * Selecting a Procedure Type reveals that type's `SURGERY`-scoped
  * CustomFields (`CustomFieldValueInputs`) — same "conditional JSX on
@@ -43,10 +39,10 @@ const selectClassName =
  * values; this form only shows the inputs.
  */
 export function SurgeryForm({
-  patients,
+  patientId,
   procedureTypes,
 }: {
-  patients: Option[];
+  patientId: string;
   procedureTypes: ProcedureTypeDto[];
 }) {
   const [state, formAction] = useActionState(registerSurgeryAction, initialState);
@@ -59,25 +55,7 @@ export function SurgeryForm({
     <form action={formAction} className="flex flex-col gap-4">
       {state.error ? <Alert>{state.error}</Alert> : null}
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="patientId">Patient</Label>
-        <select
-          id="patientId"
-          name="patientId"
-          required
-          defaultValue=""
-          className={selectClassName}
-        >
-          <option value="" disabled>
-            Select a patient
-          </option>
-          {patients.map((patient) => (
-            <option key={patient.id} value={patient.id}>
-              {patient.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <input type="hidden" name="patientId" value={patientId} />
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="procedureTypeId">Procedure type</Label>

@@ -31,15 +31,17 @@ function SubmitButton() {
  * already assigned to this Surgery.
  */
 export function AssignResidentForm({
+  patientId,
   surgeryId,
   residents,
   totalResidentCount,
 }: {
+  patientId: string;
   surgeryId: string;
   residents: { id: string; label: string }[];
   totalResidentCount: number;
 }) {
-  const boundAction = assignResidentAction.bind(null, surgeryId);
+  const boundAction = assignResidentAction.bind(null, patientId, surgeryId);
   const [state, formAction] = useActionState(boundAction, initialState);
 
   if (residents.length === 0) {

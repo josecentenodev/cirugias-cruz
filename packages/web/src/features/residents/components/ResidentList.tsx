@@ -20,7 +20,7 @@ export function ResidentList({ residents }: { residents: ResidentView[] }) {
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
           <p className="text-sm text-muted-foreground">No residents registered yet.</p>
-          <Link href="/residents/new" className={cn(buttonVariants())}>
+          <Link href="/staff/residents/new" className={cn(buttonVariants())}>
             Register your first resident
           </Link>
         </CardContent>

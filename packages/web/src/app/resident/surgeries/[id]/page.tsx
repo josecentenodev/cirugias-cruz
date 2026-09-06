@@ -53,7 +53,7 @@ export default async function ResidentSurgeryDetailPage({
           <CardTitle className="text-base">Record a control</CardTitle>
         </CardHeader>
         <CardContent>
-          <RecordOwnControlForm surgeryId={view.id} />
+          <RecordOwnControlForm surgeryId={view.id} customFields={view.controlCustomFields} />
         </CardContent>
       </Card>
     </div>

@@ -1,4 +1,4 @@
-import type { Surgery } from "@cirugias-cruz/domain";
+import type { CustomField, Surgery } from "@cirugias-cruz/domain";
 import type { PatientRepository } from "../patient/patient-repository.js";
 import type { ProcedureTypeRepository } from "../procedure-type/procedure-type-repository.js";
 import { NotFoundError } from "../shared/not-found-error.js";
@@ -13,6 +13,8 @@ export interface SurgeryForResident {
   surgery: Surgery;
   patientName: string;
   procedureTypeName: string;
+  /** The owning Procedure Type's CustomField definitions — lets the Resident's UI render the same CONTROL-scoped inputs the Physician sees. */
+  procedureTypeCustomFields: readonly CustomField[];
 }
 
 export interface GetSurgeryForResidentDeps {
@@ -50,6 +52,7 @@ export function getSurgeryForResident(deps: GetSurgeryForResidentDeps) {
       surgery,
       patientName: patient ? `${patient.firstName} ${patient.lastName}` : surgery.patientId,
       procedureTypeName: procedureType ? procedureType.name : surgery.procedureTypeId,
+      procedureTypeCustomFields: procedureType ? procedureType.customFields : [],
     };
   };
 }

@@ -47,7 +47,7 @@ export async function registerResidentAction(
     throw error;
   }
 
-  redirect("/residents");
+  redirect("/staff/residents");
 }
 
 export interface ViewTemporaryPasswordFormState {
@@ -135,6 +135,6 @@ export async function setResidentActiveAction(
     }
     throw error;
   }
-  revalidatePath("/residents");
+  revalidatePath("/staff/residents");
   return { succeededActive: active };
 }

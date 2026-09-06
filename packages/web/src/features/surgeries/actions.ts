@@ -81,7 +81,7 @@ export async function registerSurgeryAction(
     throw error;
   }
 
-  redirect(`/surgeries/${response.surgeryId}`);
+  redirect(`/patients/${parsed.data.patientId}/surgeries/${response.surgeryId}`);
 }
 
 export interface RecordControlFormState {
@@ -89,13 +89,15 @@ export interface RecordControlFormState {
 }
 
 /**
- * Bound to a specific `surgeryId` by the calling Client Component
- * (`RecordControlForm.tsx`) via `.bind(null, surgeryId)` — the standard
- * Next.js pattern for passing context into a Server Action beyond what
- * the submitted form fields carry, since a surgery's id is never a
- * value the physician types or selects.
+ * Bound to `patientId`/`surgeryId` by the calling Client Component
+ * (`RecordControlForm.tsx`) via `.bind(null, patientId, surgeryId)` —
+ * the standard Next.js pattern for passing context into a Server Action
+ * beyond the submitted form fields. `patientId` is only used to redirect
+ * back to the patient-nested Surgery URL (Milestone 10 IA); `api` never
+ * sees it.
  */
 export async function recordControlAction(
+  patientId: string,
   surgeryId: string,
   _previousState: RecordControlFormState,
   formData: FormData,
@@ -149,15 +151,16 @@ export async function recordControlAction(
     throw error;
   }
 
-  redirect(`/surgeries/${surgeryId}`);
+  redirect(`/patients/${patientId}/surgeries/${surgeryId}`);
 }
 
 export interface ModifyControlFormState {
   error?: string;
 }
 
-/** Bound to `surgeryId`/`controlId` — same pattern as `recordControlAction`. */
+/** Bound to `patientId`/`surgeryId`/`controlId` — same pattern as `recordControlAction`. */
 export async function modifyControlAction(
+  patientId: string,
   surgeryId: string,
   controlId: string,
   _previousState: ModifyControlFormState,
@@ -184,7 +187,7 @@ export async function modifyControlAction(
     throw error;
   }
 
-  redirect(`/surgeries/${surgeryId}`);
+  redirect(`/patients/${patientId}/surgeries/${surgeryId}`);
 }
 
 export interface AssignResidentFormState {
@@ -202,6 +205,7 @@ export interface AssignResidentFormState {
  * reasoning applied to where the UI itself lives.
  */
 export async function assignResidentAction(
+  patientId: string,
   surgeryId: string,
   _previousState: AssignResidentFormState,
   formData: FormData,
@@ -224,7 +228,7 @@ export async function assignResidentAction(
     throw error;
   }
 
-  redirect(`/surgeries/${surgeryId}`);
+  redirect(`/patients/${patientId}/surgeries/${surgeryId}`);
 }
 
 export interface RemoveResidentFormState {
@@ -240,6 +244,7 @@ export interface RemoveResidentFormState {
  * client-side pre-check of "has this resident already participated."
  */
 export async function removeResidentAction(
+  patientId: string,
   surgeryId: string,
   residentId: string,
   _previousState: RemoveResidentFormState,
@@ -256,5 +261,5 @@ export async function removeResidentAction(
     throw error;
   }
 
-  redirect(`/surgeries/${surgeryId}`);
+  redirect(`/patients/${patientId}/surgeries/${surgeryId}`);
 }

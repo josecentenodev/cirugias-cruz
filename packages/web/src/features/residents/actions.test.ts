@@ -57,7 +57,7 @@ describe("registerResidentAction", () => {
     authedApiRequestMock.mockResolvedValue({ residentId: "resident-1" });
 
     await expect(registerResidentAction({}, formData(validResidentFields()))).rejects.toThrow(
-      "NEXT_REDIRECT:/residents",
+      "NEXT_REDIRECT:/staff/residents",
     );
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
@@ -159,7 +159,7 @@ describe("setResidentActiveAction (ADR 0017)", () => {
       path: "/residents/resident-1/active",
       body: { active: false },
     });
-    expect(revalidatePathMock).toHaveBeenCalledWith("/residents");
+    expect(revalidatePathMock).toHaveBeenCalledWith("/staff/residents");
     expect(result).toEqual({ succeededActive: false });
   });
 

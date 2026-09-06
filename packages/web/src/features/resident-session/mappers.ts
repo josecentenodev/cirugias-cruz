@@ -1,4 +1,6 @@
+import type { CustomFieldDto } from "@/features/procedure-types/dtos";
 import type { ControlDto } from "@/features/surgeries/dtos";
+import { resolveCustomFieldValues, type CustomFieldValueView } from "@/features/surgeries/mappers";
 import type { OwnSurgeryDto } from "./queries";
 
 export interface OwnSurgeryListView {
@@ -16,6 +18,7 @@ export interface OwnControlView {
   recordedAtInputValue: string;
   authorLabel: string;
   isMine: boolean;
+  customFieldValues: CustomFieldValueView[];
 }
 
 export interface OwnSurgeryDetailView {
@@ -23,6 +26,8 @@ export interface OwnSurgeryDetailView {
   patientName: string;
   procedureTypeName: string;
   performedAtLabel: string;
+  /** The owning Procedure Type's `CONTROL`-scoped CustomField definitions — rendered as inputs by `RecordOwnControlForm`. */
+  controlCustomFields: CustomFieldDto[];
   controls: OwnControlView[];
 }
 
@@ -75,7 +80,11 @@ export function toOwnSurgeryListView(dto: OwnSurgeryDto): OwnSurgeryListView {
   };
 }
 
-function toOwnControlView(dto: ControlDto, ownResidentId: string): OwnControlView {
+function toOwnControlView(
+  dto: ControlDto,
+  ownResidentId: string,
+  customFieldDefs: Map<string, CustomFieldDto>,
+): OwnControlView {
   return {
     id: dto.id,
     observations: dto.observations,
@@ -88,6 +97,7 @@ function toOwnControlView(dto: ControlDto, ownResidentId: string): OwnControlVie
           ? "You"
           : "Another resident",
     isMine: dto.author.type === "resident" && dto.author.residentId === ownResidentId,
+    customFieldValues: resolveCustomFieldValues(dto.customFieldValues, customFieldDefs),
   };
 }
 
@@ -103,13 +113,15 @@ export function toOwnSurgeryDetailView(
   dto: OwnSurgeryDto,
   ownResidentId: string | null,
 ): OwnSurgeryDetailView {
+  const customFieldDefs = new Map((dto.customFields ?? []).map((field) => [field.id, field]));
   return {
     id: dto.id,
     patientName: dto.patientName,
     procedureTypeName: dto.procedureTypeName,
     performedAtLabel: formatDate(dto.performedAt),
+    controlCustomFields: (dto.customFields ?? []).filter((field) => field.scope === "CONTROL"),
     controls: dto.controls
-      .map((control) => toOwnControlView(control, ownResidentId ?? "__none__"))
+      .map((control) => toOwnControlView(control, ownResidentId ?? "__none__", customFieldDefs))
       .sort((a, b) => b.recordedAtInputValue.localeCompare(a.recordedAtInputValue)),
   };
 }

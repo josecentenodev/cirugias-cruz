@@ -274,23 +274,21 @@ one to be created at surgery-creation time.
 - The physician must be able to work with multiple procedure types over time.
 - Procedure Types support extension via the CustomField mechanism (§9).
 
-**Current initial idea (not yet closed) of what a Procedure Type may contain:**
+**Procedure Type structure (confirmed — [ADR 0022](../decisions/0022-surgical-technique-is-a-customfield.md)):**
 
 - `name`
 - `description`
-- surgical technique
+- its CustomField definitions (§9)
 
-For Pterygium, the initial known surgical technique options are:
+**Surgical technique is a CustomField, not a Procedure Type attribute**
+(ADR 0022). It is modelled as a `SURGERY`-scoped `ENUM` CustomField — a
+technique is chosen per Surgery from a closed list the physician defines,
+not one value shared by every Surgery of the type. Combined techniques
+(e.g. "Autoinjerto + MMC") are explicit options in that list. The
+pterygium option list is physician-entered content, not seeded in code;
+for reference, the physician's prototype uses: Autoinjerto conjuntival /
 
-- Conjunctival autograft
-- Conjunctival autograft + MMC
-- Amniotic membrane
-- Autograft + fibrin glue
-
-These are documented as current domain knowledge, not a final or
-exhaustive list. No additional techniques are assumed. The exact final
-Procedure Type model (including whether/how technique options are
-structured) will be researched and refined later.
+- MMC / Membrana amniótica / + pegamento de fibrina / Otra.
 
 **Deletion rule (confirmed):** A Procedure Type must **not** be deleted.
 This is an explicit business decision — Procedure Types may be referenced
@@ -574,12 +572,10 @@ object, or something else is **not decided**:
   author, CustomFields" — e.g. how "who performed it" is represented)
 - Surgery (attributes beyond the confirmed list; `metadata` remains
   intentionally unresolved)
-- Procedure Type (exact final structure — `name`/`description`/technique is
-  a current initial idea, not closed; whether technique is a fixed list,
-  an open catalog, or a CustomField-driven concept is undecided)
-- Patient (structure beyond confirmed attributes — `dni` added and
-  de-dup + search resolved by ADR 0021; fuzzy name+DOB duplicate
-  detection and a document-type enum remain out of scope)
+- Procedure Type — structure is `name` + `description` + its CustomFields
+  (ADR 0022); surgical technique is a `SURGERY`-scoped ENUM CustomField,
+  not an attribute. Nothing further open here.
+- Patient (structure beyond confirmed attributes)
 - Research Study (internal structure is now confirmed to be free-text
   hypothesis/results/analysis/conclusion — no further structure is open
   for the text fields themselves; how the Surgery universe is represented
@@ -603,9 +599,8 @@ object, or something else is **not decided**:
 - Pterygium-specific measurements and interpretation rules — to be
   obtained from the physician meeting.
 - Surgery `metadata` — intentionally unresolved, no further definition.
-- Whether the initial pterygium surgical technique list (§8) is exhaustive
-  or will be extended/refined after the physician meeting.
-- Exact final Procedure Type structure beyond the current initial idea.
+- The pterygium surgical technique option list — physician-owned
+  CustomField content (ADR 0022), not a domain question.
 
 ---
 

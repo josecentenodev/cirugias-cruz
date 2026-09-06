@@ -5,7 +5,6 @@ export interface ProcedureTypeView {
   id: string;
   name: string;
   description: string;
-  technique: string;
 }
 
 const EMPTY_PLACEHOLDER = "—";
@@ -15,7 +14,6 @@ export function toProcedureTypeView(dto: ProcedureTypeDto): ProcedureTypeView {
     id: dto.id,
     name: dto.name,
     description: dto.description ?? EMPTY_PLACEHOLDER,
-    technique: dto.technique ?? EMPTY_PLACEHOLDER,
   };
 }
 
@@ -81,16 +79,15 @@ function summarizeRules(constraint: CustomFieldDto["constraint"]): string {
 }
 
 /**
- * What the detail/edit page renders. Deliberately keeps `description`/
- * `technique` as `undefined` rather than `ProcedureTypeView`'s "—"
- * placeholder: this feeds an editable form's `defaultValue`, where a
- * literal "—" would be wrong to submit back as the actual value.
+ * What the detail/edit page renders. Deliberately keeps `description` as
+ * `undefined` rather than `ProcedureTypeView`'s "—" placeholder: this
+ * feeds an editable form's `defaultValue`, where a literal "—" would be
+ * wrong to submit back as the actual value.
  */
 export interface ProcedureTypeDetailView {
   id: string;
   name: string;
   description?: string;
-  technique?: string;
   customFields: CustomFieldView[];
 }
 
@@ -99,7 +96,6 @@ export function toProcedureTypeDetailView(dto: ProcedureTypeDto): ProcedureTypeD
     id: dto.id,
     name: dto.name,
     description: dto.description,
-    technique: dto.technique,
     customFields: dto.customFields.map(toCustomFieldView),
   };
 }

@@ -36,13 +36,11 @@ interface RegisterPatientBody {
 interface RegisterProcedureTypeBody {
   name: string;
   description?: string;
-  technique?: string;
 }
 
 interface ModifyProcedureTypeBody {
   name?: string;
   description?: string;
-  technique?: string;
 }
 
 type CustomFieldConstraintBody =
@@ -115,7 +113,6 @@ const registerProcedureTypeBodySchema = {
   properties: {
     name: { type: "string" },
     description: { type: "string" },
-    technique: { type: "string" },
   },
 } as const;
 
@@ -124,7 +121,6 @@ const modifyProcedureTypeBodySchema = {
   properties: {
     name: { type: "string" },
     description: { type: "string" },
-    technique: { type: "string" },
   },
 } as const;
 
@@ -299,7 +295,6 @@ function serializeProcedureType(procedureType: ProcedureType) {
     physicianId: procedureType.physicianId,
     name: procedureType.name,
     description: procedureType.description,
-    technique: procedureType.technique,
     customFields: procedureType.customFields.map(serializeCustomField),
   };
 }
@@ -380,7 +375,6 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
           id: randomUUID(),
           name: request.body.name,
           description: request.body.description,
-          technique: request.body.technique,
         });
         return await reply.code(201).send(output);
       } catch (error) {
@@ -402,7 +396,6 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
           procedureTypeId: request.params.id,
           name: request.body.name,
           description: request.body.description,
-          technique: request.body.technique,
         });
         return await reply.code(200).send(output);
       } catch (error) {

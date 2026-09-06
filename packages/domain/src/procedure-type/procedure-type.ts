@@ -7,13 +7,6 @@ export interface ProcedureTypeAttributes {
   physicianId: string;
   name: string;
   description?: string;
-  /**
-   * Surgical technique. Kept as free text on purpose: the final
-   * ProcedureType model is intentionally extensible and not closed to a
-   * fixed set (DOMAIN.md §8). For Pterygium the currently known options
-   * are documented in DOMAIN.md, not enforced here as a fixed enum.
-   */
-  technique?: string;
 }
 
 /**
@@ -25,6 +18,12 @@ export interface ProcedureTypeAttributes {
  * definition has no meaning or consistency outside the ProcedureType
  * that defines it (its name must be unique within that ProcedureType),
  * so it is not a separate aggregate with its own repository.
+ *
+ * Structure is `name` + `description` only. Surgical technique is
+ * modelled as a `SURGERY`-scoped `ENUM` CustomField, not a ProcedureType
+ * attribute (ADR 0022) — a technique is chosen per Surgery from a closed
+ * list the physician defines, not a single value shared by every Surgery
+ * of the type.
  */
 export class ProcedureType {
   private readonly customFields_: CustomField[] = [];
@@ -34,7 +33,6 @@ export class ProcedureType {
     private readonly physicianId_: string,
     private name_: string,
     private description_: string | undefined,
-    private technique_: string | undefined,
   ) {}
 
   static create(attributes: ProcedureTypeAttributes): ProcedureType {
@@ -53,7 +51,6 @@ export class ProcedureType {
       attributes.physicianId,
       attributes.name,
       attributes.description,
-      attributes.technique,
     );
   }
 
@@ -71,7 +68,6 @@ export class ProcedureType {
       params.physicianId,
       params.name,
       params.description,
-      params.technique,
     );
 
     for (const customFieldAttributes of params.customFields) {
@@ -97,18 +93,11 @@ export class ProcedureType {
     return this.description_;
   }
 
-  get technique(): string | undefined {
-    return this.technique_;
-  }
-
   get customFields(): readonly CustomField[] {
     return [...this.customFields_];
   }
 
-  modify(
-    changes: { name?: string; description?: string; technique?: string },
-    actingPhysicianId: string,
-  ): void {
+  modify(changes: { name?: string; description?: string }, actingPhysicianId: string): void {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
 
     if (changes.name !== undefined) {
@@ -119,9 +108,6 @@ export class ProcedureType {
     }
     if (changes.description !== undefined) {
       this.description_ = changes.description;
-    }
-    if (changes.technique !== undefined) {
-      this.technique_ = changes.technique;
     }
   }
 

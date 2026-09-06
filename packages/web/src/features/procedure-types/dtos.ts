@@ -24,7 +24,6 @@ export interface ProcedureTypeDto {
   physicianId: string;
   name: string;
   description?: string;
-  technique?: string;
   customFields: CustomFieldDto[];
 }
 

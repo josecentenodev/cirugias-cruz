@@ -2,7 +2,12 @@
 
 ## Status
 
-Established (current iteration). Internal structure remains open.
+Established (current iteration). **Amended by
+[0022](0022-surgical-technique-is-a-customfield.md)**: surgical technique
+is no longer a Procedure Type attribute — it is a `SURGERY`-scoped `ENUM`
+CustomField (ADR 0018). Procedure Type structure is now `name` +
+`description` only. The technique-related paragraphs below are kept for
+history; read them in that light.
 
 ## Decision
 
@@ -28,9 +33,13 @@ only be introduced if explicitly requested later.
 
 ## Not decided here
 
-- The exact final Procedure Type model (whether technique is a fixed
-  list, open catalog, or CustomField-driven).
+- ~~The exact final Procedure Type model (whether technique is a fixed
+  list, open catalog, or CustomField-driven).~~ **Resolved by ADR 0022**:
+  technique is a `SURGERY`-scoped ENUM CustomField; Procedure Type is
+  `name` + `description`.
 - Whether the initial technique list for pterygium is exhaustive or will
-  be extended after the physician meeting.
+  be extended — moot: the physician now owns that option list as
+  CustomField content, and ADR 0018's "ENUM options may be added, never
+  removed" applies.
 - Any modification/versioning rules for Procedure Types beyond "not
   deletable."

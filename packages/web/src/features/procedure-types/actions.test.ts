@@ -53,10 +53,7 @@ describe("registerProcedureTypeAction", () => {
     authedApiRequestMock.mockResolvedValue({ procedureTypeId: "pt-1" });
 
     await expect(
-      registerProcedureTypeAction(
-        {},
-        formData({ name: "Pterigión", description: "", technique: "" }),
-      ),
+      registerProcedureTypeAction({}, formData({ name: "Pterigión", description: "" })),
     ).rejects.toThrow("NEXT_REDIRECT:/settings/procedure-types");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
@@ -103,13 +100,13 @@ describe("modifyProcedureTypeAction", () => {
     authedApiRequestMock.mockResolvedValue({ procedureTypeId: "pt-1" });
 
     await expect(
-      modifyProcedureTypeAction("pt-1", {}, formData({ technique: "Amniotic membrane" })),
+      modifyProcedureTypeAction("pt-1", {}, formData({ description: "vía subconjuntival" })),
     ).rejects.toThrow("NEXT_REDIRECT:/settings/procedure-types/pt-1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
       method: "PATCH",
       path: "/procedure-types/pt-1",
-      body: { technique: "Amniotic membrane" },
+      body: { description: "vía subconjuntival" },
     });
   });
 

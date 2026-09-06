@@ -40,7 +40,6 @@ export function ProcedureTypeList({ procedureTypes }: { procedureTypes: Procedur
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Description</TableHead>
-            <TableHead>Technique</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -55,7 +54,6 @@ export function ProcedureTypeList({ procedureTypes }: { procedureTypes: Procedur
                 </Link>
               </TableCell>
               <TableCell>{procedureType.description}</TableCell>
-              <TableCell>{procedureType.technique}</TableCell>
             </TableRow>
           ))}
         </TableBody>

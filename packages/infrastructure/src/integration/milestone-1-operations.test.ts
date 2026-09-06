@@ -62,7 +62,6 @@ describe("Milestone 1 operations against real Prisma repositories", () => {
       physicianId: PHYSICIAN_ID,
       id: PROCEDURE_TYPE_ID,
       name: "Pterigión",
-      technique: "Conjunctival autograft",
     });
 
     expect(output).toEqual({ procedureTypeId: PROCEDURE_TYPE_ID });

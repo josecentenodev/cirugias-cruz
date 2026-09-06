@@ -55,11 +55,6 @@ export function ProcedureTypeEditForm({
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="technique">Technique (optional)</Label>
-        <Input id="technique" name="technique" defaultValue={procedureType.technique} />
-      </div>
-
       <div>
         <SubmitButton />
       </div>

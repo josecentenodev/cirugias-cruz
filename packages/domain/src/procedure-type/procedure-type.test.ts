@@ -32,29 +32,29 @@ describe("ProcedureType", () => {
     expect(() => ProcedureType.create({ ...validAttributes, name: "" })).toThrow();
   });
 
-  it("accepts optional description and technique", () => {
+  it("accepts an optional description", () => {
     const procedureType = ProcedureType.create({
       ...validAttributes,
       description: "Crecimiento fibrovascular conjuntival",
-      technique: "conjunctival autograft",
     });
 
     expect(procedureType.description).toBe("Crecimiento fibrovascular conjuntival");
-    expect(procedureType.technique).toBe("conjunctival autograft");
   });
 
   it("can be modified by its owning physician", () => {
     const procedureType = ProcedureType.create(validAttributes);
 
-    procedureType.modify({ technique: "conjunctival autograft + MMC" }, "physician-1");
+    procedureType.modify({ description: "vía subconjuntival" }, "physician-1");
 
-    expect(procedureType.technique).toBe("conjunctival autograft + MMC");
+    expect(procedureType.description).toBe("vía subconjuntival");
   });
 
   it("cannot be modified by a physician from another tenant", () => {
     const procedureType = ProcedureType.create(validAttributes);
 
-    expect(() => procedureType.modify({ technique: "amniotic membrane" }, "physician-2")).toThrow();
+    expect(() =>
+      procedureType.modify({ description: "amniotic membrane" }, "physician-2"),
+    ).toThrow();
   });
 
   it("has no deletion capability — a ProcedureType must never be deleted", () => {

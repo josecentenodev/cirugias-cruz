@@ -21,12 +21,12 @@ describe("modifyProcedureType", () => {
     const output = await modifyProcedureType(deps)({
       physicianId: PHYSICIAN_ID,
       procedureTypeId: "procedure-type-1",
-      technique: "conjunctival autograft",
+      description: "Crecimiento fibrovascular conjuntival",
     });
 
     expect(output).toEqual({ procedureTypeId: "procedure-type-1" });
     const persisted = await deps.procedureTypeRepository.findById("procedure-type-1");
-    expect(persisted?.technique).toBe("conjunctival autograft");
+    expect(persisted?.description).toBe("Crecimiento fibrovascular conjuntival");
   });
 
   it("throws NotFoundError when the procedure type does not exist", async () => {

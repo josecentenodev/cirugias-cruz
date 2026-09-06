@@ -24,7 +24,7 @@ describe("registerProcedureType", () => {
     expect(persisted?.name).toBe("Pterigión");
   });
 
-  it("accepts optional description and technique", async () => {
+  it("accepts an optional description", async () => {
     const deps = buildDeps();
 
     await registerProcedureType(deps)({
@@ -32,12 +32,10 @@ describe("registerProcedureType", () => {
       id: "procedure-type-1",
       name: "Pterigión",
       description: "Crecimiento fibrovascular conjuntival",
-      technique: "conjunctival autograft",
     });
 
     const persisted = await deps.procedureTypeRepository.findById("procedure-type-1");
     expect(persisted?.description).toBe("Crecimiento fibrovascular conjuntival");
-    expect(persisted?.technique).toBe("conjunctival autograft");
   });
 
   it("lets the domain reject registration without a name", async () => {

@@ -46,12 +46,10 @@ export class PrismaProcedureTypeRepository implements ProcedureTypeRepository {
           physicianId: procedureType.physicianId,
           name: procedureType.name,
           description: procedureType.description ?? undefined,
-          technique: procedureType.technique ?? undefined,
         },
         update: {
           name: procedureType.name,
           description: procedureType.description ?? undefined,
-          technique: procedureType.technique ?? undefined,
         },
       }),
       ...procedureType.customFields.map((field) => {
@@ -75,7 +73,6 @@ function toProcedureType(row: {
   physicianId: string;
   name: string;
   description: string | null;
-  technique: string | null;
   customFields: CustomFieldDefinitionRow[];
 }): ProcedureType {
   return ProcedureType.reconstitute({
@@ -83,7 +80,6 @@ function toProcedureType(row: {
     physicianId: row.physicianId,
     name: row.name,
     description: row.description ?? undefined,
-    technique: row.technique ?? undefined,
     customFields: row.customFields.map(fromCustomFieldDefinitionRow),
   });
 }

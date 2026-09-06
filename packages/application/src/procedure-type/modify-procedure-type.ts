@@ -6,7 +6,6 @@ export interface ModifyProcedureTypeInput {
   procedureTypeId: string;
   name?: string;
   description?: string;
-  technique?: string;
 }
 
 export interface ModifyProcedureTypeOutput {
@@ -33,10 +32,7 @@ export function modifyProcedureType(deps: ModifyProcedureTypeDeps) {
       throw new NotFoundError(`Procedure type ${input.procedureTypeId} was not found`);
     }
 
-    procedureType.modify(
-      { name: input.name, description: input.description, technique: input.technique },
-      input.physicianId,
-    );
+    procedureType.modify({ name: input.name, description: input.description }, input.physicianId);
 
     await deps.procedureTypeRepository.save(procedureType);
 

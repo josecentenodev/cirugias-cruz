@@ -69,7 +69,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       method: "POST",
       url: "/procedure-types",
       cookies,
-      payload: { name: "Pterigión", technique: "Conjunctival autograft" },
+      payload: { name: "Pterigión", description: "Extirpación de pterigión" },
     });
     expect(procedureTypeResponse.statusCode).toBe(201);
     const { procedureTypeId } = procedureTypeResponse.json<{ procedureTypeId: string }>();
@@ -177,7 +177,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       method: "POST",
       url: "/procedure-types",
       cookies,
-      payload: { name: "Pterigión", technique: "Conjunctival autograft" },
+      payload: { name: "Pterigión", description: "Extirpación de pterigión" },
     });
     const { procedureTypeId } = procedureTypeResponse.json<{ procedureTypeId: string }>();
 
@@ -261,7 +261,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       method: "PATCH",
       url: `/procedure-types/${procedureTypeId}`,
       cookies,
-      payload: { technique: "Conjunctival autograft" },
+      payload: { description: "vía subconjuntival" },
     });
     expect(modifyResponse.statusCode).toBe(200);
 

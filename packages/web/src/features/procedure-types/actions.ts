@@ -28,7 +28,6 @@ export async function registerProcedureTypeAction(
   const parsed = registerProcedureTypeSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") || undefined,
-    technique: formData.get("technique") || undefined,
   });
   if (!parsed.success) {
     return { error: "Please fill in every required field." };
@@ -65,7 +64,6 @@ export async function modifyProcedureTypeAction(
   const parsed = modifyProcedureTypeSchema.safeParse({
     name: formData.get("name") || undefined,
     description: formData.get("description") || undefined,
-    technique: formData.get("technique") || undefined,
   });
   if (!parsed.success) {
     return { error: "Please check the values entered." };

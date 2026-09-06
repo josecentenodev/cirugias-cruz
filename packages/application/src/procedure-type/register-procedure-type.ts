@@ -6,7 +6,6 @@ export interface RegisterProcedureTypeInput {
   id: string;
   name: string;
   description?: string;
-  technique?: string;
 }
 
 export interface RegisterProcedureTypeOutput {
@@ -31,7 +30,6 @@ export function registerProcedureType(deps: RegisterProcedureTypeDeps) {
       physicianId: input.physicianId,
       name: input.name,
       description: input.description,
-      technique: input.technique,
     });
 
     await deps.procedureTypeRepository.save(procedureType);

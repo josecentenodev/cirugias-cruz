@@ -31,16 +31,9 @@ describe("toProcedureTypeView", () => {
     expect(toProcedureTypeView(buildDto()).description).toBe("—");
   });
 
-  it("shows a placeholder when technique is absent", () => {
-    expect(toProcedureTypeView(buildDto()).technique).toBe("—");
-  });
-
-  it("passes description and technique through when present", () => {
-    const view = toProcedureTypeView(
-      buildDto({ description: "Removal of pterygium", technique: "Conjunctival autograft" }),
-    );
+  it("passes the description through when present", () => {
+    const view = toProcedureTypeView(buildDto({ description: "Removal of pterygium" }));
     expect(view.description).toBe("Removal of pterygium");
-    expect(view.technique).toBe("Conjunctival autograft");
   });
 });
 
@@ -115,10 +108,9 @@ describe("toCustomFieldView", () => {
 });
 
 describe("toProcedureTypeDetailView", () => {
-  it("keeps description/technique as undefined rather than a display placeholder", () => {
+  it("keeps description as undefined rather than a display placeholder", () => {
     const view = toProcedureTypeDetailView(buildDto());
     expect(view.description).toBeUndefined();
-    expect(view.technique).toBeUndefined();
   });
 
   it("maps every CustomField", () => {

@@ -72,6 +72,10 @@ changes.
   responsibility concern, not mere technical immutability.
 - **ProcedureType**: physician-owned, physician-only create/modify,
   **never deleted** — no delete method exists at all, on purpose.
+  Structure is `name` + `description` + its CustomField definitions only.
+  Surgical **technique** is a `SURGERY`-scoped `ENUM` CustomField, **not**
+  a ProcedureType attribute (ADR 0022 removed the free-text `technique`
+  field) — chosen per Surgery from a physician-defined closed list.
 - **ResearchStudy**: belongs to one physician; contains free-text
   `hypothesis`/`results`/`analysis`/`conclusion` plus a Physician-selected
   universe of Surgery ids (which may span multiple patients and multiple
@@ -157,7 +161,6 @@ changes.
 
 - CustomField's value model (see above).
 - Surgery/Patient `metadata` shape.
-- Final Procedure Type structure beyond `name`/`description`/`technique`.
 - Pterygium-specific clinical measurements and interpretation rules
   (pending a physician consultation — do not guess clinical content).
 - Notifications/reminders, payments/subscriptions, observability, CI/CD,

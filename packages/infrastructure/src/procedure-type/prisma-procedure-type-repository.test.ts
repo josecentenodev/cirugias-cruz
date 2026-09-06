@@ -40,7 +40,6 @@ describe("PrismaProcedureTypeRepository", () => {
       physicianId: PHYSICIAN_ID,
       name: "Pterigión",
       description: "Extirpación de pterigión",
-      technique: "Conjunctival autograft",
     });
 
     await repository.save(procedureType);
@@ -49,7 +48,7 @@ describe("PrismaProcedureTypeRepository", () => {
     expect(found).not.toBeNull();
     expect(found?.name).toBe("Pterigión");
     expect(found?.physicianId).toBe(PHYSICIAN_ID);
-    expect(found?.technique).toBe("Conjunctival autograft");
+    expect(found?.description).toBe("Extirpación de pterigión");
   });
 
   it("updates an existing procedure type on a second save rather than duplicating it", async () => {
@@ -60,11 +59,11 @@ describe("PrismaProcedureTypeRepository", () => {
     });
     await repository.save(procedureType);
 
-    procedureType.modify({ technique: "Amniotic membrane" }, PHYSICIAN_ID);
+    procedureType.modify({ description: "Amniotic membrane" }, PHYSICIAN_ID);
     await repository.save(procedureType);
 
     const found = await repository.findById("infra-test-procedure-type-1");
-    expect(found?.technique).toBe("Amniotic membrane");
+    expect(found?.description).toBe("Amniotic membrane");
 
     const rowCount = await testPrisma.procedureType.count({
       where: { id: "infra-test-procedure-type-1" },

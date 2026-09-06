@@ -95,14 +95,32 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 ### Not started
 
+- **Patient identity & search (Milestone 8.7) — `MVP-required`** (product
+  owner decision, this pass). Add an identifying field to Patient so the
+  same real person isn't loaded twice — `DNI` is the leading candidate —
+  and a patient search on the Pacientes list. Not a problem at current
+  volume, but a real one once data volume grows. Not yet designed — see
+  Milestone 8.7 for the open questions.
+- **Remove `ProcedureType.technique` (Milestone 8.8) — `MVP-required`**
+  (product owner decision, this pass). Surgical technique becomes a
+  `SURGERY`-scoped `ENUM` CustomField (per ADR 0018), not a free-text
+  ProcedureType attribute — so a technique is chosen per Surgery from a
+  closed list. Small vertical slice — see Milestone 8.8.
 - Frontend polish beyond the decided IA — the visual/design-system
   redesign half of Milestone 10, blocked only on the product owner
-  choosing a direction (see that milestone).
+  choosing a direction (see that milestone). **Not** MVP.
 - CI/CD.
-- A public domain for the `cirugias-cruz` service (it currently deploys
-  and runs, but is reachable only on Railway's private network — no one
-  outside the project can reach it yet).
 - Platform Admin (no domain or application representation exists yet).
+
+### Public domain
+
+**Decided (product owner, this pass): keep Railway's own generated
+domain (`https://web-production-c686b1.up.railway.app`) for the MVP.**
+Attaching a custom domain is **post-MVP** — a product/ops call that can
+be made later without losing anything already built. `api` never needs a
+public domain (BFF pattern; Milestone 7/8). Milestone 9's "public domain"
+line is therefore satisfied by the existing Railway URL; only its human
+walkthrough remains.
 
 ### Hosting platform
 
@@ -207,7 +225,16 @@ field content, which remains deferred exactly as before.
   0015/0016).
 - Register **and retrieve** a Patient, within the acting physician's
   tenant (read was missing; see Milestone 4).
-- Register **and retrieve** a Procedure Type.
+- **Patient identity & search** (Milestone 8.7): an identifying field on
+  Patient (`DNI` the leading candidate) so the same real person isn't
+  entered twice within a tenant, and a search on the patient list.
+  Product owner decision: pre-MVP, because it becomes expensive to
+  retrofit once data volume grows.
+- Register **and retrieve** a Procedure Type. Its structure is
+  `name` + `description` only — surgical **technique** is modelled as a
+  `SURGERY`-scoped `ENUM` CustomField, not a ProcedureType attribute
+  (Milestone 8.8, product owner decision; the free-text `technique` field
+  is removed).
 - Register **and retrieve** a completed Surgery for a Patient + Procedure
   Type, including its full Control history.
 - Record and modify a Control against a Surgery — the capability
@@ -239,7 +266,9 @@ field content, which remains deferred exactly as before.
   other three sections are required for the MVP. See Milestone 10. The
   visual/design-system redesign is **not** part of the MVP.
 - A public, reliable domain on Railway for `web`, reachable outside
-  Railway's private network. `api` does not need one — see Milestone 7/9.
+  Railway's private network. **Satisfied by Railway's own generated
+  domain** (product owner decision — a custom domain is post-MVP). `api`
+  does not need one — see Milestone 7/9.
 - A security baseline appropriate for the product (request validation,
   rate limiting, security headers, a real session policy) — not a
   temporary or shortcut implementation. Because the frontend is a BFF, a
@@ -289,24 +318,25 @@ field content, which remains deferred exactly as before.
 > "usable by a physician through the product" are no longer treated as
 > equivalent — see Progress Measurement below.
 
-| Capability                                                                                     | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                                               |
-| ---------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Physician authentication (login/logout)                                                        | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                     |
-| Physician self-registration                                                                    | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation dormant, not enforced (ADR 0016)                                         |
-| Resident authentication (login, forced password change, temp-password issue/reset, deactivate) | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED; no human walkthrough yet                                                                                           |
-| Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                     | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType by id, not name — known gap, see Risks                                                 |
-| Patient (register + retrieve)                                                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                     |
-| Procedure Type (register + retrieve)                                                           | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                     |
-| Surgery + Control history (register/record/modify + retrieve)                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                     |
-| Resident (register, assign/remove on Surgery, retrieve, credential mgmt)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, credential actions added Milestone 8.5); no human walkthrough yet                                                     |
-| Research Study (create, edit, manage universe, full lifecycle, retrieve)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                     |
-| CustomField (define on Procedure Type; record/retrieve values on Surgery/Control)              | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | Complete through `web` (Milestone 8.6, ADR 0018/0019/0020); Physician surfaces only — Resident-authored Control has no CustomField input yet |
-| `api` security baseline (validation, forwarded-IP rate limiting, headers)                      | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                                                       |
-| `web` security baseline (headers/CSP, client-IP forwarding)                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)                                            |
-| Public reachability                                                                            | N/A    | N/A         | N/A         | N/A       | N/A      | N/A | ❌        | Railway-provided domain live (Milestone 8); custom domain + human walkthrough — Milestone 9                                                  |
-| Physician-facing IA/navigation reorganized by clinical workflow (**MVP-required**)             | N/A    | N/A         | N/A         | N/A       | N/A      | ⚠️  | ❌        | IA decided (Milestone 10); Configuración section built, Pacientes/Plantilla/Investigaciones not yet                                          |
-| Design system / visual redesign (**not** MVP)                                                  | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Blocked on the product owner choosing a design direction — see Milestone 10                                                                  |
-| Platform Admin visibility                                                                      | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                                           |
+| Capability                                                                                     | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                                             |
+| ---------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Physician authentication (login/logout)                                                        | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                   |
+| Physician self-registration                                                                    | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation dormant, not enforced (ADR 0016)                                       |
+| Resident authentication (login, forced password change, temp-password issue/reset, deactivate) | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED; no human walkthrough yet                                                                                         |
+| Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                     | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType by id, not name — known gap, see Risks                                               |
+| Patient (register + retrieve)                                                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                   |
+| Patient identity (dedup field, e.g. DNI) + patient search (**MVP-required**)                   | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Milestone 8.7 — not started at any layer; product owner decision, pre-MVP                                                                  |
+| Procedure Type (register + retrieve)                                                           | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8); free-text `technique` attribute to be removed — technique becomes a CustomField ENUM (Milestone 8.8, MVP-required) |
+| Surgery + Control history (register/record/modify + retrieve)                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                   |
+| Resident (register, assign/remove on Surgery, retrieve, credential mgmt)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, credential actions added Milestone 8.5); no human walkthrough yet                                                   |
+| Research Study (create, edit, manage universe, full lifecycle, retrieve)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                   |
+| CustomField (define on Procedure Type; record/retrieve values on Surgery/Control)              | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | Complete through `web` for both Physician and Resident (Milestone 8.6, ADR 0018/0019/0020); no human walkthrough yet                       |
+| `api` security baseline (validation, forwarded-IP rate limiting, headers)                      | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                                                     |
+| `web` security baseline (headers/CSP, client-IP forwarding)                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)                                          |
+| Public reachability                                                                            | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ❌        | Railway-provided domain live and accepted for the MVP (custom domain post-MVP); human walkthrough pending — Milestone 9                    |
+| Physician-facing IA/navigation reorganized by clinical workflow (**MVP-required**)             | N/A    | N/A         | N/A         | N/A       | N/A      | ⚠️  | ❌        | IA decided (Milestone 10); Configuración section built, Pacientes/Plantilla/Investigaciones not yet                                        |
+| Design system / visual redesign (**not** MVP)                                                  | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Blocked on the product owner choosing a design direction — see Milestone 10                                                                |
+| Platform Admin visibility                                                                      | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                                         |
 
 **Nothing is Human-E2E complete yet.** Every MVP-required backend
 capability (Milestones 1–7) is now `TECHNICALLY_COMPLETE` — proven
@@ -1492,16 +1522,127 @@ test-cleanup helpers needed updating to delete CustomField rows before
 their parent Surgery/ProcedureType, mirroring the existing
 children-before-parents convention.
 
-**Deliberate follow-up gap**: a **Resident** recording a Control does not
-see CustomField inputs. The Resident session has no Procedure Type read
-(`GET /me` only returns the residentId; `serializeSurgeryForResident`
-carries `procedureTypeName` but not `customFields`), so the definitions
-aren't available to `resident-session`'s forms. Closing it means adding
-the `CONTROL`-scoped definitions to the Resident's own Surgery read and
-wiring `CustomFieldValueInputs` into `RecordOwnControlForm`. Small, but
-it needs the `api` read extended — treated as a Milestone 8.6 tail, to
-be done before Milestone 9's walkthrough since a Resident-authored
-Control is an MVP capability.
+**Resident tail — done** (commit `1b15656`, folded into the Milestone 10
+nav work). `getSurgeryForResident` now returns the owning Procedure
+Type's CustomField definitions; a shared `serializeCustomField`
+(exported from `core-loop.ts`) is used by both `serializeProcedureType`
+and `serializeSurgeryForResident`; `GET /me/surgeries/:id` carries
+`customFields`; `RecordOwnControlForm` / `recordOwnControlAction` reuse
+the Milestone 8.6 `CustomFieldValueInputs` / `collectCustomFieldValues`
+helpers, and `OwnControlRow` shows recorded values. The list read
+(`GET /me/surgeries`) still returns `customFields: []`.
+
+---
+
+### Milestone 8.7 — Patient identity & search (pre-MVP)
+
+**Status**: `NOT_STARTED`. Added this pass by explicit product owner
+decision; `MVP-required`.
+
+**Objective**: two things, so a physician managing real data volume can
+find a patient and not create the same one twice —
+
+1. An **identifying field on Patient** to support de-duplication. `DNI`
+   (Argentine national ID) is the product owner's leading candidate.
+2. **Patient search** on the Pacientes list (currently an unfiltered
+   list).
+
+**Why now, not post-MVP**: not a problem at today's volume, but
+retrofitting an identity field and back-filling it is expensive once a
+tenant has hundreds of patients. The product owner wants it in before
+the MVP is declared.
+
+**Open questions — to resolve when this is designed, not assumed here**:
+
+- Is the identifying field **required** or optional? Foreign patients may
+  have no DNI (passport instead); the current `Patient` deliberately
+  stores minimal PII and the physician's own prototype uses a
+  self-assigned short code, not a national ID (see
+  `physician-prototype-analysis.md`).
+- Is uniqueness a **hard constraint** (reject a duplicate) or a **soft
+  warning** (flag a likely duplicate, let the physician decide)? A hard
+  unique constraint is **per-tenant only** — the same real person is an
+  independent Patient in another physician's tenant, and that must stay
+  true (DOMAIN.md tenancy model, ADR unchanged).
+- Does this need a new ADR? A change to `Patient`'s attributes plus a
+  uniqueness rule is a Domain decision — consult
+  `domain-driven-design` / the `epitaxy-project` skill and DOMAIN.md
+  before modelling it.
+- Search scope: name and/or the new id; server-side (a `?q=` on
+  `GET /patients`, matching the Milestone 4 read pattern) vs. client-side
+  filter of the already-fetched tenant list (acceptable at low volume,
+  same call the reorg's patient-scoped surgery list already makes).
+
+**Scope (once designed)**: Domain (`Patient` attribute + any invariant),
+Application (`registerPatient` validation, a `searchPatients` or a `?q=`
+on `listPatients`), Infrastructure (Prisma column + migration + a
+per-tenant partial unique index if the rule is hard), HTTP
+(`registerPatient` body + `GET /patients` query), `web`
+(`PatientForm` field, a search box on `patients/page.tsx`).
+
+**Dependencies**: none — independent of Milestone 10's nav work and of
+Milestone 9. Should land before Milestone 9's human walkthrough so the
+walkthrough exercises the real Patient shape.
+
+---
+
+### Milestone 8.8 — Remove `ProcedureType.technique`; technique is a CustomField (pre-MVP)
+
+**Status**: `NOT_STARTED`. Added this pass by explicit product owner
+decision.
+
+**Observation that prompted it**: registering a Procedure Type takes
+`technique` as a single free-text field. The physician's own prototype
+models surgical technique as a **closed `<select>`** (Autoinjerto
+conjuntival / + MMC / Membrana amniótica / + pegamento de fibrina /
+Otra), and a technique is a property of an individual **Surgery**, not of
+the procedure-type definition — today every Surgery of a given type
+shares the one `technique` string, so recording a different technique
+would mean duplicating the Procedure Type.
+
+**Decision (product owner)**: surgical technique is modelled as a
+**`SURGERY`-scoped `ENUM` CustomField** — exactly the mechanism ADR 0018
+already built and named "surgical technique used" as its canonical
+example. The physician defines a "Técnica" ENUM on their "Pterigión"
+Procedure Type with their own option list (combined techniques are
+explicit options, as in the prototype — no multi-select, which ADR 0018
+defers); each Surgery picks one at registration. Aggregate stats
+("recidiva por técnica") then work because `valueType` is known
+(ADR 0019). **The free-text `ProcedureType.technique` attribute is
+removed** — it was always "a current initial idea, not closed"
+(DOMAIN.md, ADR 0011), and it is now superseded.
+
+**Why pre-MVP**: without this, the physician cannot record technique the
+way their real practice needs it, and the Milestone 9 walkthrough would
+validate the wrong Procedure Type shape.
+
+**Scope**: a small vertical slice, same shape as the ADR 0020
+`magnitude` removal —
+
+- **Domain** (`packages/domain/src/procedure-type/procedure-type.ts`):
+  drop the `technique` attribute, constructor param, getter, and its
+  handling in `create` / `reconstitute` / `modify`. Update tests.
+- **Application**: `registerProcedureType` / `modifyProcedureType` inputs
+  drop `technique`. Update tests.
+- **Infrastructure**: Prisma `technique` column removed + migration;
+  `procedure-type` mapper. Update tests.
+- **HTTP**: `registerProcedureTypeBodySchema` /
+  `modifyProcedureTypeBodySchema` drop `technique`;
+  `serializeProcedureType` drops it. Update e2e.
+- **`web`** (`features/procedure-types/*`): `dtos`, `schemas`, `actions`,
+  `mappers`, `ProcedureTypeForm` / detail — drop the `technique` field
+  and the "Technique" column.
+- **Docs**: a short ADR (or an amendment to ADR 0011 + DOMAIN.md §8's
+  "exact final Procedure Type model" open point) recording that technique
+  is a CustomField, not a ProcedureType attribute. Consult the
+  `domain-driven-design` / `epitaxy-project` skills when writing it.
+
+**Not in scope**: seeding the pterygium technique option list in code —
+that stays physician-entered content (DOMAIN.md, ADR 0011), same posture
+as every other CustomField.
+
+**Dependencies**: none. Independent of Milestone 8.7 and Milestone 10.
+Land before Milestone 9's walkthrough.
 
 ---
 
@@ -1517,19 +1658,21 @@ last: exposing the product publicly before Milestone 7 (security) or
 Milestone 8 (frontend) exist would mean exposing an unvalidated,
 unrestricted-login, headerless API with no UI.
 
-**Prerequisites**: Milestones 4–8 all complete.
+**Prerequisites**: Milestones 4–8 complete; Milestone 10's nav/IA half
+and Milestone 8.7 (Patient identity & search) should land first so the
+walkthrough exercises the MVP's final shape.
 
-**Scope**: attach a Railway public domain to `packages/web` only — `api`
-stays on the private network per Milestone 7/8's BFF pattern and does
-not need a public domain at all; verify HTTPS on `web`'s domain; verify
-session cookies behave correctly in a real browser (same-origin, so this
-should be the simple case the BFF pattern was chosen to guarantee); a
-real, unscripted human walkthrough.
+**Scope**: verify HTTPS and session-cookie behaviour on `web`'s existing
+Railway domain (same-origin, the simple case the BFF pattern guarantees);
+a real, unscripted human walkthrough. `api` stays on the private network
+per Milestone 7/8's BFF pattern and needs no public domain at all.
 
-**Domain decision (made)**: keep Railway's own generated domain
-(`https://web-production-c686b1.up.railway.app`) rather than attach a
-custom one for now — a product/ops call, not an architectural one; a
-custom domain can be added later without losing anything already built.
+**Domain decision (settled, product owner)**: **keep Railway's own
+generated domain** (`https://web-production-c686b1.up.railway.app`) for
+the MVP. A custom domain is **post-MVP** — a product/ops call that can be
+made later without losing anything already built. So this milestone's
+"public domain" requirement is **already satisfied**; only the human
+walkthrough remains.
 
 **Explicitly out of scope**: load testing, multi-region deployment, a
 CDN, any public domain for `api` — no evidence any of this is needed at
@@ -1590,16 +1733,18 @@ above.
 
 ### Milestone 10 — Physician-facing IA & design system rework
 
-**Status**: `IN_PROGRESS`. The milestone now has two halves with
-different standing:
+**Status**: `IN_PROGRESS`. The milestone has two halves with different
+standing:
 
-- **Navigation / IA reorganization — `MVP-required`** (product owner
-  decision, this pass). The four-section structure below is decided;
-  **Configuración is built** (Milestone 8.6); **Pacientes, Plantilla and
-  Investigaciones are not yet built** and must be before the MVP closes.
-  See "Implementation plan for the three remaining sections" below.
-- **Visual / design-system redesign — not MVP.** Still blocked on the
-  product owner choosing a direction — see "Still not decided" below.
+- **Navigation / IA reorganization — `MVP-required`, DONE** (commits
+  `57a5b57`, `1b15656`, merged to `main`). The navbar is the four
+  sections below; a Surgery is reached only through its Patient
+  (`patients/[id]/surgeries/{new,[surgeryId]}`), the flat `/surgeries`
+  routes are removed, Residents moved to `/staff/residents`. Verified by
+  `next build` (route table matches the new IA), full typecheck, and
+  web/application/http test suites.
+- **Visual / design-system redesign — not MVP, not started.** Blocked on
+  the product owner choosing a direction — see "Still not decided" below.
 
 **Problem, as originally stated by the product owner**: the product
 organized itself around loose backend-mirroring concepts — a navbar
@@ -1650,21 +1795,17 @@ pass, and is concerned that continuing to build new components against
 the current ad-hoc styling makes that redesign more expensive the longer
 it's deferred.
 
-**Implementation plan for the three remaining sections** (Pacientes,
-Plantilla, Investigaciones — Configuración is already built): follow the
-route structure in `frontend-architecture-discovery.md` §8. In short:
-Surgery registration and Surgery detail move under
-`patients/[id]/surgeries/...` (a Surgery is always reached through its
-Patient); the Patient detail page gains that patient's Surgery list;
-`residents/` moves to `staff/residents/`; `research-studies/` keeps its
-path and only its nav label changes; the `(dashboard)/layout.tsx` navbar
-is rebuilt as the four sections. Control recording stays an inline form
-on the Surgery detail (not a separate route — §8 allows this). Scoping a
-Surgery list to one Patient is done by filtering the tenant-wide
-`GET /surgeries` in the page for the MVP; adding a `?patientId=` filter
-to `api` is a possible later optimisation, not required. The full
-step-by-step is tracked in the implementation plan produced alongside
-this ROADMAP update.
+**Navigation IA — as built** (matches `frontend-architecture-discovery.md`
+§8): Surgery registration and detail live under
+`patients/[id]/surgeries/{new,[surgeryId]}` (`patientId` threaded through
+the detail components so the Server Actions redirect to the nested URL);
+the Patient detail page lists that patient's Surgeries, scoped by
+filtering the tenant-wide `GET /surgeries` in the page (no `?patientId=`
+on `api` — a possible later optimisation); the flat `/surgeries` routes
+are deleted; `residents/` → `staff/residents/`; `research-studies/`
+unchanged except the nav label; `(dashboard)/layout.tsx` is the four
+sections. Control recording stayed an inline form on the Surgery detail
+(§8 allows this — no `controls/new` route).
 
 **Still not decided**:
 
@@ -1692,24 +1833,30 @@ Milestones 1–7 (DONE, deployed)
                           Milestone 8.5 (Self-registration + Resident auth)
                                     │
                                     ▼
-                          Milestone 8.6 (CustomField extensibility, ADR 0018/0019/0020)
-                          — backend + Physician web UI done; Resident-
-                          Control CustomField input is a small tail
+                          Milestone 8.6 (CustomField, ADR 0018/0019/0020)
+                          — DONE end to end (Physician + Resident)
                                     │
                                     ▼
-                          Milestone 10 nav/IA half (MVP-required): build
-                          Pacientes / Plantilla / Investigaciones
-                          (Configuración already done)
+                          Milestone 10 nav/IA half — DONE (merged): four
+                          sections, Surgery/Control nested under Patient
                                     │
                                     ▼
-                          Milestone 9 (Public domain for web + human E2E)
+                          Milestone 8.7 + 8.8 (MVP-required, independent):
+                          8.7 Patient identity field (DNI) + search;
+                          8.8 remove ProcedureType.technique (→ CustomField)
+                                    │
+                                    ▼
+                          Milestone 9 — human E2E walkthrough
+                          (public domain already satisfied by Railway's
+                          own URL; custom domain is post-MVP)
 
                           Milestone 10 visual/design-system half — NOT
                           in the MVP line; blocked only on the product
                           owner's own design direction
 ```
 
-**Sequential (hard)**: Milestones 1–3 → {4, 5, 6, 7} → 8 → 8.5 → 9.
+**Sequential (hard)**: Milestones 1–3 → {4, 5, 6, 7} → 8 → 8.5 → 8.6 →
+10 (nav) → {8.7, 8.8} → 9. 8.7 and 8.8 are independent of each other.
 
 **Completed in parallel**: Milestones 4, 5, 6, and 7 had no dependency
 on each other and were implemented simultaneously (separate git
@@ -1718,16 +1865,17 @@ different Prisma models, with schema-touching milestones (5, then 6)
 sequenced against each other while the schema-free milestones (4, 7)
 ran fully in parallel. All four are now `COMPLETED` and merged.
 
-**Blocked**: nothing remains blocked on a framework decision — Next.js
-App Router + BFF is confirmed. Milestone 8.6 (CustomField) is done
-through the Physician UI; only its Resident-Control tail remains.
-Milestone 10's navigation/IA half is now `MVP-required` and unblocked
-(route structure decided, `frontend-architecture-discovery.md` §8) —
-it's the current build. Milestone 9's human walkthrough waits for that
-nav reorganization to land, so the walkthrough validates the MVP's final
-shape. Milestone 10's **visual/design-system half** is the only piece
-still blocked — on the product owner supplying a design direction — and
-is not in the MVP line.
+**Blocked**: nothing. Milestone 8.6 (CustomField) is done end to end for
+both Physician and Resident. Milestone 10's navigation/IA half is done
+and merged. The remaining MVP build work is two small independent
+slices: **Milestone 8.7** (Patient identity field + search — not yet
+designed) and **Milestone 8.8** (remove `ProcedureType.technique`;
+technique becomes a `SURGERY`-scoped ENUM CustomField — decided, small).
+After those, **Milestone 9** is only the human walkthrough — the
+public-domain requirement is already satisfied by Railway's generated URL
+(custom domain is post-MVP, product owner decision). Milestone 10's
+**visual/design-system half** is the only piece still blocked — on the
+product owner supplying a design direction — and is not in the MVP line.
 
 **Deferred, not scheduled**: pterygium-specific (or other specialty)
 clinical field _content_ (still requires physician input, but no longer
@@ -1771,13 +1919,14 @@ through the deployed frontend by a **scripted** client (Playwright,
 against a real stack) — Milestone 8 is `COMPLETED`. Nothing is
 `END_TO_END_COMPLETE` yet in the sense that matters most: no **human**
 has walked through the deployed product yet — that remains Milestone 9's
-own job (public custom domain + human validation).
+own job (the human walkthrough; the public domain is already met by
+Railway's generated URL, a custom domain being post-MVP).
 
 ---
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: 10 (navigation/IA half) — build the Pacientes / Plantilla / Investigaciones sections. `IN_PROGRESS` and now `MVP-required` (product owner decision). Milestone 8.6 (CustomField) is done through the Physician web UI (`COMPLETED`; a small Resident-Control tail remains). Milestone 9 (public domain + human walkthrough) stays `NOT_STARTED` and now waits on the nav/IA reorganization landing first, so the human walkthrough validates the MVP's actual final shape. Milestone 10's visual/design-system half is explicitly NOT in the MVP line — blocked on the product owner choosing a design direction.**
+> **CURRENT MILESTONE: 8.7 + 8.8 — two small, independent, `MVP-required` pre-walkthrough slices (product owner decisions, this pass). 8.7: an identifying field on Patient (DNI candidate) for de-dup + patient search — `NOT_STARTED`, not yet designed. 8.8: remove the free-text `ProcedureType.technique` attribute — surgical technique becomes a `SURGERY`-scoped ENUM CustomField (decided). Milestone 8.6 (CustomField) is `COMPLETED` end to end for Physician and Resident. Milestone 10's navigation/IA half is `COMPLETED` and merged. After 8.7 + 8.8, Milestone 9 is only the human walkthrough — the public domain is already met by Railway's generated URL (custom domain is post-MVP). Milestone 10's visual/design-system half is explicitly NOT in the MVP line.**
 
 Milestones 1 through 8.5 are complete (see their entries above and
 Historical Progress below): the full core loop plus read/query,
@@ -1796,49 +1945,50 @@ backend capability got a reachable screen, `web` was verified able to
 reach `api` over Railway's private network, and a scripted browser-level
 walkthrough passed against that real stack. Milestone 8.5 then closed a
 real gap Milestone 8 had explicitly left out of scope. Milestone 8.6
-then made CustomField usable end to end through the Physician UI.
+made CustomField usable end to end (Physician + Resident). Milestone
+10's navigation/IA half then reorganized the app into four
+workflow-based sections and nested Surgery/Control under Patient
+(commits `57a5b57`, `1b15656`, merged).
 
 What remains before the MVP closes:
 
-1. **Milestone 10, navigation/IA half (`MVP-required`)** — build the
-   Pacientes, Plantilla and Investigaciones sections per
-   `frontend-architecture-discovery.md` §8; Configuración is done. A
-   detailed implementation plan accompanies this update.
-2. **Milestone 8.6 tail** — CustomField inputs for a Resident-authored
-   Control (needs the `api` Resident Surgery read extended). Small; do it
-   before the walkthrough.
-3. **Milestone 9** — decide the domain (keep Railway's or attach a custom
-   one) and run the actual human walkthrough, then triage findings.
+1. **Milestone 8.7 (`MVP-required`)** — add an identifying field to
+   Patient (`DNI` candidate) for de-duplication, and patient search on
+   the Pacientes list. Not yet designed; a change to `Patient`'s
+   attributes is a Domain decision — see that milestone's open
+   questions.
+2. **Milestone 8.8 (`MVP-required`)** — remove the free-text
+   `ProcedureType.technique` attribute; surgical technique is modelled
+   as a `SURGERY`-scoped ENUM CustomField (ADR 0018). Decided; small
+   vertical slice, same shape as the ADR 0020 `magnitude` removal.
+3. **Milestone 9** — the human walkthrough (public domain already met by
+   Railway's URL; a custom domain is post-MVP), then triage findings.
 
 Milestone 10's **visual/design-system redesign** is explicitly outside
-the MVP line — it stays blocked on the product owner supplying a design
-direction, and is only a sequencing question (before / after / during
-the walkthrough) once that direction exists.
+the MVP line — blocked on the product owner supplying a design
+direction.
 
 ---
 
 ## Next Milestone
 
-**Milestone 10, navigation/IA half — build Pacientes / Plantilla /
-Investigaciones.** Now `MVP-required`. The route structure is decided
-(`frontend-architecture-discovery.md` §8) and a step-by-step
-implementation plan accompanies this ROADMAP update. Configuración is
-already built. Also fold in the Milestone 8.6 Resident-Control tail
-while touching this area.
+**Milestones 8.7 and 8.8 — two small independent `MVP-required` slices.**
 
-**Then Milestone 9 — Public domain + human E2E validation.** Concretely:
+- **8.7 — Patient identity & search.** Not yet designed. First decide
+  (see the milestone's open questions): required vs. optional identifying
+  field; hard uniqueness (per-tenant) vs. soft duplicate warning; whether
+  it needs an ADR; search server-side (`?q=` on `GET /patients`) vs.
+  client-side filter. Then implement the vertical slice.
+- **8.8 — Remove `ProcedureType.technique`.** Decided: technique is a
+  `SURGERY`-scoped ENUM CustomField. Implement the vertical slice (drop
+  the attribute Domain → Application → Prisma+migration → HTTP → `web`)
+  plus a short ADR. Same shape as the ADR 0020 `magnitude` removal.
 
-1. A custom domain for `web` (or a deliberate decision to keep the
-   Railway-provided one, if that's judged sufficient for now) — this is
-   a product/ops decision, not an open architectural question.
-2. A real physician (starting with the product owner) walks through the
-   full workflow using only the deployed UI, with no assistance from
-   raw HTTP calls or prior knowledge of the API — the actual
-   `END_TO_END_COMPLETE` bar Progress Measurement has been tracking
-   toward since the MVP replanning pass.
-3. Anything that walkthrough surfaces gets triaged and, if it blocks the
-   MVP, fixed before Milestone 9 is considered done — this milestone's
-   own point is to find what a scripted walkthrough can't.
+**Then Milestone 9 — human E2E validation.** A real physician (starting
+with the product owner) walks the full workflow through the deployed UI,
+unaided by raw HTTP calls; findings are triaged and MVP-blocking ones
+fixed before it is considered done. The public-domain requirement is
+already satisfied by `https://web-production-c686b1.up.railway.app`.
 
 **Not in the MVP line**: Milestone 10's visual/design-system redesign —
 blocked on the product owner choosing a design direction.

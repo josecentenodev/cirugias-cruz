@@ -8,6 +8,7 @@ export function PatientDetail({ patient }: { patient: PatientView }) {
         <CardTitle>{patient.fullName}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">
+        {patient.dni ? <Field label="DNI" value={patient.dni} /> : null}
         <Field label="Phone" value={patient.phone} />
         <Field label="Email" value={patient.email} />
         <Field label="Date of birth" value={patient.dateOfBirthLabel} />

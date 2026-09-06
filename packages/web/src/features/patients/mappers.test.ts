@@ -30,6 +30,11 @@ describe("toPatientView", () => {
     expect(toPatientView(buildDto({ observations: "Notes" })).observations).toBe("Notes");
   });
 
+  it("passes through the dni when present", () => {
+    expect(toPatientView(buildDto()).dni).toBeUndefined();
+    expect(toPatientView(buildDto({ dni: "30111222" })).dni).toBe("30111222");
+  });
+
   it("falls back to the raw string if the date can't be parsed", () => {
     const view = toPatientView(buildDto({ dateOfBirth: "not-a-date" }));
     expect(view.dateOfBirthLabel).toBe("not-a-date");

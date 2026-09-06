@@ -13,6 +13,7 @@ export interface PatientDto {
   phone: string;
   email: string;
   dateOfBirth: string;
+  dni?: string;
   metadata?: Record<string, unknown>;
   observations?: string;
 }

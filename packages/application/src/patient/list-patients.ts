@@ -3,15 +3,17 @@ import type { PatientRepository } from "./patient-repository.js";
 
 export interface ListPatientsInput {
   physicianId: string;
+  /** Optional free-text filter — matched against first name / last name / dni (case-insensitive). */
+  query?: string;
 }
 
 export interface ListPatientsDeps {
   patientRepository: PatientRepository;
 }
 
-/** Lists every Patient owned by the acting physician's tenant — nothing more. */
+/** Lists Patients owned by the acting physician's tenant, optionally narrowed by `query`. */
 export function listPatients(deps: ListPatientsDeps) {
   return async function execute(input: ListPatientsInput): Promise<Patient[]> {
-    return deps.patientRepository.findByPhysicianId(input.physicianId);
+    return deps.patientRepository.findByPhysicianId(input.physicianId, input.query);
   };
 }

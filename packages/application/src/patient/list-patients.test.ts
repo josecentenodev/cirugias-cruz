@@ -6,7 +6,11 @@ import { listPatients } from "./list-patients.js";
 const PHYSICIAN_ID = "physician-1";
 const OTHER_PHYSICIAN_ID = "physician-2";
 
-function buildPatient(id: string, physicianId: string): Patient {
+function buildPatient(
+  id: string,
+  physicianId: string,
+  overrides: Partial<Parameters<typeof Patient.create>[0]> = {},
+): Patient {
   return Patient.create({
     id,
     physicianId,
@@ -15,6 +19,7 @@ function buildPatient(id: string, physicianId: string): Patient {
     phone: "+54 11 5555-5555",
     email: "ana@example.com",
     dateOfBirth: new Date("1990-01-01"),
+    ...overrides,
   });
 }
 
@@ -36,5 +41,23 @@ describe("listPatients", () => {
     const result = await listPatients({ patientRepository })({ physicianId: PHYSICIAN_ID });
 
     expect(result).toEqual([]);
+  });
+
+  it("passes a query through to the repository — matching name or dni, case-insensitively", async () => {
+    const patientRepository = new InMemoryPatientRepository();
+    patientRepository.seed(buildPatient("p-luis", PHYSICIAN_ID, { firstName: "Luis" }));
+    patientRepository.seed(buildPatient("p-ana", PHYSICIAN_ID, { dni: "30111222" }));
+
+    const byName = await listPatients({ patientRepository })({
+      physicianId: PHYSICIAN_ID,
+      query: "luis",
+    });
+    const byDni = await listPatients({ patientRepository })({
+      physicianId: PHYSICIAN_ID,
+      query: "3011",
+    });
+
+    expect(byName.map((p) => p.id)).toEqual(["p-luis"]);
+    expect(byDni.map((p) => p.id)).toEqual(["p-ana"]);
   });
 });

@@ -35,6 +35,19 @@ describe("listPatients", () => {
 
     expect(await listPatients()).toEqual([]);
   });
+
+  it("adds an url-encoded ?q= when given a query, and omits it when blank", async () => {
+    authedApiRequestMock.mockResolvedValue([]);
+
+    await listPatients("  Ana Gómez  ");
+    expect(authedApiRequestMock).toHaveBeenLastCalledWith({
+      method: "GET",
+      path: "/patients?q=Ana%20G%C3%B3mez",
+    });
+
+    await listPatients("   ");
+    expect(authedApiRequestMock).toHaveBeenLastCalledWith({ method: "GET", path: "/patients" });
+  });
 });
 
 describe("getPatient", () => {

@@ -133,9 +133,28 @@ export class InMemoryPatientRepository implements PatientRepository {
     return Promise.resolve(this.patients.get(id) ?? null);
   }
 
-  findByPhysicianId(physicianId: string): Promise<Patient[]> {
+  findByPhysicianId(physicianId: string, query?: string): Promise<Patient[]> {
+    const q = query?.trim().toLowerCase();
     return Promise.resolve(
-      [...this.patients.values()].filter((patient) => patient.physicianId === physicianId),
+      [...this.patients.values()].filter((patient) => {
+        if (patient.physicianId !== physicianId) {
+          return false;
+        }
+        if (!q) {
+          return true;
+        }
+        return [patient.firstName, patient.lastName, patient.dni ?? ""].some((field) =>
+          field.toLowerCase().includes(q),
+        );
+      }),
+    );
+  }
+
+  findByDni(physicianId: string, dni: string): Promise<Patient | null> {
+    return Promise.resolve(
+      [...this.patients.values()].find(
+        (patient) => patient.physicianId === physicianId && patient.dni === dni,
+      ) ?? null,
     );
   }
 

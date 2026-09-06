@@ -65,6 +65,31 @@ describe("registerPatientAction", () => {
     });
   });
 
+  it("includes the dni in the body when provided", async () => {
+    authedApiRequestMock.mockResolvedValue({ patientId: "patient-1" });
+
+    await expect(
+      registerPatientAction({}, formData(validPatientFields({ dni: "30111222" }))),
+    ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1");
+
+    const call = authedApiRequestMock.mock.calls[0]?.[0] as { body: { dni?: string } };
+    expect(call.body.dni).toBe("30111222");
+  });
+
+  it("surfaces api's duplicate-dni rejection inline", async () => {
+    authedApiRequestMock.mockRejectedValue(
+      new ApiDomainError("A patient with this DNI already exists"),
+    );
+
+    const result = await registerPatientAction(
+      {},
+      formData(validPatientFields({ dni: "30111222" })),
+    );
+
+    expect(result).toEqual({ error: "A patient with this DNI already exists" });
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
   it("rejects a missing required field before ever calling api", async () => {
     const result = await registerPatientAction({}, formData(validPatientFields({ firstName: "" })));
 

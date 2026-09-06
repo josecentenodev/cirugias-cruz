@@ -79,28 +79,15 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 ### Partially completed
 
-- **Milestone 8.6 (CustomField)** — Domain/Application/Infrastructure/HTTP
-  complete and tested; the `packages/web` UI is now built too (define
-  fields on a Procedure Type — the Configuración section; fill in and
-  display values when registering a Surgery or recording a Control). One
-  deliberate gap remains: a **Resident** recording a Control does not yet
-  see CustomField inputs (the Resident session has no Procedure Type
-  read) — tracked under Milestone 8.6 below.
-- **Milestone 10 (physician-facing IA)** — the navigation reorganization
-  is decided and one of its four sections (**Configuración**) is built;
-  the other three (**Pacientes**, **Plantilla**, **Investigaciones**) are
-  not yet built and are **MVP-required** (product owner decision). The
-  visual/design-system redesign half is still blocked on a design
-  direction. See Milestone 10 below.
+- **Milestone 10 (physician-facing IA)** — the **navigation
+  reorganization** half is **done and merged** (four sections:
+  Pacientes / Plantilla / Investigaciones / Configuración; Surgery and
+  Control nested under Patient). The **visual/design-system redesign**
+  half is not started and **not** in the MVP line — blocked on the
+  product owner choosing a design direction. See Milestone 10 below.
 
 ### Not started
 
-- **Patient identity & search (Milestone 8.7) — `MVP-required`** (product
-  owner decision, this pass). Add an identifying field to Patient so the
-  same real person isn't loaded twice — `DNI` is the leading candidate —
-  and a patient search on the Pacientes list. Not a problem at current
-  volume, but a real one once data volume grows. Not yet designed — see
-  Milestone 8.7 for the open questions.
 - **Remove `ProcedureType.technique` (Milestone 8.8) — `MVP-required`**
   (product owner decision, this pass). Surgical technique becomes a
   `SURGERY`-scoped `ENUM` CustomField (per ADR 0018), not a free-text
@@ -225,11 +212,10 @@ field content, which remains deferred exactly as before.
   0015/0016).
 - Register **and retrieve** a Patient, within the acting physician's
   tenant (read was missing; see Milestone 4).
-- **Patient identity & search** (Milestone 8.7): an identifying field on
-  Patient (`DNI` the leading candidate) so the same real person isn't
-  entered twice within a tenant, and a search on the patient list.
-  Product owner decision: pre-MVP, because it becomes expensive to
-  retrofit once data volume grows.
+- **Patient identity & search** (Milestone 8.7, ADR 0021 — **done** on
+  branch): an optional per-tenant-unique `dni` on Patient so the same
+  real person isn't entered twice within a tenant, and server-side
+  patient search by name / `dni`.
 - Register **and retrieve** a Procedure Type. Its structure is
   `name` + `description` only — surgical **technique** is modelled as a
   `SURGERY`-scoped `ENUM` CustomField, not a ProcedureType attribute
@@ -325,7 +311,7 @@ field content, which remains deferred exactly as before.
 | Resident authentication (login, forced password change, temp-password issue/reset, deactivate) | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED; no human walkthrough yet                                                                                         |
 | Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                     | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType by id, not name — known gap, see Risks                                               |
 | Patient (register + retrieve)                                                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                   |
-| Patient identity (dedup field, e.g. DNI) + patient search (**MVP-required**)                   | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Milestone 8.7 — not started at any layer; product owner decision, pre-MVP                                                                  |
+| Patient `dni` (optional, per-tenant unique) + patient search (**MVP-required**)                | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | Milestone 8.7 `COMPLETED` (ADR 0021); no human walkthrough yet                                                                             |
 | Procedure Type (register + retrieve)                                                           | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8); free-text `technique` attribute to be removed — technique becomes a CustomField ENUM (Milestone 8.8, MVP-required) |
 | Surgery + Control history (register/record/modify + retrieve)                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                   |
 | Resident (register, assign/remove on Surgery, retrieve, credential mgmt)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, credential actions added Milestone 8.5); no human walkthrough yet                                                   |
@@ -1536,53 +1522,41 @@ helpers, and `OwnControlRow` shows recorded values. The list read
 
 ### Milestone 8.7 — Patient identity & search (pre-MVP)
 
-**Status**: `NOT_STARTED`. Added this pass by explicit product owner
-decision; `MVP-required`.
+**Status**: `COMPLETED` (branch `feat/patient-dni-and-search`).
+`MVP-required`; decided and built this pass. See
+[ADR 0021](../decisions/0021-patient-dni-and-search.md).
 
-**Objective**: two things, so a physician managing real data volume can
-find a patient and not create the same one twice —
+**Objective, delivered**: a physician managing real data volume can find
+a patient and not create the same one twice.
 
-1. An **identifying field on Patient** to support de-duplication. `DNI`
-   (Argentine national ID) is the product owner's leading candidate.
-2. **Patient search** on the Pacientes list (currently an unfiltered
-   list).
+**Decisions taken** (were the open questions on this milestone):
 
-**Why now, not post-MVP**: not a problem at today's volume, but
-retrofitting an identity field and back-filling it is expensive once a
-tenant has hundreds of patients. The product owner wants it in before
-the MVP is declared.
+- **`dni` is optional**, a single free-text string, no format check —
+  minimal-PII stance, foreign patients / newborns, the prototype's own
+  self-assigned code. A patient with no document is valid.
+- **Hard reject** on a duplicate `dni` within a tenant, at registration
+  (inline 400). **No** fuzzy name+DOB matching (out of scope). Enforced
+  in the Application layer + a Postgres `@@unique([physicianId, dni])`
+  index — **not** an entity invariant (no aggregate owns the patient
+  set; same shape as `validateCustomFieldValues`).
+- **Server-side search**: `?q=` on `GET /patients` → SQL `ILIKE` over
+  first name / last name / `dni`. Not a client-side filter — volume is
+  the point.
+- **New ADR**: [0021](../decisions/0021-patient-dni-and-search.md).
 
-**Open questions — to resolve when this is designed, not assumed here**:
+**What was built**: `Patient.dni` (optional, trimmed) + a
+`sameIdentityAs` that still ignores it; `PatientRepository.findByDni` and
+a `query` param on `findByPhysicianId`; `registerPatient` duplicate-`dni`
+check; `?q=` on `GET /patients` and `serializePatient` emitting `dni`;
+Prisma column + migration `20260906120000_add_patient_dni` (applied to
+the Railway Postgres); `web` — a "DNI (optional)" field on
+`PatientForm`, a DNI column on the list, a `<form method="get">` search
+box on `patients/page.tsx`, DNI on the detail. Full quality gate green
+(domain 97 + application 157 + infrastructure 68 + http 41 + web 210
+tests, plus lint/format/typecheck).
 
-- Is the identifying field **required** or optional? Foreign patients may
-  have no DNI (passport instead); the current `Patient` deliberately
-  stores minimal PII and the physician's own prototype uses a
-  self-assigned short code, not a national ID (see
-  `physician-prototype-analysis.md`).
-- Is uniqueness a **hard constraint** (reject a duplicate) or a **soft
-  warning** (flag a likely duplicate, let the physician decide)? A hard
-  unique constraint is **per-tenant only** — the same real person is an
-  independent Patient in another physician's tenant, and that must stay
-  true (DOMAIN.md tenancy model, ADR unchanged).
-- Does this need a new ADR? A change to `Patient`'s attributes plus a
-  uniqueness rule is a Domain decision — consult
-  `domain-driven-design` / the `epitaxy-project` skill and DOMAIN.md
-  before modelling it.
-- Search scope: name and/or the new id; server-side (a `?q=` on
-  `GET /patients`, matching the Milestone 4 read pattern) vs. client-side
-  filter of the already-fetched tenant list (acceptable at low volume,
-  same call the reorg's patient-scoped surgery list already makes).
-
-**Scope (once designed)**: Domain (`Patient` attribute + any invariant),
-Application (`registerPatient` validation, a `searchPatients` or a `?q=`
-on `listPatients`), Infrastructure (Prisma column + migration + a
-per-tenant partial unique index if the rule is hard), HTTP
-(`registerPatient` body + `GET /patients` query), `web`
-(`PatientForm` field, a search box on `patients/page.tsx`).
-
-**Dependencies**: none — independent of Milestone 10's nav work and of
-Milestone 9. Should land before Milestone 9's human walkthrough so the
-walkthrough exercises the real Patient shape.
+**Explicitly out of scope** (ADR 0021): fuzzy name+DOB duplicate
+detection, a document-type enum, a patient update path.
 
 ---
 
@@ -1841,9 +1815,12 @@ Milestones 1–7 (DONE, deployed)
                           sections, Surgery/Control nested under Patient
                                     │
                                     ▼
-                          Milestone 8.7 + 8.8 (MVP-required, independent):
-                          8.7 Patient identity field (DNI) + search;
-                          8.8 remove ProcedureType.technique (→ CustomField)
+                          Milestone 8.7 — DONE (branch): Patient `dni`
+                          (optional, per-tenant unique) + patient search
+                                    │
+                                    ▼
+                          Milestone 8.8 (MVP-required): remove
+                          ProcedureType.technique (→ ENUM CustomField)
                                     │
                                     ▼
                           Milestone 9 — human E2E walkthrough
@@ -1856,7 +1833,8 @@ Milestones 1–7 (DONE, deployed)
 ```
 
 **Sequential (hard)**: Milestones 1–3 → {4, 5, 6, 7} → 8 → 8.5 → 8.6 →
-10 (nav) → {8.7, 8.8} → 9. 8.7 and 8.8 are independent of each other.
+10 (nav) → 8.7 (done) → 8.8 → 9. 8.7 and 8.8 were independent; 8.7 has
+landed on a branch.
 
 **Completed in parallel**: Milestones 4, 5, 6, and 7 had no dependency
 on each other and were implemented simultaneously (separate git
@@ -1866,12 +1844,12 @@ sequenced against each other while the schema-free milestones (4, 7)
 ran fully in parallel. All four are now `COMPLETED` and merged.
 
 **Blocked**: nothing. Milestone 8.6 (CustomField) is done end to end for
-both Physician and Resident. Milestone 10's navigation/IA half is done
-and merged. The remaining MVP build work is two small independent
-slices: **Milestone 8.7** (Patient identity field + search — not yet
-designed) and **Milestone 8.8** (remove `ProcedureType.technique`;
+both Physician and Resident; Milestone 10's navigation/IA half is done
+and merged; **Milestone 8.7** (Patient `dni` + search, ADR 0021) is done
+on branch `feat/patient-dni-and-search`. The remaining MVP build work is
+one small slice: **Milestone 8.8** (remove `ProcedureType.technique`;
 technique becomes a `SURGERY`-scoped ENUM CustomField — decided, small).
-After those, **Milestone 9** is only the human walkthrough — the
+After it, **Milestone 9** is only the human walkthrough — the
 public-domain requirement is already satisfied by Railway's generated URL
 (custom domain is post-MVP, product owner decision). Milestone 10's
 **visual/design-system half** is the only piece still blocked — on the
@@ -1926,7 +1904,7 @@ Railway's generated URL, a custom domain being post-MVP).
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: 8.7 + 8.8 — two small, independent, `MVP-required` pre-walkthrough slices (product owner decisions, this pass). 8.7: an identifying field on Patient (DNI candidate) for de-dup + patient search — `NOT_STARTED`, not yet designed. 8.8: remove the free-text `ProcedureType.technique` attribute — surgical technique becomes a `SURGERY`-scoped ENUM CustomField (decided). Milestone 8.6 (CustomField) is `COMPLETED` end to end for Physician and Resident. Milestone 10's navigation/IA half is `COMPLETED` and merged. After 8.7 + 8.8, Milestone 9 is only the human walkthrough — the public domain is already met by Railway's generated URL (custom domain is post-MVP). Milestone 10's visual/design-system half is explicitly NOT in the MVP line.**
+> **CURRENT MILESTONE: 8.8 — remove the free-text `ProcedureType.technique` attribute; surgical technique becomes a `SURGERY`-scoped ENUM CustomField (decided, `NOT_STARTED`, small vertical slice). Milestone 8.7 (Patient `dni` + search, ADR 0021) is `COMPLETED` on branch `feat/patient-dni-and-search`. Milestone 8.6 (CustomField) is `COMPLETED` end to end for Physician and Resident. Milestone 10's navigation/IA half is `COMPLETED` and merged. After 8.8, Milestone 9 is only the human walkthrough — the public domain is already met by Railway's generated URL (custom domain is post-MVP). Milestone 10's visual/design-system half is explicitly NOT in the MVP line.**
 
 Milestones 1 through 8.5 are complete (see their entries above and
 Historical Progress below): the full core loop plus read/query,
@@ -1952,11 +1930,9 @@ workflow-based sections and nested Surgery/Control under Patient
 
 What remains before the MVP closes:
 
-1. **Milestone 8.7 (`MVP-required`)** — add an identifying field to
-   Patient (`DNI` candidate) for de-duplication, and patient search on
-   the Pacientes list. Not yet designed; a change to `Patient`'s
-   attributes is a Domain decision — see that milestone's open
-   questions.
+1. **Milestone 8.7 (`MVP-required`)** — DONE on branch
+   `feat/patient-dni-and-search` (ADR 0021): optional per-tenant-unique
+   `dni` on Patient + server-side patient search.
 2. **Milestone 8.8 (`MVP-required`)** — remove the free-text
    `ProcedureType.technique` attribute; surgical technique is modelled
    as a `SURGERY`-scoped ENUM CustomField (ADR 0018). Decided; small
@@ -1972,17 +1948,14 @@ direction.
 
 ## Next Milestone
 
-**Milestones 8.7 and 8.8 — two small independent `MVP-required` slices.**
-
-- **8.7 — Patient identity & search.** Not yet designed. First decide
-  (see the milestone's open questions): required vs. optional identifying
-  field; hard uniqueness (per-tenant) vs. soft duplicate warning; whether
-  it needs an ADR; search server-side (`?q=` on `GET /patients`) vs.
-  client-side filter. Then implement the vertical slice.
-- **8.8 — Remove `ProcedureType.technique`.** Decided: technique is a
-  `SURGERY`-scoped ENUM CustomField. Implement the vertical slice (drop
-  the attribute Domain → Application → Prisma+migration → HTTP → `web`)
-  plus a short ADR. Same shape as the ADR 0020 `magnitude` removal.
+**Milestone 8.8 — Remove `ProcedureType.technique`.** The last MVP build
+slice. Decided (product owner): technique is modelled as a
+`SURGERY`-scoped ENUM CustomField (ADR 0018), not a ProcedureType
+attribute. Implement the vertical slice — drop the attribute across
+Domain → Application → Prisma+migration → HTTP → `web` — plus a short
+ADR. Same shape as the ADR 0020 `magnitude` removal. (Milestone 8.7,
+Patient `dni` + search, is already done on branch
+`feat/patient-dni-and-search` — ADR 0021.)
 
 **Then Milestone 9 — human E2E validation.** A real physician (starting
 with the product owner) walks the full workflow through the deployed UI,

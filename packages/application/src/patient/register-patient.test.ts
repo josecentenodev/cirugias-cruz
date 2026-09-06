@@ -49,4 +49,45 @@ describe("registerPatient", () => {
 
     await expect(registerPatient(deps)({ ...validInput, lastName: "" })).rejects.toThrow();
   });
+
+  it("persists an optional dni", async () => {
+    const deps = buildDeps();
+
+    await registerPatient(deps)({ ...validInput, dni: "30111222" });
+
+    const persisted = await deps.patientRepository.findById("patient-1");
+    expect(persisted?.dni).toBe("30111222");
+  });
+
+  it("rejects a second patient with a dni already used in the same tenant", async () => {
+    const deps = buildDeps();
+    await registerPatient(deps)({ ...validInput, dni: "30111222" });
+
+    await expect(
+      registerPatient(deps)({ ...validInput, id: "patient-2", dni: "30111222" }),
+    ).rejects.toThrow(/DNI already exists/);
+  });
+
+  it("allows the same dni in a different physician's tenant", async () => {
+    const deps = buildDeps();
+    await registerPatient(deps)({ ...validInput, dni: "30111222" });
+
+    await expect(
+      registerPatient(deps)({
+        ...validInput,
+        id: "patient-2",
+        physicianId: "physician-2",
+        dni: "30111222",
+      }),
+    ).resolves.toEqual({ patientId: "patient-2" });
+  });
+
+  it("allows multiple patients with no dni", async () => {
+    const deps = buildDeps();
+    await registerPatient(deps)(validInput);
+
+    await expect(registerPatient(deps)({ ...validInput, id: "patient-2" })).resolves.toEqual({
+      patientId: "patient-2",
+    });
+  });
 });

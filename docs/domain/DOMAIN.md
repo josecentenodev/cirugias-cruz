@@ -34,9 +34,10 @@ information shape:
 - `dateOfBirth` — required
 - `metadata` — optional
 
-Patient uses the same shape, plus:
+Patient uses the same shape, plus (Patient only):
 
-- `observations` — optional (Patient only)
+- `dni` — optional; per-tenant-unique when present (ADR 0021, §5)
+- `observations` — optional
 
 No additional personal attributes are assumed for any of these actors.
 
@@ -161,19 +162,30 @@ The physician may act as their own resident — residents are not required.
 ## 5. Patient (confirmed)
 
 Belongs exclusively to one physician's tenant. Uses the shared person
-shape (§1a) plus `observations`:
+shape (§1a) plus `dni` and `observations`:
 
 - first name — required
 - last name — required
 - phone — required
 - email — required
 - date of birth — required
+- `dni` — optional national-ID / identity-document number
+  ([ADR 0021](../decisions/0021-patient-dni-and-search.md)). No format
+  validation (may hold a passport/other document; a patient with none is
+  valid). **Unique within a tenant when present** — a second patient with
+  a `dni` already used is rejected at registration. Across tenants the
+  same `dni` is unrelated. This uniqueness is enforced in the Application
+  layer + a DB unique index, **not** as an entity invariant (no aggregate
+  owns the physician's set of patients). **Only Patient has this field.**
 - `metadata` — optional; free-form extensibility mechanism for information
   useful to the physician that is not yet part of the formal domain model
   (e.g. insurance/health coverage, other context)
 - `observations` — optional; free-form notes that don't yet justify a
   structured concept. **Only Patient has this field** — Physician and
   Resident do not.
+
+Patients are **searchable** by first name / last name / `dni`
+(server-side, case-insensitive — ADR 0021).
 
 No additional mandatory attributes are assumed.
 
@@ -565,7 +577,9 @@ object, or something else is **not decided**:
 - Procedure Type (exact final structure — `name`/`description`/technique is
   a current initial idea, not closed; whether technique is a fixed list,
   an open catalog, or a CustomField-driven concept is undecided)
-- Patient (structure beyond confirmed attributes)
+- Patient (structure beyond confirmed attributes — `dni` added and
+  de-dup + search resolved by ADR 0021; fuzzy name+DOB duplicate
+  detection and a document-type enum remain out of scope)
 - Research Study (internal structure is now confirmed to be free-text
   hypothesis/results/analysis/conclusion — no further structure is open
   for the text fields themselves; how the Surgery universe is represented

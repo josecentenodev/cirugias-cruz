@@ -15,6 +15,7 @@ export const registerPatientSchema = z.object({
   phone: z.string().trim().min(1, "Phone is required"),
   email: z.string().trim().min(1, "Email is required"),
   dateOfBirth: z.string().trim().min(1, "Date of birth is required"),
+  dni: z.string().trim().optional(),
   observations: z.string().trim().optional(),
 });
 

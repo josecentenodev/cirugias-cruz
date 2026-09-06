@@ -39,6 +39,7 @@ export function PatientForm() {
         <Field id="phone" label="Phone" required />
         <Field id="email" label="Email" type="email" required />
         <Field id="dateOfBirth" label="Date of birth" type="date" required />
+        <Field id="dni" label="DNI (optional)" />
       </div>
 
       <div className="flex flex-col gap-1.5">

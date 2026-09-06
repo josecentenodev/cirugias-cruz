@@ -37,6 +37,7 @@ export function PatientList({ patients }: { patients: PatientView[] }) {
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
+            <TableHead>DNI</TableHead>
             <TableHead>Phone</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Date of birth</TableHead>
@@ -50,6 +51,7 @@ export function PatientList({ patients }: { patients: PatientView[] }) {
                   {patient.fullName}
                 </Link>
               </TableCell>
+              <TableCell>{patient.dni ?? "—"}</TableCell>
               <TableCell>{patient.phone}</TableCell>
               <TableCell>{patient.email}</TableCell>
               <TableCell>{patient.dateOfBirthLabel}</TableCell>

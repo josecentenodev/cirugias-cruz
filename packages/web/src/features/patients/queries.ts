@@ -3,9 +3,18 @@ import { authedApiRequest } from "@/lib/authed-api-request";
 import { ApiNotFoundError } from "@/lib/api-errors";
 import type { PatientDto } from "./dtos";
 
-/** `GET /patients` — scoped server-side to the authenticated physician's tenant; nothing to filter here. */
-export async function listPatients(): Promise<PatientDto[]> {
-  return authedApiRequest<PatientDto[]>({ method: "GET", path: "/patients" });
+/**
+ * `GET /patients` — scoped server-side to the authenticated physician's
+ * tenant. `query` (optional) narrows the list by first name / last name /
+ * dni, server-side (ADR 0021). Callers that need the full list for a name
+ * lookup (surgery detail, research studies, patient detail) omit it.
+ */
+export async function listPatients(query?: string): Promise<PatientDto[]> {
+  const q = query?.trim();
+  return authedApiRequest<PatientDto[]>({
+    method: "GET",
+    path: q ? `/patients?q=${encodeURIComponent(q)}` : "/patients",
+  });
 }
 
 /**

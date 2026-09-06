@@ -38,7 +38,11 @@ changes.
   crosses tenant boundaries.
 - **Patient** — exists only within one physician's tenant. No global
   patient identity: the same real person may be an unrelated, independent
-  patient record in a different physician's tenant.
+  patient record in a different physician's tenant. Shared person shape +
+  `observations` + an optional **`dni`** (ADR 0021): no format check,
+  **unique within a tenant when present** (enforced in Application +
+  a DB unique index, not as an entity invariant), and patients are
+  searchable server-side by name / `dni`.
 - **Resident** — belongs to exactly one physician. **There is no
   Resident ↔ Patient relationship of any kind** (this was an earlier
   model, deliberately eliminated — see ADR 0010 amending ADR 0007). A

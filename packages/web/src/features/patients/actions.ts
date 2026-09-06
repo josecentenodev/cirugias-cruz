@@ -29,6 +29,7 @@ export async function registerPatientAction(
     phone: formData.get("phone"),
     email: formData.get("email"),
     dateOfBirth: formData.get("dateOfBirth"),
+    dni: formData.get("dni") || undefined,
     observations: formData.get("observations") || undefined,
   });
   if (!parsed.success) {

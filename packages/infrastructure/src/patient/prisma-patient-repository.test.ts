@@ -128,4 +128,63 @@ describe("PrismaPatientRepository", () => {
       "infra-test-patient-1",
     ]);
   });
+
+  const buildPatient = (
+    id: string,
+    physicianId: string,
+    overrides: Partial<Parameters<typeof Patient.create>[0]> = {},
+  ) =>
+    Patient.create({
+      id,
+      physicianId,
+      firstName: "Ana",
+      lastName: "García",
+      phone: "555-0101",
+      email: "ana@example.com",
+      dateOfBirth: new Date("1990-05-15"),
+      ...overrides,
+    });
+
+  it("round-trips an optional dni and finds it via findByDni, scoped to the tenant", async () => {
+    await repository.save(buildPatient("infra-test-patient-1", PHYSICIAN_ID, { dni: "30111222" }));
+
+    expect((await repository.findById("infra-test-patient-1"))?.dni).toBe("30111222");
+    expect((await repository.findByDni(PHYSICIAN_ID, "30111222"))?.id).toBe("infra-test-patient-1");
+    expect(await repository.findByDni(PHYSICIAN_ID, "99999999")).toBeNull();
+    expect(await repository.findByDni(OTHER_PHYSICIAN_ID, "30111222")).toBeNull();
+  });
+
+  it("rejects a second patient with the same dni in the same tenant, but allows dni-less patients", async () => {
+    await repository.save(buildPatient("infra-test-patient-1", PHYSICIAN_ID, { dni: "30111222" }));
+    await repository.save(buildPatient("infra-test-m4-patient-2", PHYSICIAN_ID)); // no dni — fine
+
+    await expect(
+      repository.save(
+        buildPatient("infra-test-m4-patient-other", PHYSICIAN_ID, { dni: "30111222" }),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("findByPhysicianId narrows by a case-insensitive query over name and dni", async () => {
+    await repository.save(
+      buildPatient("infra-test-patient-1", PHYSICIAN_ID, { firstName: "Luis", dni: "30111222" }),
+    );
+    await repository.save(
+      buildPatient("infra-test-m4-patient-2", PHYSICIAN_ID, {
+        firstName: "Marta",
+        lastName: "Ruiz",
+      }),
+    );
+
+    expect((await repository.findByPhysicianId(PHYSICIAN_ID, "luis")).map((p) => p.id)).toEqual([
+      "infra-test-patient-1",
+    ]);
+    expect((await repository.findByPhysicianId(PHYSICIAN_ID, "3011")).map((p) => p.id)).toEqual([
+      "infra-test-patient-1",
+    ]);
+    expect((await repository.findByPhysicianId(PHYSICIAN_ID, "ruiz")).map((p) => p.id)).toEqual([
+      "infra-test-m4-patient-2",
+    ]);
+    expect((await repository.findByPhysicianId(PHYSICIAN_ID, "   ")).length).toBe(2);
+  });
 });

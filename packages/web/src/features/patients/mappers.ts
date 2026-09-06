@@ -4,6 +4,7 @@ import type { PatientDto } from "./dtos";
 export interface PatientView {
   id: string;
   fullName: string;
+  dni?: string;
   phone: string;
   email: string;
   dateOfBirthLabel: string;
@@ -14,6 +15,7 @@ export function toPatientView(dto: PatientDto): PatientView {
   return {
     id: dto.id,
     fullName: `${dto.firstName} ${dto.lastName}`,
+    dni: dto.dni,
     phone: dto.phone,
     email: dto.email,
     dateOfBirthLabel: formatDate(dto.dateOfBirth),

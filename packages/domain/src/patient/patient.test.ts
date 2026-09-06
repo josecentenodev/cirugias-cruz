@@ -51,4 +51,24 @@ describe("Patient", () => {
   it("cannot be created without the required personal information", () => {
     expect(() => Patient.create({ ...validAttributes, lastName: "" })).toThrow();
   });
+
+  it("keeps an optional dni, trimmed", () => {
+    const patient = Patient.create({ ...validAttributes, dni: "  30111222  " });
+
+    expect(patient.dni).toBe("30111222");
+  });
+
+  it("treats a blank dni as absent", () => {
+    expect(Patient.create({ ...validAttributes, dni: "   " }).dni).toBeUndefined();
+    expect(Patient.create({ ...validAttributes }).dni).toBeUndefined();
+  });
+
+  it("does not enforce dni uniqueness itself — two patients in different tenants may share one", () => {
+    const a = Patient.create({ ...validAttributes, physicianId: "physician-a", dni: "30111222" });
+    const b = Patient.create({ ...validAttributes, physicianId: "physician-b", dni: "30111222" });
+
+    expect(a.dni).toBe("30111222");
+    expect(b.dni).toBe("30111222");
+    expect(a.sameIdentityAs(b)).toBe(false);
+  });
 });

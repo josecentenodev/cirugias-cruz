@@ -20,9 +20,26 @@ export class PrismaPatientRepository implements PatientRepository {
     return toPatient(row);
   }
 
-  async findByPhysicianId(physicianId: string): Promise<Patient[]> {
-    const rows = await this.prisma.patient.findMany({ where: { physicianId } });
+  async findByPhysicianId(physicianId: string, query?: string): Promise<Patient[]> {
+    const q = query?.trim();
+    const rows = await this.prisma.patient.findMany({
+      where: q
+        ? {
+            physicianId,
+            OR: [
+              { firstName: { contains: q, mode: "insensitive" } },
+              { lastName: { contains: q, mode: "insensitive" } },
+              { dni: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : { physicianId },
+    });
     return rows.map(toPatient);
+  }
+
+  async findByDni(physicianId: string, dni: string): Promise<Patient | null> {
+    const row = await this.prisma.patient.findFirst({ where: { physicianId, dni } });
+    return row ? toPatient(row) : null;
   }
 
   async save(patient: Patient): Promise<void> {
@@ -36,6 +53,7 @@ export class PrismaPatientRepository implements PatientRepository {
         phone: patient.phone,
         email: patient.email,
         dateOfBirth: patient.dateOfBirth,
+        dni: patient.dni ?? null,
         metadata: (patient.metadata as Prisma.InputJsonValue | undefined) ?? undefined,
         observations: patient.observations ?? undefined,
       },
@@ -45,6 +63,7 @@ export class PrismaPatientRepository implements PatientRepository {
         phone: patient.phone,
         email: patient.email,
         dateOfBirth: patient.dateOfBirth,
+        dni: patient.dni ?? null,
         metadata: (patient.metadata as Prisma.InputJsonValue | undefined) ?? undefined,
         observations: patient.observations ?? undefined,
       },
@@ -60,6 +79,7 @@ function toPatient(row: {
   phone: string;
   email: string;
   dateOfBirth: Date;
+  dni: string | null;
   metadata: Prisma.JsonValue | null;
   observations: string | null;
 }): Patient {
@@ -71,6 +91,7 @@ function toPatient(row: {
     phone: row.phone,
     email: row.email,
     dateOfBirth: row.dateOfBirth,
+    dni: row.dni ?? undefined,
     metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,
     observations: row.observations ?? undefined,
   });

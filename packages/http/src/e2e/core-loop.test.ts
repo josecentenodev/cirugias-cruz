@@ -436,4 +436,61 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       intruderPatientsList.json<{ id: string }[]>().some((patient) => patient.id === patientId),
     ).toBe(false);
   });
+
+  it("Patient dni: optional + per-tenant unique, and searchable via ?q= (ADR 0021)", async () => {
+    const app = await buildApp(buildDeps());
+    const { sessionId } = await registerAndLogin(app);
+    const cookies = { session_id: sessionId };
+
+    const base = {
+      lastName: "Pérez",
+      phone: "555-0202",
+      email: "juan@example.com",
+      dateOfBirth: "1985-06-15",
+    };
+
+    const withDni = await app.inject({
+      method: "POST",
+      url: "/patients",
+      cookies,
+      payload: { ...base, firstName: "Juan", dni: "30111222" },
+    });
+    expect(withDni.statusCode).toBe(201);
+    const withDniId = withDni.json<{ patientId: string }>().patientId;
+
+    // Same dni in the same tenant → rejected.
+    const duplicate = await app.inject({
+      method: "POST",
+      url: "/patients",
+      cookies,
+      payload: { ...base, firstName: "Otro", dni: "30111222" },
+    });
+    expect(duplicate.statusCode).toBe(400);
+    expect(duplicate.json<{ error: string }>().error).toMatch(/DNI already exists/);
+
+    // No dni → always allowed, more than once.
+    for (const firstName of ["Marta", "Rosa"]) {
+      const noDni = await app.inject({
+        method: "POST",
+        url: "/patients",
+        cookies,
+        payload: { ...base, firstName },
+      });
+      expect(noDni.statusCode).toBe(201);
+    }
+
+    // Serialized shape carries dni.
+    const patientGet = await app.inject({ method: "GET", url: `/patients/${withDniId}`, cookies });
+    expect(patientGet.json<{ dni: string }>().dni).toBe("30111222");
+
+    // ?q= narrows by name and by dni.
+    const byName = await app.inject({ method: "GET", url: "/patients?q=marta", cookies });
+    expect(byName.json<{ firstName: string }[]>().map((p) => p.firstName)).toEqual(["Marta"]);
+
+    const byDni = await app.inject({ method: "GET", url: "/patients?q=3011", cookies });
+    expect(byDni.json<{ id: string }[]>().map((p) => p.id)).toEqual([withDniId]);
+
+    const all = await app.inject({ method: "GET", url: "/patients", cookies });
+    expect(all.json<unknown[]>().length).toBe(3);
+  });
 });

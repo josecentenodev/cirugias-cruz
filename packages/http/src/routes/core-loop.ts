@@ -28,6 +28,7 @@ interface RegisterPatientBody {
   phone: string;
   email: string;
   dateOfBirth: string;
+  dni?: string;
   metadata?: Record<string, unknown>;
   observations?: string;
 }
@@ -97,9 +98,15 @@ const registerPatientBodySchema = {
     phone: { type: "string" },
     email: { type: "string" },
     dateOfBirth: { type: "string" },
+    dni: { type: "string" },
     metadata: { type: "object" },
     observations: { type: "string" },
   },
+} as const;
+
+const listPatientsQuerySchema = {
+  type: "object",
+  properties: { q: { type: "string" } },
 } as const;
 
 const registerProcedureTypeBodySchema = {
@@ -269,6 +276,7 @@ function serializePatient(patient: Patient) {
     phone: patient.phone,
     email: patient.email,
     dateOfBirth: patient.dateOfBirth,
+    dni: patient.dni,
     metadata: patient.metadata,
     observations: patient.observations,
   };
@@ -351,6 +359,7 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
           phone: request.body.phone,
           email: request.body.email,
           dateOfBirth: new Date(request.body.dateOfBirth),
+          dni: request.body.dni,
           metadata: request.body.metadata,
           observations: request.body.observations,
         });
@@ -523,14 +532,21 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
     },
   );
 
-  app.get("/patients", auth, async (request, reply) => {
-    try {
-      const patients = await listPatients(deps)({ physicianId: request.physicianId as string });
-      return await reply.code(200).send(patients.map(serializePatient));
-    } catch (error) {
-      return replyForError(error, reply);
-    }
-  });
+  app.get<{ Querystring: { q?: string } }>(
+    "/patients",
+    { ...auth, schema: { querystring: listPatientsQuerySchema } },
+    async (request, reply) => {
+      try {
+        const patients = await listPatients(deps)({
+          physicianId: request.physicianId as string,
+          query: request.query.q,
+        });
+        return await reply.code(200).send(patients.map(serializePatient));
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
 
   app.get<{ Params: { id: string } }>("/patients/:id", auth, async (request, reply) => {
     try {

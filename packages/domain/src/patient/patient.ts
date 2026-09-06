@@ -4,6 +4,15 @@ import { Person, type PersonAttributes } from "../shared/person.js";
 export interface PatientAttributes extends PersonAttributes {
   id: string;
   physicianId: string;
+  /**
+   * National ID / identity document number. Optional and free-form: not
+   * every patient has one (newborns, foreign patients — the same field
+   * can hold a passport number), and the platform stores minimal PII by
+   * design. Uniqueness-when-present is a per-tenant rule enforced in the
+   * Application layer + a DB unique index (ADR 0021), not here — no
+   * aggregate owns the physician's set of patients.
+   */
+  dni?: string;
   observations?: string;
 }
 
@@ -17,6 +26,7 @@ export class Patient {
     private readonly id_: string,
     private readonly physicianId_: string,
     private readonly person: Person,
+    private readonly dni_: string | undefined,
     private readonly observations_: string | undefined,
   ) {}
 
@@ -29,7 +39,8 @@ export class Patient {
     }
 
     const person = Person.create(attributes);
-    return new Patient(attributes.id, attributes.physicianId, person, attributes.observations);
+    const dni = attributes.dni?.trim() || undefined;
+    return new Patient(attributes.id, attributes.physicianId, person, dni, attributes.observations);
   }
 
   get id(): string {
@@ -58,6 +69,10 @@ export class Patient {
 
   get dateOfBirth(): Date {
     return this.person.dateOfBirth;
+  }
+
+  get dni(): string | undefined {
+    return this.dni_;
   }
 
   get metadata(): Record<string, unknown> | undefined {

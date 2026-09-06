@@ -112,6 +112,11 @@ model Patient {
   phone        String
   email        String
   dateOfBirth  DateTime
+  // National ID / identity document — optional (ADR 0021). Unique per
+  // tenant when present: Postgres treats NULLs as distinct in a unique
+  // index, so any number of dni-less patients coexist while two with the
+  // same (physicianId, dni) are rejected.
+  dni          String?
   metadata     Json?
   observations String?
   createdAt    DateTime @default(now())
@@ -120,6 +125,7 @@ model Patient {
   physician Physician @relation(fields: [physicianId], references: [id])
   surgeries Surgery[]
 
+  @@unique([physicianId, dni])
   @@index([physicianId])
   @@map("patients")
 }

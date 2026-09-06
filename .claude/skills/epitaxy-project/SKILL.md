@@ -18,9 +18,9 @@ source of truth is:
 
 - [`docs/domain/DOMAIN.md`](../../../docs/domain/DOMAIN.md) — the domain
   discovery document
-- [`docs/decisions/`](../../../docs/decisions/) — numbered ADRs (0001–0012
-  as of this writing; some amend earlier ones — check `Status` at the top
-  of each for supersession notes before treating one as current)
+- [`docs/decisions/`](../../../docs/decisions/) — numbered ADRs (0001–0022
+  as of this writing; several amend earlier ones — check `Status` at the
+  top of each for supersession notes before treating one as current)
 - [`docs/architecture/application-layer-discovery.md`](../../../docs/architecture/application-layer-discovery.md)
   — the tactical-DDD reasoning behind the current aggregate boundaries and
   Application layer design
@@ -123,30 +123,30 @@ changes.
 - Dependency direction is strictly `Application → Domain`; `Infrastructure
 → Application/Domain`; `HTTP → Application/Domain/Infrastructure`. Domain
   has zero outbound dependencies. `packages/infrastructure` exists
-  (Milestone 2): a Prisma/PostgreSQL schema for
-  Physician/Patient/ProcedureType/Surgery/Control (+ `PhysicianCredential`/
-  `Session` from Milestone 3), and real repository implementations —
-  proven against a real Railway Postgres instance. `SurgeryRepository`
-  loads/saves the whole Surgery aggregate (Surgery + Controls +
-  participating-resident ids) in one unit; `Surgery.reconstitute(...)`
-  (Domain) is the hydration path a repository uses to rebuild it — see
-  `docs/architecture/application-layer-discovery.md` §7 before treating
-  it as a boundary change, it isn't one. `packages/http` exists
-  (Milestone 3, Fastify): write-only routes for the core loop + auth, all
-  protected routes resolving tenant identity from the session cookie via
-  a `requireAuth` preHandler — never from client input. **Still missing
-  at every layer**: read/list endpoints for any resource; Resident
-  registration/removal persistence (`residents` table doesn't exist yet);
-  ResearchStudy persistence at all (no table exists). No `ControlRepository`
-  should be introduced for any of this — Control stays reachable only
-  through `SurgeryRepository`. The project is deployed on Railway (see
-  Deployment/hosting below) but has no public domain and no frontend yet.
+  a Prisma/PostgreSQL schema covering **every** resource
+  (Physician/Patient/ProcedureType/Surgery/Control, Resident +
+  ResidentCredential, ResearchStudy, Session/PhysicianCredential/
+  EmailConfirmationToken, CustomFieldDefinition/CustomFieldValue), with
+  real repository implementations proven against a real Railway Postgres
+  instance. `SurgeryRepository` loads/saves the whole Surgery aggregate
+  (Surgery + Controls + participating-resident ids + CustomField values)
+  in one unit; `Surgery.reconstitute(...)` (Domain) is the hydration path
+  — see `docs/architecture/application-layer-discovery.md` §7 before
+  treating it as a boundary change, it isn't one. `packages/http`
+  (Fastify) exposes both **write and read/list** routes for every
+  resource, plus auth and the Resident's own `/me/*` routes; all
+  protected routes resolve tenant identity from the session cookie via a
+  `requireAuth`/`requireResidentAuth` preHandler — never from client
+  input. No `ControlRepository` and no `CustomFieldRepository` — Control
+  and CustomField definitions/values are reachable only through
+  `SurgeryRepository` / `ProcedureTypeRepository`. The project is
+  deployed on Railway (`api` private, `web` on the Railway-generated URL).
 - Tooling baseline: pnpm workspaces (`workspace:*` protocol), Vitest per
   package (`"test": "vitest run"`), a flat ESLint config +
   Prettier at the repo root, and a root `check` script chaining
   `lint && format:check && typecheck && test`.
-- **Frontend (decided, not yet built)**: Next.js, App Router, in a new
-  `packages/web`. Runs as a **BFF** — its own server calls `packages/http`
+- **Frontend (built and deployed, Milestone 8 → 10 nav reorg)**: Next.js,
+  App Router, `packages/web`. Runs as a **BFF** — its own server calls `packages/http`
   server-to-server (over Railway's private network where possible, not a
   public CORS-enabled API), so the session cookie is same-origin between
   the browser and `web` and never needs `SameSite=None`. Server Components
@@ -156,14 +156,22 @@ changes.
   Component/Server Action can do. Reads happen in Server Components (SSR,
   no client-side fetch waterfall); writes happen through Server Actions
   that call `packages/http`. Structure is feature-based with route groups
-  (mirroring the backend's Patient/ProcedureType/Surgery/Resident/Research
-  vertical slices), not a generic `components/`+`pages/` split. See
-  `docs/architecture/frontend-architecture-discovery.md` for the full
-  reasoning once it exists.
+  (`features/<slice>` one dir per backend resource), not a generic
+  `components/`+`pages/` split. Navigation is grouped by clinical
+  workflow into four sections — Pacientes / Plantilla / Investigaciones /
+  Configuración — with Surgery and Control nested under their Patient
+  (Milestone 10, `frontend-architecture-discovery.md` §8), which is
+  routing/grouping only, not a change to the `features/<slice>` layout.
+  See `docs/architecture/frontend-architecture-discovery.md` for the full
+  reasoning.
 
 ## Explicitly deferred / unresolved — do not invent answers
 
-- CustomField's value model (see above).
+- CustomField's remaining open points (ADR 0018's "Not decided here"):
+  extra `valueType`s beyond `NUMBER|ENUM|TEXT|DATE`, mandatory
+  `CONTROL`-scoped fields, cross-field validation. The value model,
+  persistence, `unit`/`magnitude` and technique-as-CustomField are
+  **resolved** (ADRs 0018–0022).
 - Surgery/Patient `metadata` shape.
 - Pterygium-specific clinical measurements and interpretation rules
   (pending a physician consultation — do not guess clinical content).
@@ -202,7 +210,7 @@ optional/Post-MVP; see `docs/architecture/ROADMAP.md`'s MVP Definition.
 7. Don't re-litigate closed platform/framework choices merely because a
    different one would be common practice: Fastify (`packages/http`),
    Prisma/PostgreSQL (`packages/infrastructure`), Next.js App Router with
-   the BFF pattern (`packages/web`, not yet built), and Railway hosting
+   the BFF pattern (`packages/web`, built and deployed), and Railway hosting
    are all decided. Don't introduce a second HTTP framework, a second ORM,
    a different frontend framework, or a public CORS-facing API in place
    of the BFF pattern without an explicit new decision.

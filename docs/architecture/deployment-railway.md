@@ -136,6 +136,15 @@ already assume.
    `pnpm install --frozen-lockfile`; a lockfile that doesn't match
    `package.json` fails the build. (This happened once mid-fix and is
    recorded so it isn't rediscovered.)
+3. **Prisma client generation.** The `api` Build command above runs
+   `prisma:generate` explicitly, but the root `package.json` also has a
+   `postinstall` that runs it (guarded with `|| true` so a prod install
+   without the `prisma` devDependency doesn't fail), and
+   `@cirugias-cruz/infrastructure`'s `typecheck` / `test` scripts prepend
+   `prisma generate`. This keeps a fresh clone, a branch switch, or a
+   `git pull` touching `schema.prisma` from leaving a stale generated
+   client and breaking `pnpm check` — the explicit Build command is now a
+   safety net, not the only mechanism.
 
 ---
 

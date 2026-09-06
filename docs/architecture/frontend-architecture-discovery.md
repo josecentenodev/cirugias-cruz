@@ -132,9 +132,13 @@ straightforward to honor rather than fight. Concretely:
 
 ## 5. Directory structure
 
+> The `app/` route tree below is **superseded by §8** (Milestone 10 nav
+> IA — Surgery/Control nested under Patient, `staff/residents`, etc.).
+> The `features/<slice>` organization here is unchanged and current.
+
 Feature-based, mirroring the backend's own vertical slices rather than a
 generic `components/`/`pages/`/`hooks/` split. Indicative shape (not
-prescriptive down to the file — refine when Milestone 8 actually starts):
+prescriptive down to the file):
 
 ```
 packages/web/
@@ -212,25 +216,35 @@ actually works, not by backend resource:
 ```
 (dashboard)/
   patients/                    # "Pacientes"
-    page.tsx                   # list
+    page.tsx                   # list (+ ?q= search — ADR 0021)
+    new/page.tsx
     [id]/page.tsx               # detail: this patient's Surgeries
     [id]/surgeries/new/page.tsx  # register a Surgery for this patient
-    [id]/surgeries/[surgeryId]/page.tsx           # Surgery detail: its Controls
-    [id]/surgeries/[surgeryId]/controls/new/page.tsx  # record a Control
+    [id]/surgeries/[surgeryId]/page.tsx  # Surgery detail: its Controls,
+                                          # + inline "record a Control" form
   staff/                        # "Plantilla"
     residents/                  # only collaborator type today
       page.tsx
       new/page.tsx
   research-studies/             # "Investigaciones" (unchanged in scope)
     page.tsx
+    new/page.tsx
     [id]/page.tsx
   settings/                     # "Configuración"
     procedure-types/
       page.tsx
       new/page.tsx
       [id]/page.tsx              # edit + this Procedure Type's CustomFields
-      [id]/custom-fields/new/page.tsx
+                                 # (add-CustomField is an inline form here)
 ```
+
+**As built** (this matches `packages/web/src/app/(dashboard)/`): recording
+a Control and adding a CustomField are **inline forms** on the Surgery
+detail / Procedure Type detail page respectively — not their own
+`.../controls/new` or `.../custom-fields/new` routes. An earlier draft of
+this tree showed those as separate pages; the inline form is the shipped
+choice (§8 already allowed it — "a flat route can still exist if useful,
+but it is not a primary nav item").
 
 Four top-level nav sections: **Pacientes**, **Plantilla**,
 **Investigaciones**, **Configuración**. Key reasoning, from the planning

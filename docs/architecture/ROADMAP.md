@@ -1896,19 +1896,20 @@ Railway's generated URL, a custom domain being post-MVP).
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: 9 — the human E2E walkthrough. Milestones 8.7 (Patient `dni` + search, ADR 0021) and 8.8 (surgical technique → `SURGERY`-scoped ENUM CustomField, ADR 0022) are both `COMPLETED` on branches (`feat/patient-dni-and-search`, `feat/technique-as-customfield`) awaiting merge — they were the last MVP build slices. Milestone 8.6 (CustomField) is `COMPLETED` end to end; Milestone 10's navigation/IA half is `COMPLETED` and merged. Milestone 9 is now only a real physician walking the deployed product unaided (the public domain is already met by Railway's generated URL; a custom domain is post-MVP). Milestone 10's visual/design-system half is explicitly NOT in the MVP line — blocked on a design direction.**
+> **CURRENT MILESTONE: 9 — the human E2E walkthrough. Milestones 8.7 (Patient `dni` + search, ADR 0021) and 8.8 (surgical technique → `SURGERY`-scoped ENUM CustomField, ADR 0022) are `COMPLETED` and merged to `main` — they were the last MVP build slices. Milestone 8.6 (CustomField) is `COMPLETED` end to end; Milestone 10's navigation/IA half is `COMPLETED` and merged. Milestone 9 is now only a real physician walking the deployed product unaided (the public domain is already met by Railway's generated URL; a custom domain is post-MVP). Milestone 10's visual/design-system half is explicitly NOT in the MVP line — blocked on a design direction.**
 
-Milestones 1 through 8.5 are complete (see their entries above and
+Milestones 1 through 8.8 are complete (see their entries above and
 Historical Progress below): the full core loop plus read/query,
 Resident, Research, the `api` security baseline, the frontend, physician
-self-registration, and Resident authentication are all done, with the
-full workspace quality gate (lint, format-check, typecheck, test — 84
-Domain + 137 Application + 63 Infrastructure + 39 HTTP + 174 web = 497
-tests) green, including the M4–M7 conformance-review fixes (see the
-Risks and Unknowns entry above and
-`docs/architecture/m4-m7-conformance-review.md`), Milestone 8's own
-closure audit, and Milestone 8.5's own evidence (see each milestone's
-entry above).
+self-registration, Resident authentication, CustomField end to end, the
+navigation/IA reorganization, Patient `dni` + search, and
+technique-as-CustomField are all done and merged to `main`, with the
+full workspace quality gate (lint, format-check, typecheck, test —
+~570 tests across the five packages, as of Milestone 8.8) green,
+including the M4–M7 conformance-review fixes (see the Risks and Unknowns
+entry above and `docs/architecture/m4-m7-conformance-review.md`),
+Milestone 8's own closure audit, and Milestone 8.5's own evidence (see
+each milestone's entry above).
 
 Milestone 8's Definition of Done was met when every MVP-required
 backend capability got a reachable screen, `web` was verified able to
@@ -1954,21 +1955,19 @@ blocked on the product owner choosing a design direction.
 
 ## Risks and Unknowns
 
-- **Gaps left open by Milestone 8.5, tracked here, not blocking MVP**:
-  (1) a Resident's own Surgery panel/detail page shows the Patient and
-  ProcedureType by raw id, not by name — fixing it needs a small `api`
-  decision; (2) no dedicated `web` UX for a Resident whose session was
-  just force-closed by deactivation (their next request 401s and
-  redirects to `/login` with no explanation) — the security behavior is
-  correct and already enforced, only the messaging is missing; (3) a
-  form-reset-on-error bug found via the product owner's manual
-  walkthrough, confirmed as one root-cause pattern copied across at
-  least 3 forms (Login, Registration, Resident creation) and potentially
-  more; (4) deactivating a Resident gives the physician no visual
-  feedback and no active/inactive status indicator; (5) a Surgery's
-  resident-assignment panel can show two contradictory empty-state
-  messages at once when a tenant has zero Residents registered. See
-  Milestone 8.5's "Not yet done" for full detail on all five.
+- **Gaps left open by Milestone 8.5 — all five resolved** in commit
+  `c7d7a30` ("Resolve UX gaps before mvp"), kept here for the record:
+  (1) the Resident's own Surgery panel now shows Patient/ProcedureType by
+  **name** — `getSurgeryForResident` / `listSurgeriesForResident` resolve
+  them server-side and `serializeSurgeryForResident` carries
+  `patientName`/`procedureTypeName`; (2) `login/page.tsx` now explains a
+  session that was force-closed by deactivation; (3) the
+  form-reset-on-error pattern was fixed across `LoginForm` /
+  `RegisterForm` / `ResidentForm` (values re-hydrated on a rejected
+  submit); (4) `ResidentCredentialActions` gained an active/inactive
+  status indicator and post-action feedback; (5) `AssignResidentForm`'s
+  `totalResidentCount` prop now disambiguates "no Residents exist" from
+  "all Residents already assigned".
 - **Componentizing cost risk, raised by the product owner ahead of
   Milestone 10**: every screen built against the current minimal
   `components/ui/*` primitives (chosen deliberately for Milestone 8,

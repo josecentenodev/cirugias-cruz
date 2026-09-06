@@ -5,8 +5,8 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json",
+    "test": "prisma generate && vitest run",
+    "typecheck": "prisma generate && tsc --noEmit && tsc -p tsconfig.scripts.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },

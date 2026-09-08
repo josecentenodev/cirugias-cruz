@@ -1,11 +1,11 @@
 ---
-name: epitaxy-project
-description: Authoritative, condensed context for Epitaxy (this repository) — the problem it solves, its actors and tenancy model, its confirmed clinical/business rules, which decisions are closed vs. explicitly deferred, its approved architecture, and its "do not invent" boundaries. ALWAYS consult this skill before applying general advice from another skill (domain-driven-design, test-driven-development, monorepo-architecture, railway-implementation) to this project, and before proposing any change to the domain model, application layer, or workspace structure. This is what stops "in DDD we'd normally do X" from silently overriding a decision Epitaxy already made on purpose. If this skill's summary and the actual docs (docs/domain/DOMAIN.md, docs/decisions/, docs/architecture/) ever disagree, the docs win — this skill is an index into them, not a replacement, and should be re-read against the docs periodically since project decisions evolve over time.
+name: seguimiento-cirugias-project
+description: Authoritative, condensed context for Seguimiento de Cirugías (this repository) — the problem it solves, its actors and tenancy model, its confirmed clinical/business rules, which decisions are closed vs. explicitly deferred, its approved architecture, and its "do not invent" boundaries. ALWAYS consult this skill before applying general advice from another skill (domain-driven-design, test-driven-development, monorepo-architecture, railway-implementation) to this project, and before proposing any change to the domain model, application layer, or workspace structure. This is what stops "in DDD we'd normally do X" from silently overriding a decision Seguimiento de Cirugías already made on purpose. If this skill's summary and the actual docs (docs/domain/DOMAIN.md, docs/decisions/, docs/architecture/) ever disagree, the docs win — this skill is an index into them, not a replacement, and should be re-read against the docs periodically since project decisions evolve over time.
 ---
 
-# Epitaxy — Project Context
+# Seguimiento de Cirugías — Project Context
 
-Epitaxy (repository `cirugias-cruz`) is a private platform for surgeons: a
+Seguimiento de Cirugías (repository `cirugias-cruz`) is a private platform for surgeons: a
 physician registers, follows up, and studies their own surgeries and
 patients, turning the information gathered from their own practice into
 clinical research. The first clinical procedure it's built around is
@@ -231,8 +231,8 @@ optional/Post-MVP; see `docs/architecture/ROADMAP.md`'s MVP Definition.
 When `domain-driven-design`, `test-driven-development`,
 `monorepo-architecture`, or `railway-implementation` would otherwise
 recommend something general, check this file (and, if needed, the real
-docs it indexes) first. If their general guidance and Epitaxy's documented
+docs it indexes) first. If their general guidance and Seguimiento de Cirugías's documented
 decision agree, proceed normally. If they conflict, say so explicitly —
-name what the general practice would suggest, name what Epitaxy already
+name what the general practice would suggest, name what Seguimiento de Cirugías already
 decided and why (cite the ADR/doc if you can), and defer to the documented
 decision unless the user is actively asking to reconsider it.

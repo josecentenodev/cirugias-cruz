@@ -10,7 +10,10 @@ const { ResendEmailSender } = await import("./resend-email-sender.js");
 describe("ResendEmailSender", () => {
   it("sends via Resend with the given from address and message fields", async () => {
     sendMock.mockResolvedValue({ data: { id: "email-1" }, error: null });
-    const sender = new ResendEmailSender("re_fake_key", "Epitaxy <noreply@example.com>");
+    const sender = new ResendEmailSender(
+      "re_fake_key",
+      "Seguimiento de Cirugías <noreply@example.com>",
+    );
 
     await sender.send({
       to: "ana@example.com",
@@ -20,7 +23,7 @@ describe("ResendEmailSender", () => {
     });
 
     expect(sendMock).toHaveBeenCalledWith({
-      from: "Epitaxy <noreply@example.com>",
+      from: "Seguimiento de Cirugías <noreply@example.com>",
       to: "ana@example.com",
       subject: "Confirm your account",
       html: "<p>Hi</p>",
@@ -30,7 +33,10 @@ describe("ResendEmailSender", () => {
 
   it("throws when Resend reports an error", async () => {
     sendMock.mockResolvedValue({ data: null, error: { message: "invalid API key" } });
-    const sender = new ResendEmailSender("re_fake_key", "Epitaxy <noreply@example.com>");
+    const sender = new ResendEmailSender(
+      "re_fake_key",
+      "Seguimiento de Cirugías <noreply@example.com>",
+    );
 
     await expect(
       sender.send({ to: "ana@example.com", subject: "s", html: "h", text: "t" }),

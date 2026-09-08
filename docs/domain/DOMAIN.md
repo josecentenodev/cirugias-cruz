@@ -4,6 +4,10 @@
 > It is **not** a DDD model. No entities, value objects, aggregates, or use cases
 > are declared as implementation artifacts here — classification decisions are
 > deliberately deferred until modeling begins.
+>
+> Naming: the product is **"Seguimiento de Cirugías"** ([ADR 0023](../decisions/0023-product-name-seguimiento-de-cirugias.md)).
+> The former codename "Epitaxy" is retired; internal identifiers keep
+> `cirugias-cruz`.
 
 ## Propósito
 

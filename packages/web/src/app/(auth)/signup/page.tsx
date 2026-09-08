@@ -9,7 +9,7 @@ export default function SignupPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Epitaxy</CardTitle>
+        <CardTitle>Seguimiento de Cirugías</CardTitle>
         <CardDescription>Create your account</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

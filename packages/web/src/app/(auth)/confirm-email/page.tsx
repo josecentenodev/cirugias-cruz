@@ -28,7 +28,7 @@ export default async function ConfirmEmailPage({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Epitaxy</CardTitle>
+        <CardTitle>Seguimiento de Cirugías</CardTitle>
         <CardDescription>{result.ok ? "Account confirmed" : "Confirmation failed"}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

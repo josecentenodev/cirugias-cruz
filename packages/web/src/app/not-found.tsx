@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export default function NotFound() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+      <p className="text-sm font-semibold text-muted-foreground">Seguimiento de Cirugías</p>
       <h1 className="text-lg font-semibold">Not found</h1>
       <p className="max-w-sm text-sm text-muted-foreground">
         That page, or the resource it refers to, doesn&apos;t exist.

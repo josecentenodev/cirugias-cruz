@@ -26,7 +26,7 @@ export default async function LoginPage({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Epitaxy</CardTitle>
+        <CardTitle>Seguimiento de Cirugías</CardTitle>
         <CardDescription>Sign in to your account</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

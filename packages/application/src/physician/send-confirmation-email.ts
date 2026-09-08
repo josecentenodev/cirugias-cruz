@@ -35,11 +35,11 @@ export function sendConfirmationEmail(deps: SendConfirmationEmailDeps) {
 
     await deps.emailSender.send({
       to: input.email,
-      subject: "Confirm your Epitaxy account",
-      text: `Hi ${input.firstName},\n\nConfirm your Epitaxy account by opening this link:\n${confirmationUrl}\n\nThis link expires in 24 hours. If you didn't create this account, you can ignore this email.`,
+      subject: "Confirm your Seguimiento de Cirugías account",
+      text: `Hi ${input.firstName},\n\nConfirm your Seguimiento de Cirugías account by opening this link:\n${confirmationUrl}\n\nThis link expires in 24 hours. If you didn't create this account, you can ignore this email.`,
       html:
         `<p>Hi ${input.firstName},</p>` +
-        `<p>Confirm your Epitaxy account by clicking the link below:</p>` +
+        `<p>Confirm your Seguimiento de Cirugías account by clicking the link below:</p>` +
         `<p><a href="${confirmationUrl}">Confirm my account</a></p>` +
         `<p>This link expires in 24 hours. If you didn't create this account, you can ignore this email.</p>`,
     });

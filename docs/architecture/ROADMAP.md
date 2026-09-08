@@ -83,8 +83,19 @@ gets corrected — it is not meant to be treated as fixed once written.
   reorganization** half is **done and merged** (four sections:
   Pacientes / Plantilla / Investigaciones / Configuración; Surgery and
   Control nested under Patient). The **visual/design-system redesign**
-  half is not started and **not** in the MVP line — blocked on the
-  product owner choosing a design direction. See Milestone 10 below.
+  half is **in progress**: the product owner has now supplied a design
+  direction ([ADR 0024](../decisions/0024-visual-design-direction.md) —
+  palette, Roboto, semantic colors, light-only), so it is no longer
+  blocked. Design tokens + typography + `components/ui` restyle + the
+  design/UX docs are landing; the per-screen 7-principles audit
+  (`docs/design/ux-principles.md` tracker) is the remaining tail. Still
+  **not** in the MVP line. See Milestone 10 below.
+- **Rebrand** — the product name is now **"Seguimiento de Cirugías"**
+  ([ADR 0023](../decisions/0023-product-name-seguimiento-de-cirugias.md));
+  the "Epitaxy" codename is retired from all user-facing strings and
+  present-tense docs. Internal identifiers (`cirugias-cruz`,
+  `@cirugias-cruz/*`, Railway/DB names) deliberately unchanged. The
+  project skill is now `seguimiento-cirugias-project`.
 
 ### Not started
 
@@ -321,7 +332,7 @@ field content, which remains deferred exactly as before.
 | `web` security baseline (headers/CSP, client-IP forwarding)                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)                                                                                                            |
 | Public reachability                                                                            | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ❌        | Railway-provided domain live and accepted for the MVP (custom domain post-MVP); human walkthrough pending — Milestone 9                                                                                      |
 | Physician-facing IA/navigation reorganized by clinical workflow (**MVP-required**)             | N/A    | N/A         | N/A         | N/A       | N/A      | ⚠️  | ❌        | IA decided (Milestone 10); Configuración section built, Pacientes/Plantilla/Investigaciones not yet                                                                                                          |
-| Design system / visual redesign (**not** MVP)                                                  | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Blocked on the product owner choosing a design direction — see Milestone 10                                                                                                                                  |
+| Design system / visual redesign (**not** MVP)                                                  | N/A    | N/A         | N/A         | N/A       | N/A      | ⚠️  | ❌        | Unblocked — ADR 0024 (palette/Roboto/semantic colors/light-only). Tokens + `components/ui` restyle + `docs/design/*` landing; per-screen 7-principles audit is the tail — see Milestone 10                   |
 | Platform Admin visibility                                                                      | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                                                                                                           |
 
 **Nothing is Human-E2E complete yet.** Every MVP-required backend
@@ -1577,7 +1588,7 @@ is now modelled as a `SURGERY`-scoped `ENUM` CustomField (ADR 0018) — the
 physician defines the option list themselves. Full quality gate green
 (domain 94 + application 152 + infrastructure 65 + http 40 + web 205
 tests, plus lint/format/typecheck/`next build`). New ADR 0022; ADR 0011,
-DOMAIN.md §8/§16 and the epitaxy-project skill updated.
+DOMAIN.md §8/§16 and the seguimiento-cirugias-project skill updated.
 
 **Observation that prompted it**: registering a Procedure Type took
 `technique` as a single free-text field. The physician's own prototype
@@ -1714,8 +1725,21 @@ standing:
   routes are removed, Residents moved to `/staff/residents`. Verified by
   `next build` (route table matches the new IA), full typecheck, and
   web/application/http test suites.
-- **Visual / design-system redesign — not MVP, not started.** Blocked on
-  the product owner choosing a direction — see "Still not decided" below.
+- **Visual / design-system redesign — not MVP, IN PROGRESS.** The
+  product owner supplied the direction:
+  [ADR 0023](../decisions/0023-product-name-seguimiento-de-cirugias.md)
+  (rename to "Seguimiento de Cirugías") and
+  [ADR 0024](../decisions/0024-visual-design-direction.md) (palette:
+  Midnight Ocean / Bermuda / Melting Glacier / Dr. White / Silent Night;
+  Roboto; derived semantic colors; light-only — the
+  `prefers-color-scheme` dark block is removed). Working refs:
+  `docs/design/design-system.md`, `docs/design/ux-principles.md`, and the
+  always-on `ux-laws` skill. Landed: design tokens in `globals.css`,
+  `next/font` Roboto, `components/ui/*` restyle + new primitives
+  (`badge`, `empty-state`, `spinner`, `pending-button`), the rebrand
+  strings. Remaining: the per-screen 7-principles audit (feedback /
+  empty / loading / forgiving states) tracked in
+  `ux-principles.md`'s table — splittable per route group.
 
 **Problem, as originally stated by the product owner**: the product
 organized itself around loose backend-mirroring concepts — a navbar
@@ -1780,14 +1804,17 @@ sections. Control recording stayed an inline form on the Surgery detail
 
 **Still not decided**:
 
-- Which design system, component library, or visual direction to adopt.
-- Whether the visual redesign happens before, after, or interleaved with
+- Dark mode — deferred (ADR 0024); returns as a designed second token set.
+- A logo / wordmark treatment beyond plain text.
+- UI copy language normalization (some strings remain English) — tracked
+  separately from the visual pass.
+- Whether the visual redesign finishes before, after, or interleaved with
   Milestone 9's human walkthrough — a sequencing call for the product
   owner, not inferred here.
 
 **Dependencies**: none technical for the navigation IA (decided,
-MVP-required, ready to build). The visual redesign remains blocked only
-on the product owner's own direction and is **not** in the MVP line.
+MVP-required, done). The visual redesign is unblocked (ADR 0023/0024) and
+in progress; still **not** in the MVP line.
 
 ---
 

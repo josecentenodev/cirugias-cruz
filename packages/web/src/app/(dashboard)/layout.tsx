@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { DashboardNav } from "@/components/DashboardNav";
 import { logoutAction } from "@/features/auth/actions";
 
 /**
@@ -14,31 +15,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <Link href="/patients" className="text-sm font-semibold">
-            Epitaxy
+          <Link href="/patients" className="text-sm font-semibold text-foreground">
+            Seguimiento de Cirugías
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
-            <Link href="/patients" className="text-muted-foreground hover:text-foreground">
-              Pacientes
-            </Link>
-            <Link href="/staff/residents" className="text-muted-foreground hover:text-foreground">
-              Plantilla
-            </Link>
-            <Link href="/research-studies" className="text-muted-foreground hover:text-foreground">
-              Investigaciones
-            </Link>
-            <Link
-              href="/settings/procedure-types"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              Configuración
-            </Link>
+          <DashboardNav>
             <form action={logoutAction}>
-              <button type="submit" className="text-muted-foreground hover:text-foreground">
+              <button
+                type="submit"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
                 Log out
               </button>
             </form>
-          </nav>
+          </DashboardNav>
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>

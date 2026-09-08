@@ -15,8 +15,8 @@ export default function ResidentLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <Link href="/resident/surgeries" className="text-sm font-semibold">
-            Epitaxy
+          <Link href="/resident/surgeries" className="text-sm font-semibold text-foreground">
+            Seguimiento de Cirugías
           </Link>
           <nav className="flex items-center gap-4 text-sm">
             <Link

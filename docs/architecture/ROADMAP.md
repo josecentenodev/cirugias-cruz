@@ -102,13 +102,16 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 ### Public domain
 
-**Decided (product owner, this pass): keep Railway's own generated
-domain (`https://web-production-c686b1.up.railway.app`) for the MVP.**
-Attaching a custom domain is **post-MVP** — a product/ops call that can
-be made later without losing anything already built. `api` never needs a
-public domain (BFF pattern; Milestone 7/8). Milestone 9's "public domain"
-line is therefore satisfied by the existing Railway URL; only its human
-walkthrough remains.
+**Live: `https://seguimientocirugias.com`** (custom domain, registrar +
+DNS at Cloudflare, attached to the `web` Railway service — see
+`deployment-railway.md` § "Custom domain"). This was originally parked as
+post-MVP behind Railway's generated `web-production-c686b1.up.railway.app`
+URL; the product owner brought it forward and it went live with **zero
+code changes** (the app is host-agnostic: CSP `'self'`, no pinned cookie
+`domain`, no hardcoded origin). The Railway URL still resolves. `api`
+never needs a public domain (BFF pattern; Milestone 7/8). Milestone 9's
+"public domain" line is fully satisfied; only its human walkthrough
+remains.
 
 ### Hosting platform
 
@@ -123,7 +126,9 @@ consolidated in
 versioned in `railway.api.json` / `railway.web.json` at the repo root.
 Both services build and deploy successfully from `main`: `api`
 (Railway service name `cirugias-cruz`) and, since Milestone 8's closure,
-`web` too (`https://web-production-c686b1.up.railway.app`).
+`web` too — served at its custom domain
+`https://seguimientocirugias.com` (the Railway-generated URL also still
+resolves).
 
 ### Explicitly deferred
 
@@ -251,10 +256,11 @@ field content, which remains deferred exactly as before.
   Procedure Types + CustomField definitions). Configuración is built; the
   other three sections are required for the MVP. See Milestone 10. The
   visual/design-system redesign is **not** part of the MVP.
-- A public, reliable domain on Railway for `web`, reachable outside
-  Railway's private network. **Satisfied by Railway's own generated
-  domain** (product owner decision — a custom domain is post-MVP). `api`
-  does not need one — see Milestone 7/9.
+- A public, reliable domain for `web`, reachable outside Railway's
+  private network. **Live at the custom domain
+  `https://seguimientocirugias.com`** (Cloudflare DNS → the `web` Railway
+  service; the Railway-generated URL still resolves). `api` does not need
+  one — see Milestone 7/9.
 - A security baseline appropriate for the product (request validation,
   rate limiting, security headers, a real session policy) — not a
   temporary or shortcut implementation. Because the frontend is a BFF, a
@@ -319,7 +325,7 @@ field content, which remains deferred exactly as before.
 | CustomField (define on Procedure Type; record/retrieve values on Surgery/Control)              | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | Complete through `web` for both Physician and Resident (Milestone 8.6, ADR 0018/0019/0020); no human walkthrough yet                                                                                         |
 | `api` security baseline (validation, forwarded-IP rate limiting, headers)                      | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                                                                                                                       |
 | `web` security baseline (headers/CSP, client-IP forwarding)                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)                                                                                                            |
-| Public reachability                                                                            | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ❌        | Railway-provided domain live and accepted for the MVP (custom domain post-MVP); human walkthrough pending — Milestone 9                                                                                      |
+| Public reachability                                                                            | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ❌        | Custom domain `https://seguimientocirugias.com` **live** (Cloudflare DNS → `web`); human walkthrough pending — Milestone 9                                                                                   |
 | Physician-facing IA/navigation reorganized by clinical workflow (**MVP-required**)             | N/A    | N/A         | N/A         | N/A       | N/A      | ⚠️  | ❌        | IA decided (Milestone 10); Configuración section built, Pacientes/Plantilla/Investigaciones not yet                                                                                                          |
 | Design system / visual redesign (**not** MVP)                                                  | N/A    | N/A         | N/A         | N/A       | N/A      | ❌  | ❌        | Blocked on the product owner choosing a design direction — see Milestone 10                                                                                                                                  |
 | Platform Admin visibility                                                                      | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                                                                                                           |
@@ -1635,19 +1641,21 @@ Railway domain (same-origin, the simple case the BFF pattern guarantees);
 a real, unscripted human walkthrough. `api` stays on the private network
 per Milestone 7/8's BFF pattern and needs no public domain at all.
 
-**Domain decision (settled, product owner)**: **keep Railway's own
-generated domain** (`https://web-production-c686b1.up.railway.app`) for
-the MVP. A custom domain is **post-MVP** — a product/ops call that can be
-made later without losing anything already built. So this milestone's
-"public domain" requirement is **already satisfied**; only the human
-walkthrough remains.
+**Domain decision (settled, product owner)**: the custom domain
+**`https://seguimientocirugias.com` is live** (Cloudflare DNS → the `web`
+Railway service; see `deployment-railway.md` § "Custom domain"). It was
+originally parked as post-MVP behind Railway's generated URL, then
+brought forward — it went live with zero code changes. So this
+milestone's "public domain" requirement is **fully satisfied**; only the
+human walkthrough remains.
 
 **Explicitly out of scope**: load testing, multi-region deployment, a
 CDN, any public domain for `api` — no evidence any of this is needed at
 current scale.
 
-**Deliverables**: a public URL for `web` (already satisfied by Railway's
-generated domain); a completed human walkthrough with findings recorded.
+**Deliverables**: a public URL for `web` (live —
+`https://seguimientocirugias.com`); a completed human walkthrough with
+findings recorded.
 The walkthrough script, findings log, and sign-off block live in
 [`milestone-9-walkthrough.md`](milestone-9-walkthrough.md) — the tester
 fills in the Findings Log and Sign-off there.
@@ -1819,8 +1827,8 @@ Milestones 1–7 (DONE, deployed)
                                     │
                                     ▼
                           Milestone 9 — human E2E walkthrough
-                          (public domain already satisfied by Railway's
-                          own URL; custom domain is post-MVP)
+                          (public domain done — custom domain
+                          seguimientocirugias.com is live)
 
                           Milestone 10 visual/design-system half — NOT
                           in the MVP line; blocked only on the product
@@ -1838,15 +1846,13 @@ different Prisma models, with schema-touching milestones (5, then 6)
 sequenced against each other while the schema-free milestones (4, 7)
 ran fully in parallel. All four are now `COMPLETED` and merged.
 
-**Blocked**: nothing. Milestone 8.6 (CustomField) is done end to end;
-Milestone 10's navigation/IA half is done and merged; **Milestone 8.7**
-(Patient `dni` + search, ADR 0021) and **Milestone 8.8** (technique →
-ENUM CustomField, ADR 0022) are both done on branches
-(`feat/patient-dni-and-search`, `feat/technique-as-customfield`) awaiting
-merge. That leaves **Milestone 9** — only the human walkthrough — as the
-last MVP step; the public-domain requirement is already satisfied by
-Railway's generated URL (custom domain is post-MVP, product owner
-decision). Milestone 10's **visual/design-system half** is the only piece
+**Blocked**: nothing. Milestone 8.6 (CustomField), Milestone 10's
+navigation/IA half, **Milestone 8.7** (Patient `dni` + search, ADR 0021)
+and **Milestone 8.8** (technique → ENUM CustomField, ADR 0022) are all
+done and merged to `main`. That leaves **Milestone 9** — only the human
+walkthrough — as the last MVP step; the public-domain requirement is
+satisfied (custom domain `https://seguimientocirugias.com` is live).
+Milestone 10's **visual/design-system half** is the only piece
 still blocked — on the product owner supplying a design direction — and
 is not in the MVP line.
 
@@ -1892,14 +1898,14 @@ through the deployed frontend by a **scripted** client (Playwright,
 against a real stack) — Milestone 8 is `COMPLETED`. Nothing is
 `END_TO_END_COMPLETE` yet in the sense that matters most: no **human**
 has walked through the deployed product yet — that remains Milestone 9's
-own job (the human walkthrough; the public domain is already met by
-Railway's generated URL, a custom domain being post-MVP).
+own job (the human walkthrough; the public domain is done — the custom
+domain `https://seguimientocirugias.com` is live).
 
 ---
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: 9 — the human E2E walkthrough. Milestones 8.7 (Patient `dni` + search, ADR 0021) and 8.8 (surgical technique → `SURGERY`-scoped ENUM CustomField, ADR 0022) are `COMPLETED` and merged to `main` — they were the last MVP build slices. Milestone 8.6 (CustomField) is `COMPLETED` end to end; Milestone 10's navigation/IA half is `COMPLETED` and merged. Milestone 9 is now only a real physician walking the deployed product unaided (the public domain is already met by Railway's generated URL; a custom domain is post-MVP). Milestone 10's visual/design-system half is explicitly NOT in the MVP line — blocked on a design direction.**
+> **CURRENT MILESTONE: 9 — the human E2E walkthrough. Milestones 8.7 (Patient `dni` + search, ADR 0021) and 8.8 (surgical technique → `SURGERY`-scoped ENUM CustomField, ADR 0022) are `COMPLETED` and merged to `main` — they were the last MVP build slices. Milestone 8.6 (CustomField) is `COMPLETED` end to end; Milestone 10's navigation/IA half is `COMPLETED` and merged. Milestone 9 is now only a real physician walking the deployed product unaided (the public domain is done — the custom domain `https://seguimientocirugias.com` is live). Milestone 10's visual/design-system half is explicitly NOT in the MVP line — blocked on a design direction.**
 
 Milestones 1 through 8.8 are complete (see their entries above and
 Historical Progress below): the full core loop plus read/query,
@@ -1931,8 +1937,8 @@ What remains before the MVP closes:
    logged there and triaged, and every P0 is fixed. This is the **only**
    remaining MVP step: all build slices (Milestones 1–8.8, plus Milestone
    10's nav/IA half) are complete and merged to `main`, and the
-   public-domain requirement is already met by Railway's URL (a custom
-   domain is post-MVP).
+   public-domain requirement is done — the custom domain
+   `https://seguimientocirugias.com` is live.
 
 Milestone 10's **visual/design-system redesign** is explicitly outside
 the MVP line — blocked on the product owner supplying a design
@@ -1948,8 +1954,8 @@ to `main`. A real physician (starting with the product owner) walks the
 full workflow through the deployed UI, unaided by raw HTTP calls,
 following `docs/architecture/milestone-9-walkthrough.md`; findings are
 logged there, triaged, and MVP-blocking (P0) ones fixed before it is
-considered done. The public-domain requirement is already satisfied by
-`https://web-production-c686b1.up.railway.app`.
+considered done. The public-domain requirement is done — `web` is served
+at the custom domain `https://seguimientocirugias.com`.
 
 **Not in the MVP line**: Milestone 10's visual/design-system redesign —
 blocked on the product owner choosing a design direction.

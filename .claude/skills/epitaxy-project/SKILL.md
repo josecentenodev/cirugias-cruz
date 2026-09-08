@@ -140,7 +140,9 @@ changes.
   input. No `ControlRepository` and no `CustomFieldRepository` — Control
   and CustomField definitions/values are reachable only through
   `SurgeryRepository` / `ProcedureTypeRepository`. The project is
-  deployed on Railway (`api` private, `web` on the Railway-generated URL).
+  deployed on Railway (`api` private, `web` served at its live custom
+  domain `https://seguimientocirugias.com` — Cloudflare DNS only, no
+  Cloudflare integration in the codebase).
 - Tooling baseline: pnpm workspaces (`workspace:*` protocol), Vitest per
   package (`"test": "vitest run"`), a flat ESLint config +
   Prettier at the repo root, and a root `check` script chaining

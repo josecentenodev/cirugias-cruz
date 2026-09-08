@@ -16,9 +16,10 @@
 
 ## How to run this
 
-- **Target**: `https://web-production-c686b1.up.railway.app` (the real
-  deployment — not a local dev server). `api` stays private; you should
-  never need to touch it directly. If you do, that is itself a P0 finding.
+- **Target**: `https://seguimientocirugias.com` (the real deployment at
+  its live custom domain — not a local dev server, and not the
+  `*.up.railway.app` URL). `api` stays private; you should never need to
+  touch it directly. If you do, that is itself a P0 finding.
 - **Browser**: whatever a real physician would use. Open the devtools
   **Console** and **Network** tabs and keep them visible the whole time —
   a red console error, a CSP violation, or a 4xx/5xx on a normal action is
@@ -49,7 +50,7 @@
 
 | #   | Action                                             | Expected                                                                                            | ✅/❌ + note |
 | --- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------ |
-| 0.1 | Open the target URL                                | Loads over **HTTPS**, no cert warning, redirects to the login screen (not a blank page or an error) |              |
+| 0.1 | Open `https://seguimientocirugias.com`             | Loads over **HTTPS**, no cert warning, redirects to the login screen (not a blank page or an error) |              |
 | 0.2 | Check the console on that first load               | No red errors, **no CSP violation messages**                                                        |              |
 | 0.3 | Check the Network tab for the page load            | All requests 200/3xx; no request goes to an `api`/backend origin directly from the browser          |              |
 | 0.4 | Try a deep link while logged out, e.g. `/patients` | Redirected to login, not shown the page or an error                                                 |              |

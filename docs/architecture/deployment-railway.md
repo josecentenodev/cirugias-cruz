@@ -75,12 +75,12 @@ not `${{api.RAILWAY_PRIVATE_DOMAIN}}` — the latter silently resolves to
 an empty string, since no service is named `api`). Discovered while
 setting `web`'s `API_BASE_URL` (Milestone 8 closure).
 
-| Setting        | `api` (Railway name: `cirugias-cruz`)                                                           | `web`                               |
-| -------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------- |
-| Root Directory | **repo root** (`/`)                                                                             | **repo root** (`/`)                 |
-| Build/start    | set directly on the service instance — see "Config-as-code is deprecated on this project" above | same                                |
-| Builder        | Railpack                                                                                        | Railpack                            |
-| Public domain  | none (private only)                                                                             | Railway domain (`*.up.railway.app`) |
+| Setting        | `api` (Railway name: `cirugias-cruz`)                                                           | `web`                                                                                                                     |
+| -------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Root Directory | **repo root** (`/`)                                                                             | **repo root** (`/`)                                                                                                       |
+| Build/start    | set directly on the service instance — see "Config-as-code is deprecated on this project" above | same                                                                                                                      |
+| Builder        | Railpack                                                                                        | Railpack                                                                                                                  |
+| Public domain  | none (private only)                                                                             | `seguimientocirugias.com` + `www.` (custom domain via Cloudflare DNS); Railway domain (`*.up.railway.app`) still resolves |
 
 ### Why Root Directory is the repo root, not `packages/http` / `packages/web`
 
@@ -114,7 +114,7 @@ Configured in [`../../railway.api.json`](../../railway.api.json).
 | `LOG_LEVEL`         | optional                                                | Defaults to `info` (`build-app.ts`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `RESEND_API_KEY`    | **not yet set**                                         | ADR [0015](../decisions/0015-physician-self-registration-email-confirmation.md)/[0016](../decisions/0016-physician-email-confirmation-paused-for-mvp.md). Read in `packages/http/src/index.ts`, passed to `ResendEmailSender`. Missing/empty is tolerated by design ("fail at use, not at boot" — see ADR 0015's Infrastructure notes): registration still succeeds, the confirmation email just silently fails to send (logged, not thrown). Since ADR 0016 paused the login-confirmation gate, this currently affects nothing MVP-required — Post-MVP, when confirmation is re-enabled, a real key (and a verified Resend sending domain — Resend's sandbox domain only delivers to the account owner's own address) becomes necessary. |
 | `RESEND_FROM_EMAIL` | optional, defaults to `Epitaxy <onboarding@resend.dev>` | Same ADRs. The default is Resend's shared sandbox sender — fine for the owner's own test emails, not for real physicians once confirmation is re-enabled (needs a verified domain first).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `WEB_BASE_URL`      | **not yet set**, defaults to `http://localhost:3001`    | ADR 0015. The confirmation link embedded in the email points at `${WEB_BASE_URL}/confirm-email?token=...` — `web`'s own public origin, never `api` directly (BFF pattern, ADR 0014). The `localhost` default is wrong for production; must be set to `web`'s real public URL (currently `https://web-production-c686b1.up.railway.app`) before confirmation email is ever relied upon.                                                                                                                                                                                                                                                                                                                                                    |
+| `WEB_BASE_URL`      | **not yet set**, defaults to `http://localhost:3001`    | ADR 0015. The confirmation link embedded in the email points at `${WEB_BASE_URL}/confirm-email?token=...` — `web`'s own public origin, never `api` directly (BFF pattern, ADR 0014). The `localhost` default is wrong for production; must be set to `web`'s real public URL (`https://seguimientocirugias.com`) before confirmation email is ever relied upon.                                                                                                                                                                                                                                                                                                                                                                           |
 
 ### Migrations
 
@@ -150,7 +150,9 @@ already assume.
 
 ## `web` service
 
-**Created and deployed — Milestone 8 closure** (`web-production-c686b1.up.railway.app`).
+**Created and deployed — Milestone 8 closure.** Served at
+**`https://seguimientocirugias.com`** (custom domain, live) — the
+original `web-production-c686b1.up.railway.app` still resolves.
 Configured directly on the service instance (see "Config-as-code is
 deprecated on this project" above); [`../../railway.web.json`](../../railway.web.json)
 remains the documented reference for what those settings should be.
@@ -179,6 +181,38 @@ lockfile/workspace/config files.
 `next start -p 3001`, which ignored Railway's injected `PORT`. Changed to
 `next start` (Next.js honours `PORT` on its own) before the first `web`
 deploy — the fix this doc had already flagged as required.
+
+### Custom domain (`seguimientocirugias.com`) — live
+
+Registered and DNS-hosted at **Cloudflare**; there is **no Cloudflare
+integration in the codebase** (no API token, no DNS-as-code) — Cloudflare
+is only the registrar + DNS. The app needed **zero code changes**: CSP is
+`'self'` / `form-action 'self'` (`packages/web/src/lib/security-headers.ts`),
+the `web_session` cookie sets no explicit `domain`
+(`packages/web/src/lib/session.ts`), and nothing hardcodes the public
+origin (`api-client.ts` reaches `api` over the private network via
+`API_BASE_URL`). Only `WEB_BASE_URL` (confirmation-email link, still
+dormant — ADR 0016) references it, and is documented above.
+
+As configured:
+
+| Where                        | Record / setting                  | Value                                                                                                                     |
+| ---------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Railway → `web` → Networking | Custom Domains                    | `seguimientocirugias.com` **and** `www.seguimientocirugias.com` (Railway routes by `Host` and issues a cert per hostname) |
+| Cloudflare DNS               | `CNAME` `seguimientocirugias.com` | → `ekobe8km.up.railway.app`                                                                                               |
+| Cloudflare DNS               | `CNAME` `www`                     | → `seguimientocirugias.com`                                                                                               |
+| Cloudflare DNS               | `TXT` `_railway-verify`           | Railway domain-ownership token (leave as DNS-only, permanently)                                                           |
+
+**Cloudflare proxy gotcha**: the CNAMEs had to be **DNS-only (grey
+cloud)** while Railway validated the domain and issued the Let's Encrypt
+certificate — with the orange-cloud proxy on, the ACME challenge routes
+through Cloudflare and cert issuance hangs. Once Railway shows the domain
+`Active` with a cert, the proxy _can_ be re-enabled, but only with
+Cloudflare's SSL/TLS encryption mode set to **Full (Strict)** —
+**Flexible** causes an infinite redirect loop with Railway.
+
+Verified: `https://seguimientocirugias.com/login` returns `200`, login
+round-trips the session cookie over HTTPS.
 
 ---
 
@@ -212,8 +246,9 @@ For a pre-production / staging environment, create a separate Railway
 - Whether `api` ever needs a public domain / CORS surface (leans
   private-only given the BFF pattern).
 - CI/CD (no pipeline yet — deploys are triggered by pushes to `main`).
-- `web` has a Railway-provided domain (`*.up.railway.app`); a custom
-  domain and the human end-to-end walkthrough remain Milestone 9.
+- `web`'s custom domain (`seguimientocirugias.com`) is **live** (see the
+  `web` service section). Only the human end-to-end walkthrough remains
+  for Milestone 9.
 - `web`'s health check: none yet (`web` exposes no `/healthz`-style
   route). Not blocking — Railway falls back to container-health only —
   but worth adding before relying on Railway's own rollout gating.

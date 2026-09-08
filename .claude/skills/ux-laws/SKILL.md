@@ -51,7 +51,7 @@ domain-specific terms.
 
 Contrast ≥4.5:1 body / ≥3:1 large & UI. Visible `focus-visible` ring always.
 Targets ≥36px. Keyboard-only completion of every core flow. Never color alone —
-badges carry a label. Semantic HTML, correct heading order, `<html lang="es">`,
+badges carry a label. Semantic HTML, correct heading order, `<html lang="en">`,
 `<Label htmlFor>` on every control.
 → _Fitts's Law, Selective Attention; accessibility baseline in design-system.md._
 
@@ -76,9 +76,16 @@ flow reads as finished.
 - **Colors**: only tokens from `app/globals.css` (`--foreground`, `--muted`,
   `--primary`, `--accent`, `--danger`/`--warning`/`--success` + `-bg`). No raw
   hex in components.
-- **Primitives** live in `components/ui/`: `button` (variants primary/secondary/
-  ghost/danger), `alert` (danger/warning/success/muted), `badge`, `empty-state`,
-  `spinner`, `card`, `input`, `label`, `table`.
+- **Copy**: every user-facing string comes from `src/messages/en.ts` (English,
+  imported directly) — no string literals in JSX. `brand.name` is a proper noun,
+  never translated. This module is the i18n extraction point.
+- **Primitives** — `components/ui/`: `button` (primary/secondary/ghost/danger),
+  `alert` (danger/warning/success/muted), `badge`, `empty-state`, `spinner`,
+  `skeleton` (+ `ListSkeleton`/`DetailSkeleton`), `pending-button`, `card`,
+  `input`, `label`, `table`. `components/`: `PageHeader`, `Breadcrumbs`,
+  `ConfirmSubmit` (native `<dialog>` for destructive actions), `DashboardNav`.
+  Every list gets an `EmptyState`; every list/detail route segment gets a
+  `loading.tsx`; every destructive action gets a `ConfirmSubmit`.
 - **Light-only** right now — no `dark:` variants, no `prefers-color-scheme` (ADR 0024).
 - **Scope guard**: this skill never motivates a domain/API/schema change. If a UX
   improvement seems to need one, say so and defer to `seguimiento-cirugias-project`.

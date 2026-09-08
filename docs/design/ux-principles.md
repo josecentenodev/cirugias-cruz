@@ -109,15 +109,34 @@ People use what they enjoy — visual attractiveness, delight, a coherent look.
 
 ## Per-screen audit tracker (Milestone 10)
 
-| Route group                       | Tokens | Loading | Empty | Feedback    | Forgiving     | Header/consistency |
-| --------------------------------- | ------ | ------- | ----- | ----------- | ------------- | ------------------ |
-| `(auth)/*`                        | ✅     | n/a     | n/a   | ✅ existing | partial       | ⬜                 |
-| `(dashboard)` nav + landing       | ✅     | ⬜      | ⬜    | n/a         | n/a           | ⬜                 |
-| `patients/*` (+ nested surgeries) | ⬜     | ⬜      | ⬜    | ⬜          | ⬜            | ⬜                 |
-| `research-studies/*`              | ⬜     | ⬜      | ⬜    | ⬜          | ⬜            | ⬜                 |
-| `settings/procedure-types/*`      | ⬜     | ⬜      | ⬜    | ⬜          | ⬜            | ⬜                 |
-| `staff/residents/*`               | ⬜     | ⬜      | ⬜    | ⬜          | ⬜            | ⬜                 |
-| `resident/*`                      | ⬜     | ⬜      | ⬜    | ⬜          | ⬜            | ⬜                 |
-| `error.tsx` / `not-found.tsx`     | ⬜     | n/a     | n/a   | n/a         | ✅ route home | ⬜                 |
+Done — every route group passes the acceptance criteria above, using the
+shared primitives (`PageHeader`, `Breadcrumbs`, `ConfirmSubmit`,
+`EmptyState`, `PendingButton`, `Badge`, `Skeleton`/`loading.tsx`) and
+copy from `src/messages/en.ts`.
 
-Tick a cell when the screen meets that principle's acceptance criteria above.
+| Route group                       | Tokens | Loading | Empty | Feedback | Forgiving | Header/consistency |
+| --------------------------------- | ------ | ------- | ----- | -------- | --------- | ------------------ |
+| `(auth)/*`                        | ✅     | ✅      | n/a   | ✅       | ✅        | ✅                 |
+| `(dashboard)` nav + landing       | ✅     | n/a     | n/a   | n/a      | n/a       | ✅                 |
+| `patients/*` (+ nested surgeries) | ✅     | ✅      | ✅    | ✅       | ✅        | ✅                 |
+| `research-studies/*`              | ✅     | ✅      | ✅    | ✅       | ✅        | ✅                 |
+| `settings/procedure-types/*`      | ✅     | ✅      | ✅    | ✅       | ✅        | ✅                 |
+| `staff/residents/*`               | ✅     | ✅      | ✅    | ✅       | ✅        | ✅                 |
+| `resident/*`                      | ✅     | ✅      | ✅    | ✅       | ✅        | ✅                 |
+| `error.tsx` / `not-found.tsx`     | ✅     | n/a     | n/a   | n/a      | ✅        | ✅                 |
+
+Known follow-ups (not blockers): field-level (per-input) validation
+errors are still a single inline `<Alert>` per form (deferred by product
+decision); a few composed strings in `features/*/mappers.ts`
+(`summarizeRules`, procedure-type `TYPE_LABELS` phrasing) are English but
+not yet in `messages/en.ts` — the i18n extraction pass folds them in.
+
+## Future i18n
+
+`src/messages/en.ts` is the single extraction point. To internationalize:
+add sibling catalogs (`es.ts`, …) with the same key shape, and replace the
+direct `import { messages }` with a locale-aware loader
+(`getTranslations()` in Server Components / `useTranslations()` in Client
+Components) — no key changes, no per-screen edits. Function-valued
+entries (e.g. `patients.noMatch(query)`) already isolate interpolation per
+locale.

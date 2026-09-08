@@ -62,17 +62,33 @@ external stylesheet, CSP unaffected). Weights 400 / 500 / 700. Exposed as
 | `badge.tsx`               | status pills; variants `neutral` \| `accent` \| `success` \| `warning` \| `danger`.                                                                                      |
 | `empty-state.tsx`         | title + hint + optional action; use for every zero-row list.                                                                                                             |
 | `spinner.tsx`             | indeterminate indicator, inherits `currentColor`.                                                                                                                        |
+| `skeleton.tsx`            | `Skeleton` block + `ListSkeleton` / `DetailSkeleton` for route `loading.tsx`.                                                                                            |
 | `table.tsx`               | header on `--muted`; row hover `--muted`.                                                                                                                                |
+
+## Layout primitives (`packages/web/src/components/`)
+
+| Component           | Notes                                                                                                                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PageHeader.tsx`    | title + optional description + optional action (CTA node); `level` 1 or 2. The one page-title treatment — no ad-hoc `<div><h1>…</div>`.                                      |
+| `Breadcrumbs.tsx`   | ordered `{ label, href? }[]` trail for nested routes; last crumb is current, never a link. Replaces "← Back to X".                                                           |
+| `ConfirmSubmit.tsx` | `"use client"` — a destructive Server-Action submit behind a native `<dialog>` (consequence sentence + Cancel / Confirm). No dependency. Use for delete / remove / lock-out. |
+| `DashboardNav.tsx`  | `"use client"` — the four-section nav with active-section highlight (`usePathname`).                                                                                         |
 
 ## Accessibility baseline
 
 - Contrast: ≥4.5:1 for body text, ≥3:1 for large text and UI boundaries. Verified for `--foreground`/`--muted-foreground` on `--background`, white on `--primary`, `--danger` on `--danger-bg`.
 - Every interactive element keeps a visible `focus-visible` ring (never `outline: none` without a replacement).
 - Interactive targets ≥ 36px in the smaller dimension (`h-9` default, `h-8` only for dense secondary actions).
-- `<html lang="es">`; form controls always have an associated `<Label htmlFor>`.
+- `<html lang="en">` (English is primary; ADR 0023); form controls always have an associated `<Label htmlFor>`.
+
+## Copy
+
+All user-facing strings live in `src/messages/en.ts` (one typed `as const`
+object, imported directly), in English. `brand.name` is a proper noun and
+is never translated. See `ux-principles.md` § "Future i18n".
 
 ## Not in scope (this pass)
 
 - Dark mode — the `prefers-color-scheme` block was removed; re-add as a full second token set when revisited.
 - Any new component-library / Tailwind-plugin dependency.
-- UI copy language normalization (some strings are still English) — tracked separately.
+- Field-level (per-input) validation errors — forms show one inline `<Alert>`; deferred by product decision.

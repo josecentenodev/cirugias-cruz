@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -10,20 +12,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
+import { messages } from "@/messages/en";
 import type { ResearchStudyListView } from "../mappers";
+import { statusBadgeVariant } from "./statusBadge";
 
 /** Purely presentational — mirrors `features/surgeries/components/SurgeryList.tsx`. */
 export function ResearchStudyList({ studies }: { studies: ResearchStudyListView[] }) {
   if (studies.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-          <p className="text-sm text-muted-foreground">No research studies registered yet.</p>
+      <EmptyState
+        title={messages.research.empty.title}
+        hint={messages.research.empty.hint}
+        action={
           <Link href="/research-studies/new" className={cn(buttonVariants())}>
-            Register your first study
+            {messages.research.empty.cta}
           </Link>
-        </CardContent>
-      </Card>
+        }
+      />
     );
   }
 
@@ -32,9 +37,9 @@ export function ResearchStudyList({ studies }: { studies: ResearchStudyListView[
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Hypothesis</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Surgeries</TableHead>
+            <TableHead>{messages.research.columns.hypothesis}</TableHead>
+            <TableHead>{messages.research.columns.status}</TableHead>
+            <TableHead>{messages.research.columns.surgeries}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -48,7 +53,9 @@ export function ResearchStudyList({ studies }: { studies: ResearchStudyListView[
                   {study.hypothesisPreview}
                 </Link>
               </TableCell>
-              <TableCell>{study.statusLabel}</TableCell>
+              <TableCell>
+                <Badge variant={statusBadgeVariant[study.status]}>{study.statusLabel}</Badge>
+              </TableCell>
               <TableCell>{study.surgeryCount}</TableCell>
             </TableRow>
           ))}

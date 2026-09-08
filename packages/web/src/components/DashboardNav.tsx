@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { messages } from "@/messages/en";
 
 const sections = [
-  { href: "/patients", label: "Pacientes" },
-  { href: "/staff/residents", label: "Plantilla" },
-  { href: "/research-studies", label: "Investigaciones" },
-  { href: "/settings/procedure-types", label: "Configuración" },
+  { href: "/patients", label: messages.nav.patients },
+  { href: "/staff/residents", label: messages.nav.staff },
+  { href: "/research-studies", label: messages.nav.research },
+  { href: "/settings/procedure-types", label: messages.nav.settings },
 ] as const;
 
 /**

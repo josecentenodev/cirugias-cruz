@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { messages } from "@/messages/en";
 import type { ProcedureTypeDetailView } from "../mappers";
 import { CustomFieldForm } from "./CustomFieldForm";
 import { CustomFieldList } from "./CustomFieldList";
@@ -25,7 +26,7 @@ export function ProcedureTypeDetail({ procedureType }: { procedureType: Procedur
 
       <Card>
         <CardHeader>
-          <CardTitle>Custom fields</CardTitle>
+          <CardTitle>{messages.procedureTypes.customFields.cardTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <CustomFieldList customFields={procedureType.customFields} />
@@ -34,7 +35,7 @@ export function ProcedureTypeDetail({ procedureType }: { procedureType: Procedur
 
       <Card>
         <CardHeader>
-          <CardTitle>Add a custom field</CardTitle>
+          <CardTitle>{messages.procedureTypes.customFields.addCardTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <CustomFieldForm procedureTypeId={procedureType.id} />

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { logoutAction } from "@/features/auth/actions";
+import { messages } from "@/messages/en";
 
 /**
  * A Resident's own shell (ADR 0017) — deliberately separate from
@@ -16,18 +17,21 @@ export default function ResidentLayout({ children }: { children: ReactNode }) {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Link href="/resident/surgeries" className="text-sm font-semibold text-foreground">
-            Seguimiento de Cirugías
+            {messages.brand.name}
           </Link>
           <nav className="flex items-center gap-4 text-sm">
             <Link
               href="/resident/surgeries"
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground transition-colors hover:text-foreground"
             >
-              My surgeries
+              {messages.resident.nav.mySurgeries}
             </Link>
             <form action={logoutAction}>
-              <button type="submit" className="text-muted-foreground hover:text-foreground">
-                Log out
+              <button
+                type="submit"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {messages.common.logOut}
               </button>
             </form>
           </nav>

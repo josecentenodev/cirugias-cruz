@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { messages } from "@/messages/en";
 import { ProcedureTypeDetail } from "@/features/procedure-types/components/ProcedureTypeDetail";
 import { toProcedureTypeDetailView } from "@/features/procedure-types/mappers";
 import { getProcedureType } from "@/features/procedure-types/queries";
@@ -19,12 +20,12 @@ export default async function ProcedureTypeDetailPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Link
-        href="/settings/procedure-types"
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Back to Configuración
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: messages.nav.settings, href: "/settings/procedure-types" },
+          { label: view.name },
+        ]}
+      />
       <ProcedureTypeDetail procedureType={view} />
     </div>
   );

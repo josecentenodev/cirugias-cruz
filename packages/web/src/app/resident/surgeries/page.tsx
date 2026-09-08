@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/PageHeader";
+import { messages } from "@/messages/en";
 import { OwnSurgeryList } from "@/features/resident-session/components/OwnSurgeryList";
 import { toOwnSurgeryListView } from "@/features/resident-session/mappers";
 import { listOwnSurgeries } from "@/features/resident-session/queries";
@@ -11,7 +13,7 @@ export default async function ResidentSurgeriesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg font-semibold">My surgeries</h1>
+      <PageHeader title={messages.resident.surgeriesTitle} />
       <OwnSurgeryList surgeries={views} />
     </div>
   );

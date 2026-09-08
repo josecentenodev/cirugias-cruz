@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -10,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
+import { messages } from "@/messages/en";
 import type { ProcedureTypeView } from "../mappers";
 
 /**
@@ -22,14 +24,15 @@ import type { ProcedureTypeView } from "../mappers";
 export function ProcedureTypeList({ procedureTypes }: { procedureTypes: ProcedureTypeView[] }) {
   if (procedureTypes.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-          <p className="text-sm text-muted-foreground">No procedure types registered yet.</p>
+      <EmptyState
+        title={messages.procedureTypes.empty.title}
+        hint={messages.procedureTypes.empty.hint}
+        action={
           <Link href="/settings/procedure-types/new" className={cn(buttonVariants())}>
-            Register your first procedure type
+            {messages.procedureTypes.empty.cta}
           </Link>
-        </CardContent>
-      </Card>
+        }
+      />
     );
   }
 
@@ -38,8 +41,8 @@ export function ProcedureTypeList({ procedureTypes }: { procedureTypes: Procedur
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Description</TableHead>
+            <TableHead>{messages.procedureTypes.columns.name}</TableHead>
+            <TableHead>{messages.procedureTypes.columns.description}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

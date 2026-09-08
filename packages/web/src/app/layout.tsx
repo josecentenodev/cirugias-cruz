@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Roboto } from "next/font/google";
+import { messages } from "@/messages/en";
 import "./globals.css";
 
 const roboto = Roboto({
@@ -11,9 +12,8 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "Seguimiento de Cirugías",
-  description:
-    "Seguimiento de Cirugías — seguimiento quirúrgico e investigación clínica para médicos",
+  title: messages.brand.name,
+  description: `${messages.brand.name} — ${messages.brand.tagline}`,
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

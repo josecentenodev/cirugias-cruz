@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -10,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
+import { messages } from "@/messages/en";
 import type { ResidentView } from "../mappers";
 import { ResidentCredentialActions } from "./ResidentCredentialActions";
 
@@ -17,14 +20,15 @@ import { ResidentCredentialActions } from "./ResidentCredentialActions";
 export function ResidentList({ residents }: { residents: ResidentView[] }) {
   if (residents.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-          <p className="text-sm text-muted-foreground">No residents registered yet.</p>
+      <EmptyState
+        title={messages.residents.empty.title}
+        hint={messages.residents.empty.hint}
+        action={
           <Link href="/staff/residents/new" className={cn(buttonVariants())}>
-            Register your first resident
+            {messages.residents.empty.cta}
           </Link>
-        </CardContent>
-      </Card>
+        }
+      />
     );
   }
 
@@ -33,12 +37,12 @@ export function ResidentList({ residents }: { residents: ResidentView[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Date of birth</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Credential</TableHead>
+            <TableHead>{messages.residents.columns.name}</TableHead>
+            <TableHead>{messages.residents.columns.phone}</TableHead>
+            <TableHead>{messages.residents.columns.email}</TableHead>
+            <TableHead>{messages.residents.columns.dateOfBirth}</TableHead>
+            <TableHead>{messages.residents.columns.status}</TableHead>
+            <TableHead>{messages.residents.columns.credential}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -49,18 +53,16 @@ export function ResidentList({ residents }: { residents: ResidentView[] }) {
               <TableCell>{resident.email}</TableCell>
               <TableCell>{resident.dateOfBirthLabel}</TableCell>
               <TableCell>
-                <span
-                  className={
-                    resident.active
-                      ? "rounded-full border border-border px-2 py-0.5 text-xs font-medium"
-                      : "rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-                  }
-                >
-                  {resident.active ? "Active" : "Inactive"}
-                </span>
+                <Badge variant={resident.active ? "success" : "neutral"}>
+                  {resident.active ? messages.residents.active : messages.residents.inactive}
+                </Badge>
               </TableCell>
               <TableCell>
-                <ResidentCredentialActions residentId={resident.id} active={resident.active} />
+                <ResidentCredentialActions
+                  residentId={resident.id}
+                  residentName={resident.fullName}
+                  active={resident.active}
+                />
               </TableCell>
             </TableRow>
           ))}

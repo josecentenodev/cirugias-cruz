@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -10,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
+import { messages } from "@/messages/en";
 import type { SurgeryListView } from "../mappers";
 
 /**
@@ -26,14 +28,15 @@ export function SurgeryList({
 }) {
   if (surgeries.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-          <p className="text-sm text-muted-foreground">No surgeries registered yet.</p>
+      <EmptyState
+        title={messages.surgeries.empty.title}
+        hint={messages.surgeries.empty.hint}
+        action={
           <Link href={`/patients/${patientId}/surgeries/new`} className={cn(buttonVariants())}>
-            Register the first surgery
+            {messages.surgeries.empty.cta}
           </Link>
-        </CardContent>
-      </Card>
+        }
+      />
     );
   }
 
@@ -42,9 +45,9 @@ export function SurgeryList({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Procedure type</TableHead>
-            <TableHead>Performed</TableHead>
-            <TableHead>Controls</TableHead>
+            <TableHead>{messages.surgeries.columns.procedureType}</TableHead>
+            <TableHead>{messages.surgeries.columns.performed}</TableHead>
+            <TableHead>{messages.surgeries.columns.controls}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

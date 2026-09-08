@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { messages } from "@/messages/en";
 import { listPatients } from "@/features/patients/queries";
 import { listProcedureTypes } from "@/features/procedure-types/queries";
 import { toResearchStudyDetailView } from "@/features/research-studies/mappers";
@@ -56,12 +57,17 @@ export default async function ResearchStudyDetailPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Link
-        href="/research-studies"
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Back to research studies
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: messages.research.listTitle, href: "/research-studies" },
+          {
+            label:
+              view.hypothesis.length > 60
+                ? `${view.hypothesis.slice(0, 60)}…`
+                : view.hypothesis || messages.research.cardTitle,
+          },
+        ]}
+      />
       <ResearchStudyDetail study={view} availableSurgeries={availableSurgeries} />
     </div>
   );

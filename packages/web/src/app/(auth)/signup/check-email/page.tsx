@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { messages } from "@/messages/en";
 
 // See app/(auth)/login/page.tsx for why: nonce-based CSP requires dynamic rendering.
 // (This page has no data fetch of its own, but stays consistent with
@@ -15,17 +16,14 @@ export default function CheckEmailPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Check your email</CardTitle>
-        <CardDescription>
-          We sent a confirmation link to the address you registered with. Open it to activate your
-          account.
-        </CardDescription>
+        <CardTitle>{messages.auth.checkEmail.title}</CardTitle>
+        <CardDescription>{messages.auth.checkEmail.subtitle}</CardDescription>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">
-          Already confirmed?{" "}
+          {messages.auth.checkEmail.confirmed}{" "}
           <Link href="/login" className="font-medium text-foreground hover:underline">
-            Sign in
+            {messages.auth.checkEmail.signIn}
           </Link>
         </p>
       </CardContent>

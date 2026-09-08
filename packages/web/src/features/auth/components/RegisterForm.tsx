@@ -1,23 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PendingButton } from "@/components/ui/pending-button";
+import { messages } from "@/messages/en";
 import { registerAction, type RegisterFormState } from "../actions";
 
 const initialState: RegisterFormState = {};
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="w-full">
-      {pending ? "Creating account…" : "Create account"}
-    </Button>
-  );
-}
 
 /**
  * Submits through `registerAction` (a Server Action) — never a
@@ -34,7 +25,7 @@ export function RegisterForm() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="firstName">First name</Label>
+          <Label htmlFor="firstName">{messages.fields.firstName}</Label>
           <Input
             id="firstName"
             name="firstName"
@@ -44,7 +35,7 @@ export function RegisterForm() {
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="lastName">Last name</Label>
+          <Label htmlFor="lastName">{messages.fields.lastName}</Label>
           <Input
             id="lastName"
             name="lastName"
@@ -56,7 +47,7 @@ export function RegisterForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="phone">Phone</Label>
+        <Label htmlFor="phone">{messages.fields.phone}</Label>
         <Input
           id="phone"
           name="phone"
@@ -67,7 +58,7 @@ export function RegisterForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{messages.fields.email}</Label>
         <Input
           id="email"
           name="email"
@@ -79,7 +70,7 @@ export function RegisterForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="dateOfBirth">Date of birth</Label>
+        <Label htmlFor="dateOfBirth">{messages.fields.dateOfBirth}</Label>
         <Input
           id="dateOfBirth"
           name="dateOfBirth"
@@ -91,11 +82,13 @@ export function RegisterForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{messages.fields.password}</Label>
         <Input id="password" name="password" type="password" required autoComplete="new-password" />
       </div>
 
-      <SubmitButton />
+      <PendingButton className="w-full" pendingText={messages.auth.signup.submitting}>
+        {messages.auth.signup.submit}
+      </PendingButton>
     </form>
   );
 }

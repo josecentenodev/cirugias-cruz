@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { CustomFieldDto } from "@/features/procedure-types/dtos";
+import { messages } from "@/messages/en";
 import type { SurgeryDetailView } from "../mappers";
 import { AssignResidentForm } from "./AssignResidentForm";
 import { ControlRow } from "./ControlRow";
@@ -39,8 +41,8 @@ export function SurgeryDetail({
           <CardTitle>{surgery.patientName}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Procedure type" value={surgery.procedureTypeName} />
-          <Field label="Performed" value={surgery.performedAtLabel} />
+          <Field label={messages.surgeries.procedureType} value={surgery.procedureTypeName} />
+          <Field label={messages.surgeries.performed} value={surgery.performedAtLabel} />
           {surgery.customFieldValues.map((value) => (
             <Field key={value.definitionId} label={value.label} value={value.displayValue} />
           ))}
@@ -49,11 +51,11 @@ export function SurgeryDetail({
 
       <Card>
         <CardHeader>
-          <CardTitle>Residents</CardTitle>
+          <CardTitle>{messages.surgeries.residents.cardTitle}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {surgery.participants.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No residents assigned yet.</p>
+            <p className="text-sm text-muted-foreground">{messages.surgeries.residents.empty}</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {surgery.participants.map((participant) => (
@@ -66,6 +68,7 @@ export function SurgeryDetail({
                     patientId={patientId}
                     surgeryId={surgery.id}
                     residentId={participant.id}
+                    residentName={participant.name}
                   />
                 </li>
               ))}
@@ -82,11 +85,11 @@ export function SurgeryDetail({
 
       <Card>
         <CardHeader>
-          <CardTitle>Control history</CardTitle>
+          <CardTitle>{messages.surgeries.controlHistory.cardTitle}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {surgery.controls.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No controls recorded yet.</p>
+            <EmptyState title={messages.surgeries.controlHistory.empty} />
           ) : (
             <ul className="flex flex-col gap-2">
               {surgery.controls.map((control) => (
@@ -104,7 +107,7 @@ export function SurgeryDetail({
 
       <Card>
         <CardHeader>
-          <CardTitle>Record a control</CardTitle>
+          <CardTitle>{messages.surgeries.recordControl.cardTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <RecordControlForm

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { DashboardNav } from "@/components/DashboardNav";
 import { logoutAction } from "@/features/auth/actions";
+import { messages } from "@/messages/en";
 
 /**
  * Server Component — no `"use client"` anywhere in this file. The
@@ -16,7 +17,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Link href="/patients" className="text-sm font-semibold text-foreground">
-            Seguimiento de Cirugías
+            {messages.brand.name}
           </Link>
           <DashboardNav>
             <form action={logoutAction}>
@@ -24,7 +25,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 type="submit"
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
-                Log out
+                {messages.common.logOut}
               </button>
             </form>
           </DashboardNav>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -10,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
+import { messages } from "@/messages/en";
 import type { PatientView } from "../mappers";
 
 /**
@@ -20,14 +22,15 @@ import type { PatientView } from "../mappers";
 export function PatientList({ patients }: { patients: PatientView[] }) {
   if (patients.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-          <p className="text-sm text-muted-foreground">No patients registered yet.</p>
+      <EmptyState
+        title={messages.patients.empty.title}
+        hint={messages.patients.empty.hint}
+        action={
           <Link href="/patients/new" className={cn(buttonVariants())}>
-            Register your first patient
+            {messages.patients.empty.cta}
           </Link>
-        </CardContent>
-      </Card>
+        }
+      />
     );
   }
 
@@ -36,11 +39,11 @@ export function PatientList({ patients }: { patients: PatientView[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>DNI</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Date of birth</TableHead>
+            <TableHead>{messages.patients.columns.name}</TableHead>
+            <TableHead>{messages.patients.columns.dni}</TableHead>
+            <TableHead>{messages.patients.columns.phone}</TableHead>
+            <TableHead>{messages.patients.columns.email}</TableHead>
+            <TableHead>{messages.patients.columns.dateOfBirth}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -51,7 +54,7 @@ export function PatientList({ patients }: { patients: PatientView[] }) {
                   {patient.fullName}
                 </Link>
               </TableCell>
-              <TableCell>{patient.dni ?? "—"}</TableCell>
+              <TableCell>{patient.dni ?? messages.common.none}</TableCell>
               <TableCell>{patient.phone}</TableCell>
               <TableCell>{patient.email}</TableCell>
               <TableCell>{patient.dateOfBirthLabel}</TableCell>

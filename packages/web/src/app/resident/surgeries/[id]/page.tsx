@@ -1,4 +1,8 @@
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { messages } from "@/messages/en";
 import { OwnControlRow } from "@/features/resident-session/components/OwnControlRow";
 import { RecordOwnControlForm } from "@/features/resident-session/components/RecordOwnControlForm";
 import { toOwnSurgeryDetailView } from "@/features/resident-session/mappers";
@@ -24,20 +28,28 @@ export default async function ResidentSurgeryDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-lg font-semibold">Surgery</h1>
-        <p className="text-sm text-muted-foreground">
-          Patient {view.patientName} · Procedure {view.procedureTypeName} · {view.performedAtLabel}
-        </p>
-      </div>
+      <Breadcrumbs
+        items={[
+          { label: messages.resident.surgeriesTitle, href: "/resident/surgeries" },
+          { label: `${view.procedureTypeName} · ${view.performedAtLabel}` },
+        ]}
+      />
+      <PageHeader
+        title={messages.resident.surgeryTitle}
+        description={messages.resident.surgeryMeta(
+          view.patientName,
+          view.procedureTypeName,
+          view.performedAtLabel,
+        )}
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Controls</CardTitle>
+          <CardTitle className="text-base">{messages.resident.controls.cardTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           {view.controls.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No controls recorded yet.</p>
+            <EmptyState title={messages.resident.controls.empty} />
           ) : (
             <ul className="flex flex-col gap-2">
               {view.controls.map((control) => (
@@ -50,7 +62,7 @@ export default async function ResidentSurgeryDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Record a control</CardTitle>
+          <CardTitle className="text-base">{messages.resident.recordControl.cardTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <RecordOwnControlForm surgeryId={view.id} customFields={view.controlCustomFields} />

@@ -1,28 +1,19 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PendingButton } from "@/components/ui/pending-button";
 import { CustomFieldValueInputs } from "@/features/procedure-types/components/CustomFieldValueInputs";
 import type { ProcedureTypeDto } from "@/features/procedure-types/dtos";
+import { messages } from "@/messages/en";
 import { registerSurgeryAction, type RegisterSurgeryFormState } from "../actions";
 
 const initialState: RegisterSurgeryFormState = {};
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Registering…" : "Register surgery"}
-    </Button>
-  );
-}
-
 const selectClassName =
-  "h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "h-9 rounded-md border border-border bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
  * The Patient is fixed by the route (`patients/[id]/surgeries/new`) and
@@ -58,7 +49,7 @@ export function SurgeryForm({
       <input type="hidden" name="patientId" value={patientId} />
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="procedureTypeId">Procedure type</Label>
+        <Label htmlFor="procedureTypeId">{messages.surgeries.procedureType}</Label>
         <select
           id="procedureTypeId"
           name="procedureTypeId"
@@ -68,7 +59,7 @@ export function SurgeryForm({
           className={selectClassName}
         >
           <option value="" disabled>
-            Select a procedure type
+            {messages.surgeries.selectProcedureType}
           </option>
           {procedureTypes.map((procedureType) => (
             <option key={procedureType.id} value={procedureType.id}>
@@ -79,14 +70,16 @@ export function SurgeryForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="performedAt">Performed date</Label>
+        <Label htmlFor="performedAt">{messages.surgeries.performedDate}</Label>
         <Input id="performedAt" name="performedAt" type="date" required />
       </div>
 
       <CustomFieldValueInputs fields={surgeryFields} />
 
       <div>
-        <SubmitButton />
+        <PendingButton pendingText={messages.surgeries.registering}>
+          {messages.surgeries.register}
+        </PendingButton>
       </div>
     </form>
   );

@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { messages } from "@/messages/en";
 import type { PatientView } from "../mappers";
 
 export function PatientDetail({ patient }: { patient: PatientView }) {
@@ -8,13 +9,13 @@ export function PatientDetail({ patient }: { patient: PatientView }) {
         <CardTitle>{patient.fullName}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2">
-        {patient.dni ? <Field label="DNI" value={patient.dni} /> : null}
-        <Field label="Phone" value={patient.phone} />
-        <Field label="Email" value={patient.email} />
-        <Field label="Date of birth" value={patient.dateOfBirthLabel} />
+        {patient.dni ? <Field label={messages.fields.dni} value={patient.dni} /> : null}
+        <Field label={messages.fields.phone} value={patient.phone} />
+        <Field label={messages.fields.email} value={patient.email} />
+        <Field label={messages.fields.dateOfBirth} value={patient.dateOfBirthLabel} />
         {patient.observations ? (
           <div className="sm:col-span-2">
-            <Field label="Observations" value={patient.observations} />
+            <Field label={messages.patients.detail.observations} value={patient.observations} />
           </div>
         ) : null}
       </CardContent>

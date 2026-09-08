@@ -1,10 +1,15 @@
+import { Badge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { messages } from "@/messages/en";
 import type { ResearchStudyDetailView } from "../mappers";
 import { AddSurgeryForm } from "./AddSurgeryForm";
 import { DeleteResearchStudyButton } from "./DeleteResearchStudyButton";
 import { RemoveSurgeryButton } from "./RemoveSurgeryButton";
 import { ResearchStudyFieldsForm } from "./ResearchStudyFieldsForm";
 import { StatusActions } from "./StatusActions";
+import { statusBadgeVariant } from "./statusBadge";
 
 /**
  * Server Component — reads are rendered directly, no client-side fetch.
@@ -26,10 +31,8 @@ export function ResearchStudyDetail({
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Research study</CardTitle>
-          <span className="rounded-full border border-border px-2.5 py-0.5 text-xs font-medium">
-            {study.statusLabel}
-          </span>
+          <CardTitle>{messages.research.cardTitle}</CardTitle>
+          <Badge variant={statusBadgeVariant[study.status]}>{study.statusLabel}</Badge>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <ResearchStudyFieldsForm study={study} />
@@ -44,11 +47,11 @@ export function ResearchStudyDetail({
 
       <Card>
         <CardHeader>
-          <CardTitle>Surgeries</CardTitle>
+          <CardTitle>{messages.research.surgeries.cardTitle}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {study.surgeries.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No surgeries added yet.</p>
+            <EmptyState title={messages.research.surgeries.empty} />
           ) : (
             <ul className="flex flex-col gap-2">
               {study.surgeries.map((surgery) => (
@@ -65,9 +68,7 @@ export function ResearchStudyDetail({
             </ul>
           )}
           {study.status === "COMPLETED" ? (
-            <p className="text-sm text-muted-foreground">
-              A completed study&apos;s surgery universe is locked — reopen it to change.
-            </p>
+            <Alert variant="muted">{messages.research.surgeries.completedLocked}</Alert>
           ) : (
             <AddSurgeryForm researchStudyId={study.id} surgeries={availableSurgeries} />
           )}

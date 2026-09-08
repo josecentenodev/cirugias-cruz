@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { PageHeader } from "@/components/PageHeader";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { messages } from "@/messages/en";
 import { PatientDetail } from "@/features/patients/components/PatientDetail";
 import { toPatientView } from "@/features/patients/mappers";
 import { getPatient } from "@/features/patients/queries";
@@ -29,17 +32,26 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/patients" className="text-sm text-muted-foreground hover:text-foreground">
-        ← Back to patients
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: messages.patients.listTitle, href: "/patients" },
+          { label: view.fullName },
+        ]}
+      />
       <PatientDetail patient={view} />
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">Surgeries</h2>
-        <Link href={`/patients/${id}/surgeries/new`} className={cn(buttonVariants({ size: "sm" }))}>
-          Register surgery
-        </Link>
-      </div>
+      <PageHeader
+        level={2}
+        title={messages.surgeries.sectionTitle}
+        action={
+          <Link
+            href={`/patients/${id}/surgeries/new`}
+            className={cn(buttonVariants({ size: "sm" }))}
+          >
+            {messages.surgeries.register}
+          </Link>
+        }
+      />
       <SurgeryList patientId={id} surgeries={surgeries} />
     </div>
   );

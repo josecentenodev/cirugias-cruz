@@ -1,3 +1,4 @@
+import { messages } from "@/messages/en";
 import type { ResearchStudyDto, ResearchStudyStatus } from "./dtos";
 
 export interface ResearchStudyListView {
@@ -34,11 +35,7 @@ export interface ResearchStudyDetailView {
  */
 export type SurgeryLookup = Map<string, string>;
 
-const STATUS_LABELS: Record<ResearchStudyStatus, string> = {
-  DRAFT: "Draft",
-  IN_PROGRESS: "In progress",
-  COMPLETED: "Completed",
-};
+const STATUS_LABELS: Record<ResearchStudyStatus, string> = messages.research.status;
 
 function textOr(value: string | undefined): string {
   return value ?? "";

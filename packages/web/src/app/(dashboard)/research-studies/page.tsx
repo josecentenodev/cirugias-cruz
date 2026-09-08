@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/PageHeader";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { messages } from "@/messages/en";
 import { ResearchStudyList } from "@/features/research-studies/components/ResearchStudyList";
 import { toResearchStudyListView } from "@/features/research-studies/mappers";
 import { listResearchStudies } from "@/features/research-studies/queries";
@@ -13,12 +15,14 @@ export default async function ResearchStudiesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Research studies</h1>
-        <Link href="/research-studies/new" className={cn(buttonVariants())}>
-          Register study
-        </Link>
-      </div>
+      <PageHeader
+        title={messages.research.listTitle}
+        action={
+          <Link href="/research-studies/new" className={cn(buttonVariants())}>
+            {messages.research.register}
+          </Link>
+        }
+      />
       <ResearchStudyList studies={views} />
     </div>
   );

@@ -1,21 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { PendingButton } from "@/components/ui/pending-button";
+import { messages } from "@/messages/en";
 import { assignResidentAction, type AssignResidentFormState } from "../actions";
 
 const initialState: AssignResidentFormState = {};
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" size="sm" disabled={pending}>
-      {pending ? "Assigning…" : "Assign"}
-    </Button>
-  );
-}
 
 /**
  * `residents` is already filtered to exclude anyone currently
@@ -48,8 +39,8 @@ export function AssignResidentForm({
     return (
       <p className="text-sm text-muted-foreground">
         {totalResidentCount === 0
-          ? "No residents registered yet — register one first."
-          : "Every registered resident is already assigned."}
+          ? messages.surgeries.residents.noneRegistered
+          : messages.surgeries.residents.allAssigned}
       </p>
     );
   }
@@ -65,11 +56,11 @@ export function AssignResidentForm({
         name="residentId"
         required
         defaultValue=""
-        aria-label="Resident to assign"
-        className="h-9 flex-1 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={messages.surgeries.residents.assignLabel}
+        className="h-9 flex-1 rounded-md border border-border bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <option value="" disabled>
-          Select a resident
+          {messages.surgeries.residents.selectResident}
         </option>
         {residents.map((resident) => (
           <option key={resident.id} value={resident.id}>
@@ -77,7 +68,9 @@ export function AssignResidentForm({
           </option>
         ))}
       </select>
-      <SubmitButton />
+      <PendingButton size="sm" pendingText={messages.surgeries.residents.assigning}>
+        {messages.surgeries.residents.assign}
+      </PendingButton>
     </form>
   );
 }

@@ -236,7 +236,7 @@ this specific design:
 - **Regulatory/compliance session requirements** (e.g. a named framework
   requiring a specific idle-timeout or re-authentication policy) — no
   such framework has been named as in scope for this project (explicitly
-  listed as deferred/unresolved by `epitaxy-project`'s own index). Not
+  listed as deferred/unresolved by `seguimiento-cirugias-project`'s own index). Not
   evaluated here; would change the TTL/idle-timeout answer above if one
   is ever named.
 - **Compromise of `web`'s own hosting environment** — out of scope per

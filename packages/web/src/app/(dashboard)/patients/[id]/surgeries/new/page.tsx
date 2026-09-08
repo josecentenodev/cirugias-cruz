@@ -1,5 +1,7 @@
-import Link from "next/link";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { messages } from "@/messages/en";
 import { getPatient } from "@/features/patients/queries";
 import { listProcedureTypes } from "@/features/procedure-types/queries";
 import { SurgeryForm } from "@/features/surgeries/components/SurgeryForm";
@@ -16,16 +18,17 @@ export default async function NewSurgeryPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="flex flex-col gap-4">
-      <Link
-        href={`/patients/${id}`}
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Back to {patientName}
-      </Link>
-      <h1 className="text-lg font-semibold">Register surgery for {patientName}</h1>
+      <Breadcrumbs
+        items={[
+          { label: messages.patients.listTitle, href: "/patients" },
+          { label: patientName, href: `/patients/${id}` },
+          { label: messages.surgeries.register },
+        ]}
+      />
+      <PageHeader title={messages.surgeries.registerFor(patientName)} />
       <Card>
         <CardHeader>
-          <CardTitle>Surgery details</CardTitle>
+          <CardTitle>{messages.surgeries.detailsCard}</CardTitle>
         </CardHeader>
         <CardContent>
           <SurgeryForm patientId={id} procedureTypes={procedureTypes} />

@@ -1,25 +1,21 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { PendingButton } from "@/components/ui/pending-button";
 import { CustomFieldValueInputs } from "@/features/procedure-types/components/CustomFieldValueInputs";
 import type { CustomFieldDto } from "@/features/procedure-types/dtos";
+import { messages } from "@/messages/en";
 import { recordControlAction, type RecordControlFormState } from "../actions";
 import type { ParticipantView } from "../mappers";
 
 const initialState: RecordControlFormState = {};
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Recording…" : "Record control"}
-    </Button>
-  );
-}
+const fieldClassName =
+  "h-9 rounded-md border border-border bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const textareaClassName =
+  "rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
  * `participants` come straight from the Surgery aggregate
@@ -53,7 +49,9 @@ export function RecordControlForm({
       {state.error ? <Alert>{state.error}</Alert> : null}
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium text-foreground">Recorded by</legend>
+        <legend className="text-sm font-medium text-foreground">
+          {messages.surgeries.recordControl.recordedBy}
+        </legend>
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -63,7 +61,7 @@ export function RecordControlForm({
               checked={authorType === "physician"}
               onChange={() => setAuthorType("physician")}
             />
-            You (physician)
+            {messages.surgeries.recordControl.physicianOption}
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -74,10 +72,10 @@ export function RecordControlForm({
               checked={authorType === "resident"}
               onChange={() => setAuthorType("resident")}
             />
-            A participating resident
+            {messages.surgeries.recordControl.residentOption}
             {hasParticipants ? null : (
               <span className="text-xs text-muted-foreground">
-                (none currently assigned to this surgery)
+                {messages.surgeries.recordControl.noResidentsHint}
               </span>
             )}
           </label>
@@ -86,16 +84,16 @@ export function RecordControlForm({
 
       {authorType === "resident" && hasParticipants ? (
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="residentId">Resident</Label>
+          <Label htmlFor="residentId">{messages.surgeries.recordControl.resident}</Label>
           <select
             id="residentId"
             name="residentId"
             required
             defaultValue=""
-            className="h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={fieldClassName}
           >
             <option value="" disabled>
-              Select a resident
+              {messages.surgeries.recordControl.selectResident}
             </option>
             {participants.map((participant) => (
               <option key={participant.id} value={participant.id}>
@@ -107,31 +105,33 @@ export function RecordControlForm({
       ) : null}
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="observations">Observations</Label>
+        <Label htmlFor="observations">{messages.fields.observations}</Label>
         <textarea
           id="observations"
           name="observations"
           required
           rows={3}
-          className="rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={textareaClassName}
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="recordedAt">Date &amp; time</Label>
+        <Label htmlFor="recordedAt">{messages.fields.dateAndTime}</Label>
         <input
           id="recordedAt"
           name="recordedAt"
           type="datetime-local"
           required
-          className="h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={fieldClassName}
         />
       </div>
 
       <CustomFieldValueInputs fields={customFields} />
 
       <div>
-        <SubmitButton />
+        <PendingButton pendingText={messages.surgeries.recordControl.submitting}>
+          {messages.surgeries.recordControl.submit}
+        </PendingButton>
       </div>
     </form>
   );

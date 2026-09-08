@@ -1,13 +1,33 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens — see docs/design/design-system.md and ADR 0024.
+ * Palette: Midnight Ocean #12304A · Bermuda #1C8087 · Melting Glacier
+ * #EAF4F6 · Dr. White #F9FAFB · Silent Night #526575. Light-only for
+ * now (dark mode deferred, Milestone 10).
+ */
+
 @theme inline {
+  --font-sans:
+    var(--font-roboto), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-bg: var(--warning-bg);
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
   --color-danger-bg: var(--danger-bg);
@@ -16,34 +36,32 @@
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #0f1115;
-  --muted: #f4f5f7;
-  --muted-foreground: #5b6270;
-  --border: #dfe2e8;
-  --primary: #14532d;
-  --primary-foreground: #ffffff;
-  --danger: #b3261e;
-  --danger-foreground: #ffffff;
-  --danger-bg: #fdecea;
-  --ring: #14532d;
-  --radius: 0.5rem;
-}
+  --background: #f9fafb; /* Dr. White — page */
+  --surface: #ffffff; /* cards / raised surfaces */
+  --foreground: #12304a; /* Midnight Ocean — body text */
+  --muted: #eaf4f6; /* Melting Glacier — hover / selected / muted fill */
+  --muted-foreground: #46586a; /* darkened Silent Night — AA on --background */
+  --border: #d6e1e5; /* ice / slate tint */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b0d10;
-    --foreground: #eef0f3;
-    --muted: #16191e;
-    --muted-foreground: #9aa2b1;
-    --border: #262b33;
-    --primary: #4ade80;
-    --primary-foreground: #0b0d10;
-    --danger: #f87171;
-    --danger-foreground: #0b0d10;
-    --danger-bg: #2a1414;
-    --ring: #4ade80;
-  }
+  --primary: #0f6b72; /* darkened Bermuda — white label text hits AA */
+  --primary-foreground: #ffffff;
+  --accent: #1c8087; /* true Bermuda — non-text accents, focus ring */
+  --accent-foreground: #ffffff;
+
+  --success: #0f7b6c;
+  --success-foreground: #ffffff;
+  --success-bg: #e6f4f1;
+
+  --warning: #b7791f;
+  --warning-foreground: #7a4e12;
+  --warning-bg: #fbf3e4;
+
+  --danger: #b42318;
+  --danger-foreground: #ffffff;
+  --danger-bg: #fef0ee;
+
+  --ring: #1c8087;
+  --radius: 0.5rem;
 }
 
 * {
@@ -53,13 +71,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
+  font-family: var(--font-sans);
 }

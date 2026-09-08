@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { messages } from "@/messages/en";
 import { listPatients } from "@/features/patients/queries";
 import { listProcedureTypes } from "@/features/procedure-types/queries";
 import { listResidents } from "@/features/residents/queries";
@@ -49,14 +50,17 @@ export default async function SurgeryDetailPage({
     .filter((r) => !participatingIds.has(r.id))
     .map((r) => ({ id: r.id, label: `${r.firstName} ${r.lastName}` }));
 
+  const patientName = patientNames.get(patientId) ?? messages.surgeries.backToPatient;
+
   return (
     <div className="flex flex-col gap-4">
-      <Link
-        href={`/patients/${patientId}`}
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Back to patient
-      </Link>
+      <Breadcrumbs
+        items={[
+          { label: messages.patients.listTitle, href: "/patients" },
+          { label: patientName, href: `/patients/${patientId}` },
+          { label: `${view.procedureTypeName} · ${view.performedAtLabel}` },
+        ]}
+      />
       <SurgeryDetail
         patientId={patientId}
         surgery={view}

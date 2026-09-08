@@ -1,23 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PendingButton } from "@/components/ui/pending-button";
+import { messages } from "@/messages/en";
 import { registerPatientAction, type RegisterPatientFormState } from "../actions";
 
 const initialState: RegisterPatientFormState = {};
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Registering…" : "Register patient"}
-    </Button>
-  );
-}
 
 /**
  * The interactive shell around patient registration — local state is
@@ -34,26 +25,28 @@ export function PatientForm() {
       {state.error ? <Alert>{state.error}</Alert> : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="firstName" label="First name" required />
-        <Field id="lastName" label="Last name" required />
-        <Field id="phone" label="Phone" required />
-        <Field id="email" label="Email" type="email" required />
-        <Field id="dateOfBirth" label="Date of birth" type="date" required />
-        <Field id="dni" label="DNI (optional)" />
+        <Field id="firstName" label={messages.fields.firstName} required />
+        <Field id="lastName" label={messages.fields.lastName} required />
+        <Field id="phone" label={messages.fields.phone} required />
+        <Field id="email" label={messages.fields.email} type="email" required />
+        <Field id="dateOfBirth" label={messages.fields.dateOfBirth} type="date" required />
+        <Field id="dni" label={messages.fields.dniOptional} />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="observations">Observations (optional)</Label>
+        <Label htmlFor="observations">{messages.fields.observationsOptional}</Label>
         <textarea
           id="observations"
           name="observations"
           rows={3}
-          className="rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
 
       <div>
-        <SubmitButton />
+        <PendingButton pendingText={messages.patients.registering}>
+          {messages.patients.register}
+        </PendingButton>
       </div>
     </form>
   );

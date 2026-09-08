@@ -1,26 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PendingButton } from "@/components/ui/pending-button";
+import { messages } from "@/messages/en";
 import { loginAction, type LoginFormState } from "../actions";
 
 const initialState: LoginFormState = {};
-
-function SubmitButton() {
-  // Local interactive state (pending) is exactly the kind of thing that
-  // justifies a Client Component per
-  // docs/architecture/milestone-8-design.md §6 — nothing else here does.
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending} className="w-full">
-      {pending ? "Signing in…" : "Sign in"}
-    </Button>
-  );
-}
 
 /**
  * The interactive shell around the login form. Submission goes through
@@ -36,7 +24,7 @@ export function LoginForm() {
       {state.error ? <Alert>{state.error}</Alert> : null}
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{messages.fields.email}</Label>
         <Input
           id="email"
           name="email"
@@ -49,7 +37,7 @@ export function LoginForm() {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{messages.fields.password}</Label>
         <Input
           id="password"
           name="password"
@@ -60,7 +48,9 @@ export function LoginForm() {
         />
       </div>
 
-      <SubmitButton />
+      <PendingButton className="w-full" pendingText={messages.auth.login.submitting}>
+        {messages.auth.login.submit}
+      </PendingButton>
     </form>
   );
 }

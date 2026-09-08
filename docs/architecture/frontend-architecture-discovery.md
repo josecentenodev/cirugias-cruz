@@ -49,7 +49,7 @@ Router's reputation for being "tedious" comes almost entirely from
 fighting RSC caching semantics and forcing SSR/ISR patterns onto content
 that doesn't need them (public, SEO-sensitive, high-traffic pages).
 
-**None of that applies here.** Epitaxy's frontend is an authenticated,
+**None of that applies here.** Seguimiento de Cirugías's frontend is an authenticated,
 private, low-traffic clinical tool. It has no SEO surface, no public
 content, and no caching win worth chasing — clinical data (a Control's
 observations, a Surgery's history) needs to be current, not cached. The

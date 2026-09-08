@@ -5,7 +5,7 @@ médico armó por su cuenta para registrar sus propios casos de superficie
 ocular. No es código del repositorio ni una especificación formal — es una
 fuente de _conceptos de dominio y experiencia deseada_ tal como el usuario
 final del producto (el propio cirujano) ya los modeló para sí mismo antes
-de que existiera Epitaxy.
+de que existiera Seguimiento de Cirugías.
 
 Este documento hace dos cosas: (1) extrae qué conceptos y lógica clínica
 usa el prototipo, y (2) contrasta cada uno con lo ya decidido en
@@ -25,20 +25,20 @@ propio", explícitamente para no guardar el nombre completo).
 
 ## 2. Conceptos de dominio extraídos
 
-### 2.1 Pterigión — el caso de uso ya cubierto por Epitaxy
+### 2.1 Pterigión — el caso de uso ya cubierto por Seguimiento de Cirugías
 
 Campos del formulario y su lógica:
 
 - **Código paciente** (texto libre, ej. `AB-014`) — el médico ya
   practica seudonimización manual del paciente. Esto valida el modelo de
-  Epitaxy donde el `Patient` vive aislado por tenant, pero muestra que el
+  Seguimiento de Cirugías donde el `Patient` vive aislado por tenant, pero muestra que el
   médico _ya_ piensa en identificadores cortos, no en historias clínicas
   completas.
 - **Fecha cirugía**, **Ojo** (OD/OI), **Tipo** (Primario/Recidivado) —
   atributos de la cirugía misma.
 - **Técnica quirúrgica** — un `<select>` cerrado con 5 opciones
   (Autoinjerto conjuntival / + MMC / Membrana amniótica / + pegamento de
-  fibrina / Otra). Esto es, en términos de Epitaxy, contenido candidato
+  fibrina / Otra). Esto es, en términos de Seguimiento de Cirugías, contenido candidato
   para un **ProcedureType** con "técnica" como atributo estructurado, o
   para un **CustomField** de tipo enumerado asociado al ProcedureType
   "Pterigión". Es la primera señal concreta de qué _forma_ debería tener
@@ -50,11 +50,11 @@ Campos del formulario y su lógica:
   sobre la cirugía, cuyo propósito es responder una pregunta clínica
   concreta (¿recidivó?). El prototipo lo modela como _un solo campo sobre
   la cirugía_ (una única "última revisión"), no como una lista de
-  controles a lo largo del tiempo. Epitaxy ya generaliza esto correctamente
+  controles a lo largo del tiempo. Seguimiento de Cirugías ya generaliza esto correctamente
   con `Control` como entidad interna de `Surgery` (múltiples controles,
   cada uno con su propio datetime + autor + observaciones) — el prototipo
   es un caso _degenerado_ de eso: le alcanza con el último control porque
-  no necesita historial, solo el estado actual. Epitaxy no necesita
+  no necesita historial, solo el estado actual. Seguimiento de Cirugías no necesita
   cambiar nada aquí; solo confirma que el caso de uso real es "N
   controles, pero lo que más importa clínicamente es el estado del más
   reciente."
@@ -116,18 +116,18 @@ contra el cual validar cualquier propuesta futura.
 > abierto es asociar timepoints fijos (día 1/3/7) a los Controles, que
 > ADR 0018 deja fuera de alcance explícitamente.
 
-## 3. Contraste explícito con decisiones ya cerradas de Epitaxy
+## 3. Contraste explícito con decisiones ya cerradas de Seguimiento de Cirugías
 
-| Concepto del prototipo                                                  | Encaja con Epitaxy                                               | Nota                                                                                                                                                                                   |
-| ----------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Código de paciente pseudonimizado                                       | Sí, alineado                                                     | Confirma que `Patient` no necesita (ni debe) almacenar PII completa por decisión de UX del propio médico, no solo por diseño técnico.                                                  |
-| Selector de técnica quirúrgica cerrado                                  | Candidato a atributo de `ProcedureType` o `CustomField`          | No hay que inventar la estructura ahora (sigue explícitamente diferida), pero es el primer ejemplo real a validar contra futuras propuestas.                                           |
-| "Última revisión" + "Recidiva" como campo único sobre la cirugía        | Caso degenerado de `Control`                                     | Epitaxy ya lo generaliza mejor (N controles con autor+datetime). No requiere cambios; el prototipo simplemente no necesitaba historial.                                                |
-| Agregación por técnica / por rama en vivo, fuera de un "estudio" formal | **No modelado hoy**                                              | Ver §4 — es la brecha de producto más relevante que este prototipo expone.                                                                                                             |
-| EVA en día 1/3/7                                                        | Caso de uso concreto para CustomField                            | No resuelve el modelo de valor de CustomField, pero es evidencia real, no hipotética.                                                                                                  |
-| Exportar CSV                                                            | No modelado (ni bloqueado)                                       | Funcionalidad de UX, no de dominio; no contradice nada.                                                                                                                                |
-| Persistencia `window.storage` sin auth ni multi-tenant                  | **No aplicable**                                                 | El prototipo es de un solo usuario sin necesidad de tenancy; Epitaxy ya resuelve esto mejor por requisito de producto (multi-physician). No hay nada que "adoptar" aquí, al contrario. |
-| Tab "Dolor posquirúrgico" abarca Catarata/Glaucoma, no solo Pterigión   | Confirma que `ProcedureType` es plural desde el día 1 del médico | Alineado con que Epitaxy ya modela Procedure Type como physician-owned y no limitado a pterigión, aun cuando el _primer_ procedimiento construido sea pterigión.                       |
+| Concepto del prototipo                                                  | Encaja con Seguimiento de Cirugías                               | Nota                                                                                                                                                                                                   |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Código de paciente pseudonimizado                                       | Sí, alineado                                                     | Confirma que `Patient` no necesita (ni debe) almacenar PII completa por decisión de UX del propio médico, no solo por diseño técnico.                                                                  |
+| Selector de técnica quirúrgica cerrado                                  | Candidato a atributo de `ProcedureType` o `CustomField`          | No hay que inventar la estructura ahora (sigue explícitamente diferida), pero es el primer ejemplo real a validar contra futuras propuestas.                                                           |
+| "Última revisión" + "Recidiva" como campo único sobre la cirugía        | Caso degenerado de `Control`                                     | Seguimiento de Cirugías ya lo generaliza mejor (N controles con autor+datetime). No requiere cambios; el prototipo simplemente no necesitaba historial.                                                |
+| Agregación por técnica / por rama en vivo, fuera de un "estudio" formal | **No modelado hoy**                                              | Ver §4 — es la brecha de producto más relevante que este prototipo expone.                                                                                                                             |
+| EVA en día 1/3/7                                                        | Caso de uso concreto para CustomField                            | No resuelve el modelo de valor de CustomField, pero es evidencia real, no hipotética.                                                                                                                  |
+| Exportar CSV                                                            | No modelado (ni bloqueado)                                       | Funcionalidad de UX, no de dominio; no contradice nada.                                                                                                                                                |
+| Persistencia `window.storage` sin auth ni multi-tenant                  | **No aplicable**                                                 | El prototipo es de un solo usuario sin necesidad de tenancy; Seguimiento de Cirugías ya resuelve esto mejor por requisito de producto (multi-physician). No hay nada que "adoptar" aquí, al contrario. |
+| Tab "Dolor posquirúrgico" abarca Catarata/Glaucoma, no solo Pterigión   | Confirma que `ProcedureType` es plural desde el día 1 del médico | Alineado con que Seguimiento de Cirugías ya modela Procedure Type como physician-owned y no limitado a pterigión, aun cuando el _primer_ procedimiento construido sea pterigión.                       |
 
 ## 4. La brecha de producto más importante: estadística agregada "en vivo"
 
@@ -138,7 +138,7 @@ estadística descriptiva global + estadística agregada por subgrupo
 médico no distingue mentalmente entre "cargar mis datos" e "investigar
 mis datos" — para él es el mismo gesto.
 
-En el modelo actual de Epitaxy, esa comparación agregada solo existiría
+En el modelo actual de Seguimiento de Cirugías, esa comparación agregada solo existiría
 dentro de un `ResearchStudy` explícito (crear el estudio, seleccionar el
 universo de Surgery ids, escribir hipótesis/resultados). Eso es
 correcto y deliberado para investigación formal (DRAFT ⇄ IN_PROGRESS ⇄
@@ -161,10 +161,10 @@ no como una decisión tomada.
 ## 5. Qué NO se adopta de este prototipo
 
 - No se adopta su modelo de persistencia (`window.storage`, sin backend,
-  sin tenancy) — Epitaxy ya lo resuelve mejor por requisito de multi-
+  sin tenancy) — Seguimiento de Cirugías ya lo resuelve mejor por requisito de multi-
   physician.
 - No se adopta "revisión única" como reemplazo de `Control` — el modelo
-  de Epitaxy (N controles con autor y datetime) es estrictamente más
+  de Seguimiento de Cirugías (N controles con autor y datetime) es estrictamente más
   general y ya decidido (ADR 0004).
 - No se toma la lista cerrada de técnicas/ramas del prototipo como la
   estructura final de ningún ProcedureType/CustomField — sigue siendo

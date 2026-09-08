@@ -1,23 +1,20 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { PendingButton } from "@/components/ui/pending-button";
+import { messages } from "@/messages/en";
 import { modifyControlAction, type ModifyControlFormState } from "../actions";
 import type { ControlView } from "../mappers";
 
 const initialState: ModifyControlFormState = {};
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" size="sm" disabled={pending}>
-      {pending ? "Saving…" : "Save"}
-    </Button>
-  );
-}
+const fieldClassName =
+  "h-9 rounded-md border border-border bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const textareaClassName =
+  "rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
  * One Control's row on the Surgery detail view, with an inline
@@ -50,7 +47,7 @@ export function ControlRow({
             {control.recordedAtLabel} — {control.authorLabel}
           </p>
           <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-            Edit
+            {messages.common.edit}
           </Button>
         </div>
         <p className="mt-1 whitespace-pre-wrap text-sm">{control.observations}</p>
@@ -74,31 +71,33 @@ export function ControlRow({
         {state.error ? <Alert>{state.error}</Alert> : null}
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`observations-${control.id}`}>Observations</Label>
+          <Label htmlFor={`observations-${control.id}`}>{messages.fields.observations}</Label>
           <textarea
             id={`observations-${control.id}`}
             name="observations"
             rows={3}
             defaultValue={control.observations}
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={textareaClassName}
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`recordedAt-${control.id}`}>Date &amp; time</Label>
+          <Label htmlFor={`recordedAt-${control.id}`}>{messages.fields.dateAndTime}</Label>
           <input
             id={`recordedAt-${control.id}`}
             name="recordedAt"
             type="datetime-local"
             defaultValue={control.recordedAtInputValue}
-            className="h-9 rounded-md border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={fieldClassName}
           />
         </div>
 
         <div className="flex gap-2">
-          <SubmitButton />
+          <PendingButton size="sm" pendingText={messages.common.saving}>
+            {messages.common.save}
+          </PendingButton>
           <Button type="button" variant="secondary" size="sm" onClick={() => setIsEditing(false)}>
-            Cancel
+            {messages.common.cancel}
           </Button>
         </div>
       </form>

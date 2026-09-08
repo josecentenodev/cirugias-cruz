@@ -6,6 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { messages } from "@/messages/en";
 import type { CustomFieldView } from "../mappers";
 
 /**
@@ -21,25 +22,31 @@ import type { CustomFieldView } from "../mappers";
  */
 export function CustomFieldList({ customFields }: { customFields: CustomFieldView[] }) {
   if (customFields.length === 0) {
-    return <p className="text-sm text-muted-foreground">No custom fields defined yet.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">{messages.procedureTypes.customFields.empty}</p>
+    );
   }
+
+  const c = messages.procedureTypes.customFields;
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Scope</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Rules</TableHead>
-          <TableHead>Unit</TableHead>
+          <TableHead>{c.columns.name}</TableHead>
+          <TableHead>{c.columns.scope}</TableHead>
+          <TableHead>{c.columns.type}</TableHead>
+          <TableHead>{c.columns.rules}</TableHead>
+          <TableHead>{c.columns.unit}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {customFields.map((field) => (
           <TableRow key={field.id}>
             <TableCell className="font-medium">{field.name}</TableCell>
-            <TableCell>{field.scope === "SURGERY" ? "Surgery" : "Control"}</TableCell>
+            <TableCell>
+              {field.scope === "SURGERY" ? c.scopeSurgeryShort : c.scopeControlShort}
+            </TableCell>
             <TableCell>{field.typeLabel}</TableCell>
             <TableCell>{field.rulesSummary}</TableCell>
             <TableCell>{field.unit}</TableCell>

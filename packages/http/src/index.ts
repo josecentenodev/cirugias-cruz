@@ -32,7 +32,7 @@ export function buildDeps(): AppDeps {
     // construction either).
     emailSender: new ResendEmailSender(
       process.env.RESEND_API_KEY ?? "",
-      process.env.RESEND_FROM_EMAIL ?? "Epitaxy <onboarding@resend.dev>",
+      process.env.RESEND_FROM_EMAIL ?? "Seguimiento de Cirugías <onboarding@resend.dev>",
     ),
     patientRepository: new PrismaPatientRepository(prisma),
     procedureTypeRepository: new PrismaProcedureTypeRepository(prisma),

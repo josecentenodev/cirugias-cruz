@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -8,20 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { messages } from "@/messages/en";
 import type { OwnSurgeryListView } from "../mappers";
 
 /** The Surgery panel a Resident sees — only the Surgeries they participate in (ADR 0017). */
 export function OwnSurgeryList({ surgeries }: { surgeries: OwnSurgeryListView[] }) {
   if (surgeries.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-10 text-center">
-          <p className="text-sm text-muted-foreground">
-            You aren&apos;t participating in any surgery yet.
-          </p>
-        </CardContent>
-      </Card>
-    );
+    return <EmptyState title={messages.resident.empty.title} hint={messages.resident.empty.hint} />;
   }
 
   return (
@@ -29,10 +23,10 @@ export function OwnSurgeryList({ surgeries }: { surgeries: OwnSurgeryListView[] 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Patient</TableHead>
-            <TableHead>Procedure type</TableHead>
-            <TableHead>Performed</TableHead>
-            <TableHead>Controls</TableHead>
+            <TableHead>{messages.resident.columns.patient}</TableHead>
+            <TableHead>{messages.resident.columns.procedureType}</TableHead>
+            <TableHead>{messages.resident.columns.performed}</TableHead>
+            <TableHead>{messages.resident.columns.controls}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

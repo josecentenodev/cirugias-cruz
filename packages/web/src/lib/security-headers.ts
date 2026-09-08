@@ -4,14 +4,19 @@
  * 7); this is a *different* HTTP surface (Next.js responses to the
  * browser) and needs its own headers, not a copy of `api`'s.
  *
- * This app has no external scripts, fonts, or stylesheets (no
- * `next/font`, no CDN, no analytics — see `app/layout.tsx`/
- * `app/globals.css`) and no inline `style={{...}}` usage anywhere in
- * `packages/web/src` (Tailwind compiles to a static stylesheet, not
- * runtime CSS-in-JS), so the CSP below stays at `'self'` almost
- * everywhere, with a nonce for the one thing that must remain inline:
- * Next.js's own RSC/hydration `<script>` tags, which it emits on every
- * page regardless of application code. Per Next's own strict-CSP guide
+ * This app has no external scripts, stylesheets, or CDN/analytics
+ * (see `app/layout.tsx`/`app/globals.css`) and no inline
+ * `style={{...}}` usage anywhere in `packages/web/src` (Tailwind
+ * compiles to a static stylesheet, not runtime CSS-in-JS). Fonts are
+ * self-hosted by `next/font` (ADR 0024 — Roboto): the woff2 files and
+ * the generated `@font-face` CSS are emitted as ordinary same-origin
+ * assets in the production build (a `.next/static` chunk, not an inline
+ * `<style>`), so `style-src`/`font-src` both stay `'self'`. The nonce
+ * below is only for Next.js's own RSC/hydration `<script>` tags, which
+ * it emits on every page regardless of application code. (Next's dev
+ * server injects extra unnonced inline `<style>` tags for HMR/overlay;
+ * those are dev-only and absent from the production build this CSP
+ * targets.) Per Next's own strict-CSP guide
  * (https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy),
  * Next automatically threads a nonce it finds in the *request's*
  * `x-nonce` header onto those scripts when the response's own CSP

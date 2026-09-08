@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { messages } from "@/messages/en";
 import { ChangePasswordForm } from "@/features/resident-session/components/ChangePasswordForm";
 
 // Same CSP-nonce reasoning as every other page in this app — see
@@ -16,11 +17,8 @@ export default function ResidentChangePasswordPage() {
   return (
     <Card className="mx-auto max-w-md">
       <CardHeader>
-        <CardTitle>Set your password</CardTitle>
-        <CardDescription>
-          Choose a password only you know. You won&apos;t be able to do anything else until you set
-          one.
-        </CardDescription>
+        <CardTitle>{messages.resident.changePassword.title}</CardTitle>
+        <CardDescription>{messages.resident.changePassword.subtitle}</CardDescription>
       </CardHeader>
       <CardContent>
         <ChangePasswordForm />

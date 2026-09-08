@@ -1,23 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PendingButton } from "@/components/ui/pending-button";
+import { messages } from "@/messages/en";
 import { registerResidentAction, type RegisterResidentFormState } from "../actions";
 
 const initialState: RegisterResidentFormState = {};
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Registering…" : "Register resident"}
-    </Button>
-  );
-}
 
 /** Mirrors `features/patients/components/PatientForm.tsx` (minus the observations field — Resident has none). */
 export function ResidentForm() {
@@ -28,13 +19,34 @@ export function ResidentForm() {
       {state.error ? <Alert>{state.error}</Alert> : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="firstName" label="First name" required defaultValue={state.values?.firstName} />
-        <Field id="lastName" label="Last name" required defaultValue={state.values?.lastName} />
-        <Field id="phone" label="Phone" required defaultValue={state.values?.phone} />
-        <Field id="email" label="Email" type="email" required defaultValue={state.values?.email} />
+        <Field
+          id="firstName"
+          label={messages.fields.firstName}
+          required
+          defaultValue={state.values?.firstName}
+        />
+        <Field
+          id="lastName"
+          label={messages.fields.lastName}
+          required
+          defaultValue={state.values?.lastName}
+        />
+        <Field
+          id="phone"
+          label={messages.fields.phone}
+          required
+          defaultValue={state.values?.phone}
+        />
+        <Field
+          id="email"
+          label={messages.fields.email}
+          type="email"
+          required
+          defaultValue={state.values?.email}
+        />
         <Field
           id="dateOfBirth"
-          label="Date of birth"
+          label={messages.fields.dateOfBirth}
           type="date"
           required
           defaultValue={state.values?.dateOfBirth}
@@ -42,7 +54,9 @@ export function ResidentForm() {
       </div>
 
       <div>
-        <SubmitButton />
+        <PendingButton pendingText={messages.residents.registering}>
+          {messages.residents.register}
+        </PendingButton>
       </div>
     </form>
   );

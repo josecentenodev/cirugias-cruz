@@ -4,6 +4,7 @@ import { Alert } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { confirmEmail } from "@/features/auth/queries";
 import { cn } from "@/lib/cn";
+import { messages } from "@/messages/en";
 
 // See app/(auth)/login/page.tsx for why: nonce-based CSP requires dynamic rendering.
 export const dynamic = "force-dynamic";
@@ -23,24 +24,28 @@ export default async function ConfirmEmailPage({
 
   const result = token
     ? await confirmEmail(token)
-    : { ok: false as const, error: "This confirmation link is missing its token." };
+    : { ok: false as const, error: messages.auth.confirmEmail.missingToken };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Epitaxy</CardTitle>
-        <CardDescription>{result.ok ? "Account confirmed" : "Confirmation failed"}</CardDescription>
+        <CardTitle>{messages.brand.name}</CardTitle>
+        <CardDescription>
+          {result.ok
+            ? messages.auth.confirmEmail.confirmedTitle
+            : messages.auth.confirmEmail.failedTitle}
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {result.ok ? (
           <p className="text-sm text-muted-foreground">
-            Your account is confirmed. You can sign in now.
+            {messages.auth.confirmEmail.confirmedBody}
           </p>
         ) : (
           <Alert>{result.error}</Alert>
         )}
         <Link href="/login" className={cn(buttonVariants(), "w-full")}>
-          Go to sign in
+          {messages.auth.confirmEmail.goToSignIn}
         </Link>
       </CardContent>
     </Card>

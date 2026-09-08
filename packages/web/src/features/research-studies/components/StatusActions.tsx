@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import { Alert } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { PendingButton } from "@/components/ui/pending-button";
+import { messages } from "@/messages/en";
 import {
   changeResearchStudyStatusAction,
   type ChangeResearchStudyStatusFormState,
@@ -12,22 +12,25 @@ import type { ResearchStudyStatus } from "../dtos";
 
 const initialState: ChangeResearchStudyStatusFormState = {};
 
-function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" size="sm" disabled={pending}>
-      {pending ? pendingLabel : label}
-    </Button>
-  );
-}
-
 const TRANSITIONS: Record<
   ResearchStudyStatus,
   { target: ResearchStudyStatus; label: string; pendingLabel: string }
 > = {
-  DRAFT: { target: "IN_PROGRESS", label: "Start", pendingLabel: "Starting…" },
-  IN_PROGRESS: { target: "COMPLETED", label: "Complete", pendingLabel: "Completing…" },
-  COMPLETED: { target: "IN_PROGRESS", label: "Reopen", pendingLabel: "Reopening…" },
+  DRAFT: {
+    target: "IN_PROGRESS",
+    label: messages.research.transitions.start,
+    pendingLabel: messages.research.transitions.starting,
+  },
+  IN_PROGRESS: {
+    target: "COMPLETED",
+    label: messages.research.transitions.complete,
+    pendingLabel: messages.research.transitions.completing,
+  },
+  COMPLETED: {
+    target: "IN_PROGRESS",
+    label: messages.research.transitions.reopen,
+    pendingLabel: messages.research.transitions.reopening,
+  },
 };
 
 /**
@@ -53,7 +56,9 @@ export function StatusActions({
   return (
     <form action={formAction} className="flex flex-col items-start gap-2">
       {state.error ? <Alert>{state.error}</Alert> : null}
-      <SubmitButton label={label} pendingLabel={pendingLabel} />
+      <PendingButton size="sm" pendingText={pendingLabel}>
+        {label}
+      </PendingButton>
     </form>
   );
 }

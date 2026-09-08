@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { messages } from "@/messages/en";
 
 /**
  * Catches unexpected errors (API unreachable, timeouts, malformed
@@ -20,11 +21,10 @@ export default function GlobalError({ error, reset }: { error: Error; reset: () 
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
-      <h1 className="text-lg font-semibold">Something went wrong</h1>
-      <p className="max-w-sm text-sm text-muted-foreground">
-        We couldn&apos;t complete that request. Please try again.
-      </p>
-      <Button onClick={reset}>Try again</Button>
+      <p className="text-sm font-semibold text-muted-foreground">{messages.brand.name}</p>
+      <h1 className="text-lg font-semibold">{messages.errors.generic.title}</h1>
+      <p className="max-w-sm text-sm text-muted-foreground">{messages.errors.generic.body}</p>
+      <Button onClick={reset}>{messages.errors.generic.retry}</Button>
     </div>
   );
 }

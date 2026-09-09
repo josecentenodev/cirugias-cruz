@@ -57,8 +57,6 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       payload: {
         firstName: "Juan",
         lastName: "Pérez",
-        phone: "555-0202",
-        email: "juan@example.com",
         dateOfBirth: "1990-05-15",
       },
     });
@@ -117,8 +115,6 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       payload: {
         firstName: "Juan",
         lastName: "Pérez",
-        phone: "555-0202",
-        email: "juan2@example.com",
         dateOfBirth: "1990-05-15",
       },
     });
@@ -166,8 +162,6 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       payload: {
         firstName: "Juan",
         lastName: "Pérez",
-        phone: "555-0202",
-        email: "juan-read@example.com",
         dateOfBirth: "1990-05-15",
       },
     });
@@ -299,8 +293,6 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       payload: {
         firstName: "Juan",
         lastName: "Pérez",
-        phone: "555-0202",
-        email: "juan-customfield@example.com",
         dateOfBirth: "1990-05-15",
       },
     });
@@ -383,8 +375,6 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       payload: {
         firstName: "Juan",
         lastName: "Pérez",
-        phone: "555-0202",
-        email: "juan-tenant@example.com",
         dateOfBirth: "1990-05-15",
       },
     });
@@ -444,8 +434,6 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
 
     const base = {
       lastName: "Pérez",
-      phone: "555-0202",
-      email: "juan@example.com",
       dateOfBirth: "1985-06-15",
     };
 

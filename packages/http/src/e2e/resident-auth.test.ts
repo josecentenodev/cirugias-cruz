@@ -72,8 +72,6 @@ async function registerPatientProcedureAndSurgery(
     payload: {
       firstName: "Juan",
       lastName: "Pérez",
-      phone: "555-0202",
-      email: `patient-${randomUUID()}@example.com`,
       dateOfBirth: "1990-05-15",
     },
   });

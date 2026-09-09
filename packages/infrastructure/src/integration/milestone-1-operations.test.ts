@@ -47,8 +47,6 @@ describe("Milestone 1 operations against real Prisma repositories", () => {
       id: PATIENT_ID,
       firstName: "Ana",
       lastName: "García",
-      phone: "555-0101",
-      email: "ana@example.com",
       dateOfBirth: new Date("1990-05-15"),
     });
 

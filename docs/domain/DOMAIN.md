@@ -45,6 +45,16 @@ Patient uses the same shape, plus (Patient only):
 
 No additional personal attributes are assumed for any of these actors.
 
+**Amendment — Patient no longer shares this shape
+([ADR 0025](../decisions/0025-patient-carries-no-contact-pii.md),
+implementation Milestone 11).** `phone` and `email` are removed from
+Patient entirely — the platform never contacts a patient and stores
+minimal PII. Patient's personal shape is now `firstName`, `lastName`,
+`dateOfBirth` (+ `dni?`, `observations?`, `metadata?`). The shared shape
+above is **Physician and Resident only**; both keep `phone` and `email`
+(Physician `email` is the tenant identity, ADR 0012; Resident keeps
+`phone` deliberately). See §5.
+
 ### 1b. Resident assignment is direct to the Surgery — there is no Patient ↔ Resident relationship
 
 **Superseded rule.** An earlier discovery round modeled Resident
@@ -165,13 +175,19 @@ The physician may act as their own resident — residents are not required.
 
 ## 5. Patient (confirmed)
 
-Belongs exclusively to one physician's tenant. Uses the shared person
-shape (§1a) plus `dni` and `observations`:
+Belongs exclusively to one physician's tenant.
+
+> **Amended by [ADR 0025](../decisions/0025-patient-carries-no-contact-pii.md)
+> (implementation Milestone 11):** `phone` and `email` are **removed** from
+> Patient — the fields, their validation, their persisted columns, and all
+> UI. Patient no longer uses the shared person shape (§1a). A patient's
+> **age** is computed and shown in the UI from `date of birth`; it is not
+> a stored attribute.
+
+Patient's personal shape plus `dni` and `observations`:
 
 - first name — required
 - last name — required
-- phone — required
-- email — required
 - date of birth — required
 - `dni` — optional national-ID / identity-document number
   ([ADR 0021](../decisions/0021-patient-dni-and-search.md)). No format
@@ -235,15 +251,41 @@ postoperative follow-up.
 - **Follow-up is not a domain entity.** It is the process of accumulating
   Controls over time for a surgery.
 - A Control belongs to exactly one Surgery.
-- A Control has `observations` and a mandatory date/time.
+- A Control has a mandatory date/time and an author. `observations` is
+  **optional** ([ADR 0026](../decisions/0026-control-types-cap-and-measurement-period.md),
+  implementation Milestone 11 — a Control with only a datetime, an author,
+  and its CustomField values is valid).
+- A Control **may** reference a physician-defined **control definition**
+  (its "type"); a Control with no definition — free text + datetime — is
+  still valid.
 - A Control records **who performed it** — either the Physician directly,
   or a Resident who is assigned to (participating in) that specific
   Surgery (see §1b/§10).
 - Controls are created **manually** by the physician (or a participating
   resident) whenever they want to record an observation.
-- There is no automated control scheduling, no requirement to
-  auto-generate controls, and no enforced control frequency in this
-  iteration — timing is determined by the physician per patient.
+- There is no automated control scheduling and no auto-generation of
+  controls. Control frequency is physician-determined **except** where a
+  control definition is _capped_ — see the amendment below.
+
+**Amendment — capped control definitions
+([ADR 0026](../decisions/0026-control-types-cap-and-measurement-period.md),
+implementation Milestone 11).** A control definition (owned by a Procedure
+Type, §8) carries an **occurrence rule**:
+
+- **uncapped** (default) — recorded zero-to-many times per Surgery, as
+  today.
+- **capped** — the physician sets a count `N` and a measurement period
+  (e.g. every 24 h / 48 h / 12 h; units: hours, days, weeks). Then
+  **exactly `N`** recordings of that definition are expected per Surgery
+  (a Surgery with fewer is _incomplete_ — surfaced in the UI, not a
+  write-block), and recording the **`N + 1`-th** is **rejected** — this
+  is a write invariant on the Surgery aggregate. The cap is per Surgery,
+  all authors combined. The `N` recordings are expected at successive
+  multiples of the period **from the Surgery's performed date**; an
+  off-schedule recording is allowed (the schedule only drives a "next
+  due" indicator). No clinical content ("Escala de Dolor", "24 h", `N`)
+  is seeded in code — the physician defines it, same posture as
+  CustomFields.
 - A Control may contain multiple CustomFields/measurements. Each
   CustomField can be recorded **only once** within a given Control.
   (CustomField's own value model remains unresolved — see §9.)
@@ -283,6 +325,22 @@ one to be created at surgery-creation time.
 - `name`
 - `description`
 - its CustomField definitions (§9)
+- its **control definitions** (name + occurrence rule — §7 amendment,
+  [ADR 0026](../decisions/0026-control-types-cap-and-measurement-period.md),
+  implementation Milestone 11)
+
+**Amendment — schemes are editable, but a definition freezes once it has
+data ([ADR 0027](../decisions/0027-procedure-type-scheme-editable-frozen-once-used.md),
+implementation Milestone 11).** A Procedure Type's CustomField definitions
+and control definitions can be **added, edited, and removed** — not just
+added. A definition becomes **frozen** (no edit, no remove) as soon as
+data is recorded against it (a CustomField definition once any
+Surgery/Control holds a value for it; a control definition once any
+Control references it). All-or-nothing per definition — to change a
+definition that has data, add a new one. Enforced in the Application
+layer (no aggregate can see the referencing Surgeries/Controls). The
+"never deleted" rule below is about the **Procedure Type itself** and is
+unchanged.
 
 **Surgical technique is a CustomField, not a Procedure Type attribute**
 (ADR 0022). It is modelled as a `SURGERY`-scoped `ENUM` CustomField — a
@@ -601,7 +659,12 @@ object, or something else is **not decided**:
   optional `CONTROL`-scoped fields, and cross-field validation (§9,
   ADR 0018's "Not decided here") — not to be implemented yet.
 - Pterygium-specific measurements and interpretation rules — to be
-  obtained from the physician meeting.
+  obtained from the physician meeting. **Partly supplied 2026-09-09**:
+  the physician defined the _shape_ of bounded controls (control
+  definitions with a cap + measurement period — ADR 0026) and made
+  Control `observations` optional and Procedure Type schemes editable
+  (ADR 0027). No pterygium-specific field _content_ was supplied — that
+  stays deferred.
 - Surgery `metadata` — intentionally unresolved, no further definition.
 - The pterygium surgical technique option list — physician-owned
   CustomField content (ADR 0022), not a domain question.

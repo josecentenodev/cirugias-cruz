@@ -27,8 +27,6 @@ export function PatientForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Field id="firstName" label={messages.fields.firstName} required />
         <Field id="lastName" label={messages.fields.lastName} required />
-        <Field id="phone" label={messages.fields.phone} required />
-        <Field id="email" label={messages.fields.email} type="email" required />
         <Field id="dateOfBirth" label={messages.fields.dateOfBirth} type="date" required />
         <Field id="dni" label={messages.fields.dniOptional} />
       </div>

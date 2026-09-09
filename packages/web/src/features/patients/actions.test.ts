@@ -30,8 +30,6 @@ function validPatientFields(overrides: Record<string, string> = {}) {
   return {
     firstName: "Ana",
     lastName: "García",
-    phone: "555-0101",
-    email: "ana@example.com",
     dateOfBirth: "1990-01-01",
     ...overrides,
   };
@@ -58,8 +56,6 @@ describe("registerPatientAction", () => {
       body: {
         firstName: "Ana",
         lastName: "García",
-        phone: "555-0101",
-        email: "ana@example.com",
         dateOfBirth: "1990-01-01",
       },
     });

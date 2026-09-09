@@ -25,8 +25,6 @@ import { requireResidentPasswordChanged } from "../shared/require-resident-passw
 interface RegisterPatientBody {
   firstName: string;
   lastName: string;
-  phone: string;
-  email: string;
   dateOfBirth: string;
   dni?: string;
   metadata?: Record<string, unknown>;
@@ -89,12 +87,10 @@ interface ModifyControlBody {
  */
 const registerPatientBodySchema = {
   type: "object",
-  required: ["firstName", "lastName", "phone", "email", "dateOfBirth"],
+  required: ["firstName", "lastName", "dateOfBirth"],
   properties: {
     firstName: { type: "string" },
     lastName: { type: "string" },
-    phone: { type: "string" },
-    email: { type: "string" },
     dateOfBirth: { type: "string" },
     dni: { type: "string" },
     metadata: { type: "object" },
@@ -269,8 +265,6 @@ function serializePatient(patient: Patient) {
     physicianId: patient.physicianId,
     firstName: patient.firstName,
     lastName: patient.lastName,
-    phone: patient.phone,
-    email: patient.email,
     dateOfBirth: patient.dateOfBirth,
     dni: patient.dni,
     metadata: patient.metadata,
@@ -351,8 +345,6 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
           id: randomUUID(),
           firstName: request.body.firstName,
           lastName: request.body.lastName,
-          phone: request.body.phone,
-          email: request.body.email,
           dateOfBirth: new Date(request.body.dateOfBirth),
           dni: request.body.dni,
           metadata: request.body.metadata,

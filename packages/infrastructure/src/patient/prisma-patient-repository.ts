@@ -50,8 +50,6 @@ export class PrismaPatientRepository implements PatientRepository {
         physicianId: patient.physicianId,
         firstName: patient.firstName,
         lastName: patient.lastName,
-        phone: patient.phone,
-        email: patient.email,
         dateOfBirth: patient.dateOfBirth,
         dni: patient.dni ?? null,
         metadata: (patient.metadata as Prisma.InputJsonValue | undefined) ?? undefined,
@@ -60,8 +58,6 @@ export class PrismaPatientRepository implements PatientRepository {
       update: {
         firstName: patient.firstName,
         lastName: patient.lastName,
-        phone: patient.phone,
-        email: patient.email,
         dateOfBirth: patient.dateOfBirth,
         dni: patient.dni ?? null,
         metadata: (patient.metadata as Prisma.InputJsonValue | undefined) ?? undefined,
@@ -76,8 +72,6 @@ function toPatient(row: {
   physicianId: string;
   firstName: string;
   lastName: string;
-  phone: string;
-  email: string;
   dateOfBirth: Date;
   dni: string | null;
   metadata: Prisma.JsonValue | null;
@@ -88,8 +82,6 @@ function toPatient(row: {
     physicianId: row.physicianId,
     firstName: row.firstName,
     lastName: row.lastName,
-    phone: row.phone,
-    email: row.email,
     dateOfBirth: row.dateOfBirth,
     dni: row.dni ?? undefined,
     metadata: (row.metadata as Record<string, unknown> | null) ?? undefined,

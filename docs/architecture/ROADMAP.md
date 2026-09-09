@@ -285,6 +285,15 @@ field content, which remains deferred exactly as before.
   its Controls (`CONTROL` scope) — exactly the mechanism `ADR 0018`/
   `ADR 0019`/`ADR 0020` define, no more. No specific
   clinical field content is assumed or hard-coded by the platform.
+- **Post-walkthrough alignment (Milestone 11)** — the fixes the product
+  owner's 2026-09-09 walkthrough made a condition of MVP sign-off:
+  Patient carries no contact PII and shows a computed age
+  (ADR 0025); control definitions with an optional cap + measurement
+  period, editable Procedure Type schemes that freeze once they hold
+  data, and optional Control observations (ADR 0026/0027); and the web
+  UX the owner called non-negotiable — whole-row table links and
+  deliberate type-to-confirm deletion. See
+  [`milestone-11-alignment-design.md`](milestone-11-alignment-design.md).
 
 ### Post-MVP
 
@@ -321,25 +330,26 @@ field content, which remains deferred exactly as before.
 > "usable by a physician through the product" are no longer treated as
 > equivalent — see Progress Measurement below.
 
-| Capability                                                                                     | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                                                                                                                                                                                                                                                                                          |
-| ---------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Physician authentication (login/logout)                                                        | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                                                                                                                                                                                                                                                                |
-| Physician self-registration                                                                    | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation dormant, not enforced (ADR 0016)                                                                                                                                                                                                                                                                                    |
-| Resident authentication (login, forced password change, temp-password issue/reset, deactivate) | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED; no human walkthrough yet                                                                                                                                                                                                                                                                                                                                      |
-| Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                     | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType **by name** (resolved in `c7d7a30` — `getSurgeryForResident`/`listSurgeriesForResident` resolve them server-side, see Risks); no human walkthrough yet                                                                                                                                                                            |
-| Patient (register + retrieve)                                                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                                                                                                                                                                                                                                                                |
-| Patient identity (dedup field, e.g. DNI) + patient search (**MVP-required**)                   | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Milestone 8.7 — not started at any layer; product owner decision, pre-MVP                                                                                                                                                                                                                                                                                                               |
-| Procedure Type (register + retrieve)                                                           | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8); `name` + `description` only — surgical technique is a CustomField ENUM (Milestone 8.8, ADR 0022, done on branch)                                                                                                                                                                                                                                                |
-| Surgery + Control history (register/record/modify + retrieve)                                  | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                                                                                                                                                                                                                                                                |
-| Resident (register, assign/remove on Surgery, retrieve, credential mgmt)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, credential actions added Milestone 8.5); no human walkthrough yet                                                                                                                                                                                                                                                                                                |
-| Research Study (create, edit, manage universe, full lifecycle, retrieve)                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                                                                                                                                                                                                                                                                |
-| CustomField (define on Procedure Type; record/retrieve values on Surgery/Control)              | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | Complete through `web` for both Physician and Resident (Milestone 8.6, ADR 0018/0019/0020); no human walkthrough yet                                                                                                                                                                                                                                                                    |
-| `api` security baseline (validation, forwarded-IP rate limiting, headers)                      | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                                                                                                                                                                                                                                                                                                  |
-| `web` security baseline (headers/CSP, client-IP forwarding)                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)                                                                                                                                                                                                                                                                                       |
-| Public reachability                                                                            | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ❌        | Railway-provided domain live and accepted for the MVP (custom domain post-MVP); human walkthrough pending — Milestone 9                                                                                                                                                                                                                                                                 |
-| Physician-facing IA/navigation reorganized by clinical workflow (**MVP-required**)             | N/A    | N/A         | N/A         | N/A       | N/A      | ⚠️  | ❌        | IA decided (Milestone 10); Configuración section built, Pacientes/Plantilla/Investigaciones not yet                                                                                                                                                                                                                                                                                     |
-| Design system / visual redesign (**not** MVP)                                                  | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ⬜        | Done — ADR 0023 (rename) + ADR 0024 (palette/Roboto/semantic colors/light-only); tokens + `components/ui` restyle + primitives; per-screen 7-principles audit complete (loading/empty/feedback/confirm/breadcrumbs on every route); all UI copy in `src/messages/en.ts` (English). Refs: `docs/design/*`, `ux-laws` skill. Human walkthrough of the polished UI not separately tracked. |
-| Platform Admin visibility                                                                      | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                                                                                                                                                                                                                                                                                      |
+| Capability                                                                                                       | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Physician authentication (login/logout)                                                                          | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                                                                                                                                                                                                                                                                |
+| Physician self-registration                                                                                      | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation dormant, not enforced (ADR 0016)                                                                                                                                                                                                                                                                                    |
+| Resident authentication (login, forced password change, temp-password issue/reset, deactivate)                   | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED; no human walkthrough yet                                                                                                                                                                                                                                                                                                                                      |
+| Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                                       | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType **by name** (resolved in `c7d7a30` — `getSurgeryForResident`/`listSurgeriesForResident` resolve them server-side, see Risks); no human walkthrough yet                                                                                                                                                                            |
+| Patient (register + retrieve)                                                                                    | ✅     | ✅          | ✅          | ✅        | ✅       | ⚠️  | ❌        | UI built (Milestone 8). Walkthrough 2026-09-09 (F-01/F-02): `email` + `phone` must be removed entirely and a computed age shown — Milestone 11 / ADR 0025, not started                                                                                                                                                                                                                  |
+| Patient identity (dedup field, e.g. DNI) + patient search (**MVP-required**)                                     | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Milestone 8.7 — not started at any layer; product owner decision, pre-MVP                                                                                                                                                                                                                                                                                                               |
+| Procedure Type (register + retrieve)                                                                             | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8); `name` + `description` only — surgical technique is a CustomField ENUM (Milestone 8.8, ADR 0022, done on branch)                                                                                                                                                                                                                                                |
+| Surgery + Control history (register/record/modify + retrieve)                                                    | ✅     | ✅          | ✅          | ✅        | ✅       | ⚠️  | ❌        | UI built (Milestone 8). Walkthrough 2026-09-09 (F-07/F-08): reorder the Surgery-detail cards, make Control `observations` optional — Milestone 11 / ADR 0026, not started                                                                                                                                                                                                               |
+| Resident (register, assign/remove on Surgery, retrieve, credential mgmt)                                         | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, credential actions added Milestone 8.5); no human walkthrough yet                                                                                                                                                                                                                                                                                                |
+| Research Study (create, edit, manage universe, full lifecycle, retrieve)                                         | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                                                                                                                                                                                                                                                                |
+| CustomField (define on Procedure Type; record/retrieve values on Surgery/Control)                                | ✅     | ✅          | ✅          | ✅        | ✅       | ⚠️  | ❌        | Complete through `web` (Milestone 8.6, ADR 0018/0019/0020). Walkthrough 2026-09-09 (F-09): definitions are add-only — schemes must be editable, frozen once they hold data — Milestone 11 / ADR 0027, not started                                                                                                                                                                       |
+| Control schemes & cardinality — control definitions with an optional cap + measurement period (**MVP-required**) | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Milestone 11 / ADR 0026 — walkthrough 2026-09-09 (F-03); not started at any layer                                                                                                                                                                                                                                                                                                       |
+| `api` security baseline (validation, forwarded-IP rate limiting, headers)                                        | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                                                                                                                                                                                                                                                                                                  |
+| `web` security baseline (headers/CSP, client-IP forwarding)                                                      | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)                                                                                                                                                                                                                                                                                       |
+| Public reachability                                                                                              | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ⚠️        | Railway-provided domain live and accepted for the MVP (custom domain post-MVP). Human walkthrough **performed 2026-09-09**; formal sign-off pending the Milestone 11 fixes it produced (F-01…F-09)                                                                                                                                                                                      |
+| Physician-facing IA/navigation reorganized by clinical workflow (**MVP-required**)                               | N/A    | N/A         | N/A         | N/A       | N/A      | ⚠️  | ❌        | IA decided (Milestone 10); Configuración section built, Pacientes/Plantilla/Investigaciones not yet                                                                                                                                                                                                                                                                                     |
+| Design system / visual redesign (**not** MVP)                                                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ⬜        | Done — ADR 0023 (rename) + ADR 0024 (palette/Roboto/semantic colors/light-only); tokens + `components/ui` restyle + primitives; per-screen 7-principles audit complete (loading/empty/feedback/confirm/breadcrumbs on every route); all UI copy in `src/messages/en.ts` (English). Refs: `docs/design/*`, `ux-laws` skill. Human walkthrough of the polished UI not separately tracked. |
+| Platform Admin visibility                                                                                        | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                                                                                                                                                                                                                                                                                      |
 
 **Nothing is Human-E2E complete yet.** Every MVP-required backend
 capability (Milestones 1–7) is now `TECHNICALLY_COMPLETE` — proven
@@ -1681,27 +1691,30 @@ zero P0 issues found during it.
 **Testing strategy**: human-driven, not automated — the one stage in the
 whole plan that is deliberately not a test suite.
 
-**Status**: `NOT_STARTED` (de-risked, not started). What's genuinely
-done: the domain decision above; and, following a Railway build failure
-this milestone's own investigation surfaced (see below), a full
-**scripted** re-verification of every route directly against the live
-deployment — Login, Procedure Type, Patient, Surgery, Control
+**Status**: `WALKTHROUGH_PERFORMED — sign-off pending Milestone 11`. The
+human walkthrough was **run on 2026-09-09** with the product owner (the
+physician who commissioned the product) as the tester, against the live
+deployment. Result: the full core-loop + Resident + Research workflow was
+completed **unaided, with no manual API calls and no P0 finding** — the
+Definition of Done's workflow bar is met. The session also produced nine
+alignment/restructuring directives (**F-01 … F-09**, severities P1–P3, no
+P0), recorded in
+[`alignment-restructuring.md`](alignment-restructuring.md) and scheduled
+as **Milestone 11**. The walkthrough's **formal sign-off block stays
+unsigned** until those fixes land and a short delta re-run confirms them
+— that re-run and signature are Milestone 11's WP4. So Milestone 9 is
+functionally done (the walkthrough happened, findings triaged) but not
+formally closed.
+
+Prior to the walkthrough, and following a Railway build failure this
+milestone's own investigation surfaced (see below), a full **scripted**
+re-verification of every route had also been run directly against the
+live deployment — Login, Procedure Type, Patient, Surgery, Control
 record+edit, Resident register+assign, Research Study's full lifecycle
 (create → add-surgery → edit → `DRAFT → IN_PROGRESS → COMPLETED` →
-reopen), logout, protected-route redirect — all driven through
-`https://web-production-c686b1.up.railway.app` itself, zero console/CSP
-errors, test data cleaned up after (see the Milestone 8 closure entry's
-updated CSP/private-network rows above for the detail). **What this is
-not**: this milestone's own Definition of Done explicitly calls for "a
-designated tester" completing the workflow "unaided" and a "signed-off
-human walkthrough" — a scripted/automated pass, however thorough, is not
-that. The actual human step (starting with the product owner) has not
-happened yet and isn't something this session can perform or certify on
-anyone's behalf — doing so would repeat exactly the kind of overclaim a
-recent self-audit of this milestone's own closure caught and corrected
-(see the "Self-audit correction" note above). Milestone 9 stays
-`NOT_STARTED` until that walkthrough actually happens and any findings
-from it are triaged.
+reopen), logout, protected-route redirect — zero console/CSP errors, test
+data cleaned up after (see the Milestone 8 closure entry's updated
+CSP/private-network rows above).
 
 **Railway build failure found and fixed along the way (unrelated to
 Milestone 9's own scope, surfaced by an unrelated GitHub-triggered
@@ -1830,6 +1843,64 @@ in progress; still **not** in the MVP line.
 
 ---
 
+### Milestone 11 — Post-walkthrough alignment (MVP-required)
+
+**Objective**: close every alignment finding from the Milestone 9
+walkthrough (run with the product owner on 2026-09-09) so the walkthrough
+can be re-run and signed — the MVP-exit gate.
+
+**Why it exists**: the walkthrough confirmed the core workflow is
+completable end-to-end, and produced nine restructuring directives
+(F-01…F-09) recorded in
+[`alignment-restructuring.md`](alignment-restructuring.md). Four are P1
+(patient contact PII, patient age, control cap, deliberate delete) and
+gate sign-off; the rest are P2/P3 and land in the same milestone.
+
+**Scope** (full design:
+[`milestone-11-alignment-design.md`](milestone-11-alignment-design.md)):
+
+- **WP1** — remove `email`/`phone` from Patient entirely + a Prisma
+  column drop; Patient stops composing `Person` (Physician/Resident
+  unchanged, Resident keeps `phone`); compute + show patient age in the
+  UI. [ADR 0025](../decisions/0025-patient-carries-no-contact-pii.md).
+- **WP2** — `packages/web` only: whole table rows become links; a
+  type-to-confirm `DangerousConfirm` replaces the bare yes/no dialog on
+  data-destroying actions.
+- **WP3** — control definitions on a Procedure Type with an optional
+  occurrence rule (`uncapped` default, or `capped` = exactly N +
+  a measurement period every H hours/days/weeks); the `≤ N` cap enforced
+  as a `Surgery` invariant; a computed follow-up "recorded / next due"
+  projection on the Surgery read; schemes become editable but a
+  definition freezes once it has recorded data; Control `observations`
+  becomes optional; the "Now" datetime affordance; the Surgery-detail
+  card reorder.
+  [ADR 0026](../decisions/0026-control-types-cap-and-measurement-period.md)
+  - [ADR 0027](../decisions/0027-procedure-type-scheme-editable-frozen-once-used.md).
+- **WP4** — reconcile DOMAIN.md / this ROADMAP / the design docs; re-run
+  the Milestone 9 walkthrough with the product owner and fill its
+  sign-off.
+
+**Explicitly out of scope**: per-control-definition CustomField sets
+(deferred, product-owner-confirmed); reminders/notifications on a missed
+timepoint (ADR 0008); any change to Physician/Resident contact fields;
+Surgery/Control delete-path changes; Platform Admin; CI/CD.
+
+**Definition of Done**: the completion criteria in
+`milestone-11-alignment-design.md` §0 — the PII grep is clean, the cap
+and freeze invariants hold with tests, a Control persists with no
+observations, every list row navigates, no destructive action completes
+without a typed confirmation, the full quality gate + Playwright
+`full-workflow` are green, and the Milestone 9 walkthrough sign-off reads
+**Passed**.
+
+**Dependencies**: Milestones 8–10; the Milestone 9 walkthrough having
+been run (done, 2026-09-09).
+
+**Status**: `NOT_STARTED` — ADRs 0025–0027 and the design doc are
+written and product-owner-approved (2026-09-09); implementation not begun.
+
+---
+
 ## Dependency Graph
 
 ```
@@ -1937,7 +2008,7 @@ Railway's generated URL, a custom domain being post-MVP).
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: 9 — the human E2E walkthrough. Milestones 8.7 (Patient `dni` + search, ADR 0021) and 8.8 (surgical technique → `SURGERY`-scoped ENUM CustomField, ADR 0022) are `COMPLETED` and merged to `main` — they were the last MVP build slices. Milestone 8.6 (CustomField) is `COMPLETED` end to end; Milestone 10's navigation/IA half is `COMPLETED` and merged. Milestone 9 is now only a real physician walking the deployed product unaided (the public domain is already met by Railway's generated URL; a custom domain is post-MVP). Milestone 10's visual/design-system half is NOT in the MVP line and is done as post-MVP polish (ADR 0023/0024).**
+> **CURRENT MILESTONE: 11 — post-walkthrough alignment. Milestone 9's human walkthrough was run on 2026-09-09 with the product owner: the full workflow completed unaided with no P0, and it produced nine alignment directives (F-01…F-09) now scoped as Milestone 11 (ADRs 0025/0026/0027, `milestone-11-alignment-design.md`). Milestone 9's formal sign-off is deferred to the end of Milestone 11 (a short delta re-run). Milestones 1–8.8 and Milestone 10's nav/IA half are all `COMPLETED` and merged. Milestone 10's visual/design-system half is NOT in the MVP line and is done as post-MVP polish (ADR 0023/0024).**
 
 Milestones 1 through 8.8 are complete (see their entries above and
 Historical Progress below): the full core loop plus read/query,
@@ -1964,13 +2035,18 @@ workflow-based sections and nested Surgery/Control under Patient
 
 What remains before the MVP closes:
 
-1. **Milestone 9** — a real physician walks the deployed product unaided,
-   following `docs/architecture/milestone-9-walkthrough.md`; findings are
-   logged there and triaged, and every P0 is fixed. This is the **only**
-   remaining MVP step: all build slices (Milestones 1–8.8, plus Milestone
-   10's nav/IA half) are complete and merged to `main`, and the
-   public-domain requirement is already met by Railway's URL (a custom
-   domain is post-MVP).
+1. **Milestone 9 walkthrough — done 2026-09-09** (product owner as
+   tester): full workflow completed unaided, no P0. Findings F-01…F-09
+   logged in `alignment-restructuring.md` and
+   `milestone-9-walkthrough.md`. Formal sign-off deferred to Milestone
+   11's WP4.
+2. **Milestone 11 — post-walkthrough alignment** (the current milestone):
+   implement ADRs 0025/0026/0027 + the web-UX findings, then re-run and
+   sign the Milestone 9 walkthrough. See
+   `milestone-11-alignment-design.md`. This is now the **only** remaining
+   MVP step; all build slices through Milestone 8.8 plus Milestone 10's
+   nav/IA half are merged to `main`, and the public-domain requirement is
+   met by Railway's URL (a custom domain is post-MVP).
 
 Milestone 10's **visual/design-system redesign** is outside the MVP line
 and is **done** as post-MVP polish (ADR 0023/0024 — palette, Roboto,
@@ -1980,17 +2056,21 @@ per-screen 7-principles audit, English consolidation).
 
 ## Next Milestone
 
-**Milestone 9 — human E2E validation.** The last MVP step, and the only
-one left: Milestones 1–8.8 and Milestone 10's nav/IA half are all merged
-to `main`. A real physician (starting with the product owner) walks the
-full workflow through the deployed UI, unaided by raw HTTP calls,
-following `docs/architecture/milestone-9-walkthrough.md`; findings are
-logged there, triaged, and MVP-blocking (P0) ones fixed before it is
-considered done. The public-domain requirement is already satisfied by
-`https://web-production-c686b1.up.railway.app`.
+**Milestone 11 — post-walkthrough alignment.** The last MVP step. The
+Milestone 9 walkthrough was run on 2026-09-09 (product owner as tester):
+the full workflow completed unaided with no P0, and it produced nine
+alignment directives (F-01…F-09) captured in
+`docs/architecture/alignment-restructuring.md` and the three ADRs
+0025/0026/0027. Milestone 11 implements them —
+WP1 Patient contact-PII removal + computed age;
+WP2 whole-row table links + type-to-confirm deletion;
+WP3 control definitions with an optional cap + measurement period,
+editable-but-freezing Procedure Type schemes, optional Control
+observations; WP4 doc reconciliation and the Milestone 9 sign-off
+delta re-run. Full design: `docs/architecture/milestone-11-alignment-design.md`.
 
 **Not in the MVP line**: Milestone 10's visual/design-system redesign —
-blocked on the product owner choosing a design direction.
+done as post-MVP polish (ADR 0023/0024).
 
 ---
 

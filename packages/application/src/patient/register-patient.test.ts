@@ -13,8 +13,6 @@ const validInput = {
   id: "patient-1",
   firstName: "Ana",
   lastName: "Gomez",
-  phone: "+54 11 5555-5555",
-  email: "ana@example.com",
   dateOfBirth: new Date("1990-01-01"),
 };
 

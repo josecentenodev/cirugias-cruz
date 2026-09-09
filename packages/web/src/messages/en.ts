@@ -39,6 +39,10 @@ export const messages = {
     optional: "(optional)",
     none: "—",
     back: "Back",
+    deleteWord: "DELETE",
+    dangerousConfirm: {
+      prompt: (phrase: string) => `Type ${phrase} to confirm`,
+    },
   },
 
   nav: {
@@ -54,6 +58,7 @@ export const messages = {
     phone: "Phone",
     email: "Email",
     dateOfBirth: "Date of birth",
+    age: "Age",
     password: "Password",
     newPassword: "New password",
     name: "Name",
@@ -127,8 +132,7 @@ export const messages = {
     columns: {
       name: "Name",
       dni: "DNI",
-      phone: "Phone",
-      email: "Email",
+      age: "Age",
       dateOfBirth: "Date of birth",
     },
     detail: {

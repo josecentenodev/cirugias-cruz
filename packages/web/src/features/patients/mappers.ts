@@ -5,8 +5,7 @@ export interface PatientView {
   id: string;
   fullName: string;
   dni?: string;
-  phone: string;
-  email: string;
+  age: number;
   dateOfBirthLabel: string;
   observations?: string;
 }
@@ -16,11 +15,30 @@ export function toPatientView(dto: PatientDto): PatientView {
     id: dto.id,
     fullName: `${dto.firstName} ${dto.lastName}`,
     dni: dto.dni,
-    phone: dto.phone,
-    email: dto.email,
+    age: ageInYears(dto.dateOfBirth),
     dateOfBirthLabel: formatDate(dto.dateOfBirth),
     observations: dto.observations,
   };
+}
+
+/**
+ * Full years elapsed from `dateOfBirth` to today — the patient's age as a
+ * clinician would state it (F-02/B1). Computed in UTC for the same
+ * timezone-stability reason as `formatDate`. Returns 0 for an unparseable
+ * or future date rather than a negative or NaN value.
+ */
+function ageInYears(iso: string): number {
+  const birth = new Date(iso);
+  if (Number.isNaN(birth.getTime())) {
+    return 0;
+  }
+  const now = new Date();
+  let age = now.getUTCFullYear() - birth.getUTCFullYear();
+  const monthDelta = now.getUTCMonth() - birth.getUTCMonth();
+  if (monthDelta < 0 || (monthDelta === 0 && now.getUTCDate() < birth.getUTCDate())) {
+    age -= 1;
+  }
+  return age < 0 ? 0 : age;
 }
 
 /**

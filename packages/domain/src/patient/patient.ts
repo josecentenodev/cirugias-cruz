@@ -1,9 +1,11 @@
 import { DomainError } from "../shared/domain-error.js";
-import { Person, type PersonAttributes } from "../shared/person.js";
 
-export interface PatientAttributes extends PersonAttributes {
+export interface PatientAttributes {
   id: string;
   physicianId: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: Date;
   /**
    * National ID / identity document number. Optional and free-form: not
    * every patient has one (newborns, foreign patients — the same field
@@ -13,10 +15,17 @@ export interface PatientAttributes extends PersonAttributes {
    * aggregate owns the physician's set of patients.
    */
   dni?: string;
+  metadata?: Record<string, unknown>;
   observations?: string;
 }
 
 /**
+ * Patient carries no contact PII (ADR 0025). It does NOT compose the
+ * shared `Person` shape used by Physician/Resident — a patient is
+ * identified clinically by name, date of birth and an optional `dni`,
+ * never by phone or email. `firstName` / `lastName` / `dateOfBirth` are
+ * inlined here with their own presence checks.
+ *
  * There is no Resident ↔ Patient relationship. A Resident is assigned
  * directly to a Surgery by the Physician (see Surgery.assignResident) —
  * Patient does not track residents in any way.
@@ -25,8 +34,11 @@ export class Patient {
   private constructor(
     private readonly id_: string,
     private readonly physicianId_: string,
-    private readonly person: Person,
+    private readonly firstName_: string,
+    private readonly lastName_: string,
+    private readonly dateOfBirth_: Date,
     private readonly dni_: string | undefined,
+    private readonly metadata_: Record<string, unknown> | undefined,
     private readonly observations_: string | undefined,
   ) {}
 
@@ -37,10 +49,27 @@ export class Patient {
     if (!attributes.physicianId.trim()) {
       throw new DomainError("Patient must belong to a physician (tenant)");
     }
+    if (!attributes.firstName.trim()) {
+      throw new DomainError("firstName is required");
+    }
+    if (!attributes.lastName.trim()) {
+      throw new DomainError("lastName is required");
+    }
+    if (!attributes.dateOfBirth) {
+      throw new DomainError("dateOfBirth is required");
+    }
 
-    const person = Person.create(attributes);
     const dni = attributes.dni?.trim() || undefined;
-    return new Patient(attributes.id, attributes.physicianId, person, dni, attributes.observations);
+    return new Patient(
+      attributes.id,
+      attributes.physicianId,
+      attributes.firstName,
+      attributes.lastName,
+      attributes.dateOfBirth,
+      dni,
+      attributes.metadata,
+      attributes.observations,
+    );
   }
 
   get id(): string {
@@ -52,23 +81,15 @@ export class Patient {
   }
 
   get firstName(): string {
-    return this.person.firstName;
+    return this.firstName_;
   }
 
   get lastName(): string {
-    return this.person.lastName;
-  }
-
-  get phone(): string {
-    return this.person.phone;
-  }
-
-  get email(): string {
-    return this.person.email;
+    return this.lastName_;
   }
 
   get dateOfBirth(): Date {
-    return this.person.dateOfBirth;
+    return this.dateOfBirth_;
   }
 
   get dni(): string | undefined {
@@ -76,7 +97,7 @@ export class Patient {
   }
 
   get metadata(): Record<string, unknown> | undefined {
-    return this.person.metadata;
+    return this.metadata_;
   }
 
   get observations(): string | undefined {

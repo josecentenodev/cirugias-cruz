@@ -10,8 +10,6 @@ export interface PatientDto {
   physicianId: string;
   firstName: string;
   lastName: string;
-  phone: string;
-  email: string;
   dateOfBirth: string;
   dni?: string;
   metadata?: Record<string, unknown>;

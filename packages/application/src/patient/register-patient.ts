@@ -6,8 +6,6 @@ export interface RegisterPatientInput {
   id: string;
   firstName: string;
   lastName: string;
-  phone: string;
-  email: string;
   dateOfBirth: Date;
   dni?: string;
   metadata?: Record<string, unknown>;
@@ -37,8 +35,6 @@ export function registerPatient(deps: RegisterPatientDeps) {
       physicianId: input.physicianId,
       firstName: input.firstName,
       lastName: input.lastName,
-      phone: input.phone,
-      email: input.email,
       dateOfBirth: input.dateOfBirth,
       dni: input.dni,
       metadata: input.metadata,

@@ -9,6 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  stretchedLinkClass,
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
 import { messages } from "@/messages/en";
@@ -56,7 +57,7 @@ export function SurgeryList({
               <TableCell>
                 <Link
                   href={`/patients/${patientId}/surgeries/${surgery.id}`}
-                  className="font-medium hover:underline"
+                  className={cn("font-medium hover:underline", stretchedLinkClass)}
                 >
                   {surgery.procedureTypeName}
                 </Link>

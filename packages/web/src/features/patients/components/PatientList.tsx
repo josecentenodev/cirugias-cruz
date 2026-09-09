@@ -9,6 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  stretchedLinkClass,
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
 import { messages } from "@/messages/en";
@@ -41,8 +42,7 @@ export function PatientList({ patients }: { patients: PatientView[] }) {
           <TableRow>
             <TableHead>{messages.patients.columns.name}</TableHead>
             <TableHead>{messages.patients.columns.dni}</TableHead>
-            <TableHead>{messages.patients.columns.phone}</TableHead>
-            <TableHead>{messages.patients.columns.email}</TableHead>
+            <TableHead>{messages.patients.columns.age}</TableHead>
             <TableHead>{messages.patients.columns.dateOfBirth}</TableHead>
           </TableRow>
         </TableHeader>
@@ -50,13 +50,15 @@ export function PatientList({ patients }: { patients: PatientView[] }) {
           {patients.map((patient) => (
             <TableRow key={patient.id}>
               <TableCell>
-                <Link href={`/patients/${patient.id}`} className="font-medium hover:underline">
+                <Link
+                  href={`/patients/${patient.id}`}
+                  className={cn("font-medium hover:underline", stretchedLinkClass)}
+                >
                   {patient.fullName}
                 </Link>
               </TableCell>
               <TableCell>{patient.dni ?? messages.common.none}</TableCell>
-              <TableCell>{patient.phone}</TableCell>
-              <TableCell>{patient.email}</TableCell>
+              <TableCell>{patient.age}</TableCell>
               <TableCell>{patient.dateOfBirthLabel}</TableCell>
             </TableRow>
           ))}

@@ -29,6 +29,9 @@ export async function cleanupResident(residentId: string): Promise<void> {
 export async function cleanupProcedureType(procedureTypeId: string): Promise<void> {
   await testPrisma.customFieldValue.deleteMany({ where: { definition: { procedureTypeId } } });
   await testPrisma.customFieldDefinition.deleteMany({ where: { procedureTypeId } });
+  // controls.definitionId FK is ON DELETE SET NULL, so control rows need
+  // no pre-cleanup here.
+  await testPrisma.controlDefinition.deleteMany({ where: { procedureTypeId } });
   await testPrisma.procedureType.deleteMany({ where: { id: procedureTypeId } });
 }
 

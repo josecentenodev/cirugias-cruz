@@ -18,6 +18,16 @@ export interface SurgeryAttributes {
 export type RecordControlInput = Omit<ControlAttributes, never>;
 
 /**
+ * The resolved capped occurrence rule for the control definition an
+ * incoming recording references (ADR 0026). Absent for uncapped
+ * definitions and ad-hoc controls.
+ */
+export interface CappedControlContext {
+  definitionId: string;
+  count: number;
+}
+
+/**
  * Surgery is the aggregate root for postoperative follow-up. Control is
  * an internal entity of this aggregate: it cannot be created, modified,
  * or removed except through Surgery, because control-authorship rules
@@ -184,13 +194,24 @@ export class Surgery {
    * The Physician may record a Control directly; a Resident may only
    * record one while participating in this specific Surgery.
    */
-  recordControl(input: RecordControlInput): Control {
+  recordControl(input: RecordControlInput, cappedContext?: CappedControlContext): Control {
     if (input.author.type === "physician") {
       assertActingPhysicianOwnsResource(this.physicianId_, input.author.physicianId);
     } else {
       if (!this.participatingResidentIds_.has(input.author.residentId)) {
         throw new DomainError(
           "A resident may only record a Control while participating in this specific Surgery",
+        );
+      }
+    }
+
+    if (cappedContext) {
+      const alreadyRecorded = this.controls_.filter(
+        (control) => control.definitionId === cappedContext.definitionId,
+      ).length;
+      if (alreadyRecorded >= cappedContext.count) {
+        throw new DomainError(
+          `This capped control already has its expected ${cappedContext.count} recording(s) on this Surgery`,
         );
       }
     }

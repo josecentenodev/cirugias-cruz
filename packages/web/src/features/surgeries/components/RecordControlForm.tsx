@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PendingButton } from "@/components/ui/pending-button";
 import { CustomFieldValueInputs } from "@/features/procedure-types/components/CustomFieldValueInputs";
@@ -32,21 +33,62 @@ export function RecordControlForm({
   surgeryId,
   participants,
   customFields,
+  controlTypeOptions = [],
 }: {
   patientId: string;
   surgeryId: string;
   participants: ParticipantView[];
   /** The Procedure Type's `CONTROL`-scoped CustomFields — rendered as optional inputs, coerced/validated server-side. */
   customFields: CustomFieldDto[];
+  /** The Procedure Type's control definitions (ADR 0026); `atLimit` set when a capped one is already complete on this Surgery. */
+  controlTypeOptions?: { id: string; name: string; atLimit: boolean }[];
 }) {
   const boundAction = recordControlAction.bind(null, patientId, surgeryId);
   const [state, formAction] = useActionState(boundAction, initialState);
   const [authorType, setAuthorType] = useState<"physician" | "resident">("physician");
+  const [definitionId, setDefinitionId] = useState("");
+  const [recordedAt, setRecordedAt] = useState("");
   const hasParticipants = participants.length > 0;
+  const selectedType = controlTypeOptions.find((option) => option.id === definitionId);
+  const blockedByCap = Boolean(selectedType?.atLimit);
+
+  function fillNow() {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setRecordedAt(
+      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
+        `T${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    );
+  }
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       {state.error ? <Alert>{state.error}</Alert> : null}
+
+      {controlTypeOptions.length > 0 ? (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="definitionId">{messages.surgeries.recordControl.controlType}</Label>
+          <select
+            id="definitionId"
+            name="definitionId"
+            value={definitionId}
+            onChange={(event) => setDefinitionId(event.target.value)}
+            className={fieldClassName}
+          >
+            <option value="">{messages.surgeries.recordControl.controlTypeNone}</option>
+            {controlTypeOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.name}
+              </option>
+            ))}
+          </select>
+          {blockedByCap ? (
+            <p className="text-xs text-danger">
+              {messages.surgeries.recordControl.atLimit(selectedType?.name ?? "")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-sm font-medium text-foreground">
@@ -106,32 +148,43 @@ export function RecordControlForm({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="observations">{messages.fields.observations}</Label>
-        <textarea
-          id="observations"
-          name="observations"
-          required
-          rows={3}
-          className={textareaClassName}
-        />
+        <textarea id="observations" name="observations" rows={3} className={textareaClassName} />
       </div>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="recordedAt">{messages.fields.dateAndTime}</Label>
-        <input
-          id="recordedAt"
-          name="recordedAt"
-          type="datetime-local"
-          required
-          className={fieldClassName}
-        />
+        <div className="flex items-center gap-2">
+          <input
+            id="recordedAt"
+            name="recordedAt"
+            type="datetime-local"
+            required
+            value={recordedAt}
+            onChange={(event) => setRecordedAt(event.target.value)}
+            className={fieldClassName}
+          />
+          <button
+            type="button"
+            onClick={fillNow}
+            className="h-9 rounded-md border border-border px-3 text-sm hover:bg-muted"
+          >
+            {messages.surgeries.recordControl.now}
+          </button>
+        </div>
       </div>
 
       <CustomFieldValueInputs fields={customFields} />
 
       <div>
-        <PendingButton pendingText={messages.surgeries.recordControl.submitting}>
-          {messages.surgeries.recordControl.submit}
-        </PendingButton>
+        {blockedByCap ? (
+          <Button type="submit" disabled>
+            {messages.surgeries.recordControl.submit}
+          </Button>
+        ) : (
+          <PendingButton pendingText={messages.surgeries.recordControl.submitting}>
+            {messages.surgeries.recordControl.submit}
+          </PendingButton>
+        )}
       </div>
     </form>
   );

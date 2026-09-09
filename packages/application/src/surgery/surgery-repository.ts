@@ -12,4 +12,14 @@ export interface SurgeryRepository {
   /** Every Surgery a Resident participates in — the "Surgery panel" ADR 0017 grants them (nothing else in the tenant). */
   findByResidentId(residentId: string): Promise<Surgery[]>;
   save(surgery: Surgery): Promise<void>;
+  /**
+   * True when any CustomFieldValue (on a Surgery or a Control) in this
+   * physician's tenant references the given CustomField definition — the
+   * ADR 0027 freeze check. Tenant-scoped: the query is filtered through
+   * the physician's own Surgery rows so it can never leak the existence
+   * of another tenant's data.
+   */
+  isCustomFieldDefinitionInUse(physicianId: string, definitionId: string): Promise<boolean>;
+  /** True when any Control in this physician's tenant references the given control definition (ADR 0027). Tenant-scoped as above. */
+  isControlDefinitionInUse(physicianId: string, definitionId: string): Promise<boolean>;
 }

@@ -65,7 +65,11 @@ export default async function ResidentSurgeryDetailPage({
           <CardTitle className="text-base">{messages.resident.recordControl.cardTitle}</CardTitle>
         </CardHeader>
         <CardContent>
-          <RecordOwnControlForm surgeryId={view.id} customFields={view.controlCustomFields} />
+          <RecordOwnControlForm
+            surgeryId={view.id}
+            customFields={view.controlCustomFields}
+            controlTypeOptions={view.controlTypeOptions}
+          />
         </CardContent>
       </Card>
     </div>

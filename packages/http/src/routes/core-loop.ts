@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import {
+  addControlDefinition,
   addCustomField,
+  editControlDefinition,
+  editCustomField,
   getPatient,
   getProcedureType,
   getSurgery,
@@ -14,7 +17,10 @@ import {
   registerPatient,
   registerProcedureType,
   registerSurgery,
+  removeControlDefinition,
+  removeCustomField,
 } from "@cirugias-cruz/application";
+import type { ControlOccurrenceRule } from "@cirugias-cruz/domain";
 import type { Patient, ProcedureType, Surgery } from "@cirugias-cruz/domain";
 import type { AppDeps } from "../deps.js";
 import { replyForError } from "../shared/errors.js";
@@ -54,6 +60,22 @@ interface AddCustomFieldBody {
   constraint: CustomFieldConstraintBody;
 }
 
+interface ControlOccurrenceRuleBody {
+  mode: "uncapped" | "capped";
+  count?: number;
+  period?: { every: number; unit: "hours" | "days" | "weeks" };
+}
+
+interface AddControlDefinitionBody {
+  name: string;
+  occurrenceRule: ControlOccurrenceRuleBody;
+}
+
+interface EditControlDefinitionBody {
+  name?: string;
+  occurrenceRule?: ControlOccurrenceRuleBody;
+}
+
 interface CustomFieldValueBody {
   definitionId: string;
   value: string | number;
@@ -67,9 +89,10 @@ interface RegisterSurgeryBody {
 }
 
 interface RecordControlBody {
-  observations: string;
+  observations?: string;
   recordedAt: string;
   author: { type: "physician" } | { type: "resident"; residentId: string };
+  definitionId?: string;
   customFieldValues?: CustomFieldValueBody[];
 }
 
@@ -173,6 +196,65 @@ const addCustomFieldBodySchema = {
   },
 } as const;
 
+const controlOccurrenceRuleSchema = {
+  type: "object",
+  oneOf: [
+    {
+      type: "object",
+      required: ["mode"],
+      properties: { mode: { const: "uncapped" } },
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      required: ["mode", "count", "period"],
+      properties: {
+        mode: { const: "capped" },
+        count: { type: "integer", minimum: 1 },
+        period: {
+          type: "object",
+          required: ["every", "unit"],
+          properties: {
+            every: { type: "integer", minimum: 1 },
+            unit: { enum: ["hours", "days", "weeks"] },
+          },
+          additionalProperties: false,
+        },
+      },
+      additionalProperties: false,
+    },
+  ],
+} as const;
+
+const addControlDefinitionBodySchema = {
+  type: "object",
+  required: ["name", "occurrenceRule"],
+  properties: {
+    name: { type: "string" },
+    occurrenceRule: controlOccurrenceRuleSchema,
+  },
+} as const;
+
+const editControlDefinitionBodySchema = {
+  type: "object",
+  properties: {
+    name: { type: "string" },
+    occurrenceRule: controlOccurrenceRuleSchema,
+  },
+} as const;
+
+const controlDefinitionParamsSchema = {
+  type: "object",
+  required: ["id", "defId"],
+  properties: { id: { type: "string" }, defId: { type: "string" } },
+} as const;
+
+const customFieldParamsSchema = {
+  type: "object",
+  required: ["id", "fieldId"],
+  properties: { id: { type: "string" }, fieldId: { type: "string" } },
+} as const;
+
 const customFieldValueSchema = {
   type: "object",
   required: ["definitionId", "value"],
@@ -217,11 +299,12 @@ const controlAuthorSchema = {
 
 const recordControlBodySchema = {
   type: "object",
-  required: ["observations", "recordedAt", "author"],
+  required: ["recordedAt", "author"],
   properties: {
     observations: { type: "string" },
     recordedAt: { type: "string" },
     author: controlAuthorSchema,
+    definitionId: { type: "string" },
     customFieldValues: { type: "array", items: customFieldValueSchema },
   },
 } as const;
@@ -283,6 +366,17 @@ export function serializeCustomField(field: ProcedureType["customFields"][number
   };
 }
 
+/** One control definition in wire shape (ADR 0026). */
+export function serializeControlDefinition(
+  definition: ProcedureType["controlDefinitions"][number],
+) {
+  return {
+    id: definition.id,
+    name: definition.name,
+    occurrenceRule: definition.occurrenceRule,
+  };
+}
+
 function serializeProcedureType(procedureType: ProcedureType) {
   return {
     id: procedureType.id,
@@ -290,10 +384,19 @@ function serializeProcedureType(procedureType: ProcedureType) {
     name: procedureType.name,
     description: procedureType.description,
     customFields: procedureType.customFields.map(serializeCustomField),
+    controlDefinitions: procedureType.controlDefinitions.map(serializeControlDefinition),
   };
 }
 
-export function serializeSurgery(surgery: Surgery) {
+interface FollowUpWire {
+  definitionId: string;
+  name: string;
+  recorded: number;
+  expected: number;
+  nextDueAt: Date | null;
+}
+
+export function serializeSurgery(surgery: Surgery, followUp: FollowUpWire[] = []) {
   return {
     id: surgery.id,
     physicianId: surgery.physicianId,
@@ -311,11 +414,13 @@ export function serializeSurgery(surgery: Surgery) {
       observations: control.observations,
       recordedAt: control.recordedAt,
       author: control.author,
+      definitionId: control.definitionId,
       customFieldValues: control.customFieldValues.map((value) => ({
         definitionId: value.definitionId,
         value: value.value,
       })),
     })),
+    followUp,
   };
 }
 
@@ -420,6 +525,107 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
     },
   );
 
+  app.patch<{ Params: { id: string; fieldId: string }; Body: AddCustomFieldBody }>(
+    "/procedure-types/:id/custom-fields/:fieldId",
+    { ...auth, schema: { params: customFieldParamsSchema, body: addCustomFieldBodySchema } },
+    async (request, reply) => {
+      try {
+        const output = await editCustomField(deps)({
+          physicianId: request.physicianId as string,
+          procedureTypeId: request.params.id,
+          customFieldId: request.params.fieldId,
+          name: request.body.name,
+          description: request.body.description,
+          scope: request.body.scope,
+          constraint: request.body.constraint as never,
+        });
+        return await reply.code(200).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
+  app.delete<{ Params: { id: string; fieldId: string } }>(
+    "/procedure-types/:id/custom-fields/:fieldId",
+    { ...auth, schema: { params: customFieldParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await removeCustomField(deps)({
+          physicianId: request.physicianId as string,
+          procedureTypeId: request.params.id,
+          customFieldId: request.params.fieldId,
+        });
+        return await reply.code(200).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
+  app.post<{ Params: { id: string }; Body: AddControlDefinitionBody }>(
+    "/procedure-types/:id/control-definitions",
+    {
+      ...auth,
+      schema: { params: procedureTypeIdParamsSchema, body: addControlDefinitionBodySchema },
+    },
+    async (request, reply) => {
+      try {
+        const output = await addControlDefinition(deps)({
+          physicianId: request.physicianId as string,
+          procedureTypeId: request.params.id,
+          id: randomUUID(),
+          name: request.body.name,
+          occurrenceRule: request.body.occurrenceRule as ControlOccurrenceRule,
+        });
+        return await reply.code(201).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
+  app.patch<{ Params: { id: string; defId: string }; Body: EditControlDefinitionBody }>(
+    "/procedure-types/:id/control-definitions/:defId",
+    {
+      ...auth,
+      schema: { params: controlDefinitionParamsSchema, body: editControlDefinitionBodySchema },
+    },
+    async (request, reply) => {
+      try {
+        const output = await editControlDefinition(deps)({
+          physicianId: request.physicianId as string,
+          procedureTypeId: request.params.id,
+          controlDefinitionId: request.params.defId,
+          changes: {
+            name: request.body.name,
+            occurrenceRule: request.body.occurrenceRule as ControlOccurrenceRule | undefined,
+          },
+        });
+        return await reply.code(200).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
+  app.delete<{ Params: { id: string; defId: string } }>(
+    "/procedure-types/:id/control-definitions/:defId",
+    { ...auth, schema: { params: controlDefinitionParamsSchema } },
+    async (request, reply) => {
+      try {
+        const output = await removeControlDefinition(deps)({
+          physicianId: request.physicianId as string,
+          procedureTypeId: request.params.id,
+          controlDefinitionId: request.params.defId,
+        });
+        return await reply.code(200).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
   app.post<{ Body: RegisterSurgeryBody }>(
     "/surgeries",
     { ...auth, schema: { body: registerSurgeryBodySchema } },
@@ -472,6 +678,7 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
           observations: request.body.observations,
           recordedAt: new Date(request.body.recordedAt),
           author,
+          definitionId: request.body.definitionId,
           customFieldValues: request.body.customFieldValues,
         });
         return await reply.code(201).send(output);
@@ -571,7 +778,7 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
   app.get("/surgeries", auth, async (request, reply) => {
     try {
       const surgeries = await listSurgeries(deps)({ physicianId: request.physicianId as string });
-      return await reply.code(200).send(surgeries.map(serializeSurgery));
+      return await reply.code(200).send(surgeries.map((surgery) => serializeSurgery(surgery)));
     } catch (error) {
       return replyForError(error, reply);
     }
@@ -582,11 +789,11 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
     auth,
     async (request, reply) => {
       try {
-        const surgery = await getSurgery(deps)({
+        const { surgery, followUp } = await getSurgery(deps)({
           physicianId: request.physicianId as string,
           surgeryId: request.params.surgeryId,
         });
-        return await reply.code(200).send(serializeSurgery(surgery));
+        return await reply.code(200).send(serializeSurgery(surgery, followUp));
       } catch (error) {
         return replyForError(error, reply);
       }

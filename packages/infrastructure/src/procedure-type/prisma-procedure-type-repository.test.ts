@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
-import { CustomField, ProcedureType } from "@cirugias-cruz/domain";
+import { ControlDefinition, CustomField, ProcedureType } from "@cirugias-cruz/domain";
 import {
   cleanupPhysician,
   cleanupProcedureType,
@@ -140,5 +140,42 @@ describe("PrismaProcedureTypeRepository", () => {
     const eva = found?.customFields.find((f) => f.id === "cf-eva");
     expect(eva?.constraint).toEqual({ valueType: "NUMBER", unit: "0-10", min: 0, max: 10 });
     expect(eva?.unit).toBe("0-10");
+  });
+
+  it("persists and reads back control definitions, then removes an unused one on re-save", async () => {
+    const procedureType = ProcedureType.create({
+      id: "infra-test-procedure-type-1",
+      physicianId: PHYSICIAN_ID,
+      name: "Pterigión",
+    });
+    procedureType.addControlDefinition(
+      ControlDefinition.create({
+        id: "infra-def-pain",
+        name: "Pain scale",
+        occurrenceRule: { mode: "capped", count: 4, period: { every: 24, unit: "hours" } },
+      }),
+      PHYSICIAN_ID,
+    );
+    procedureType.addControlDefinition(
+      ControlDefinition.create({
+        id: "infra-def-open",
+        name: "Wound check",
+        occurrenceRule: { mode: "uncapped" },
+      }),
+      PHYSICIAN_ID,
+    );
+    await repository.save(procedureType);
+
+    const found = await repository.findById("infra-test-procedure-type-1");
+    expect(found?.controlDefinitions).toHaveLength(2);
+    expect(
+      found?.controlDefinitions.find((d) => d.id === "infra-def-pain")?.occurrenceRule,
+    ).toEqual({ mode: "capped", count: 4, period: { every: 24, unit: "hours" } });
+
+    found?.removeControlDefinition("infra-def-open", PHYSICIAN_ID, { inUse: false });
+    await repository.save(found!);
+
+    const reloaded = await repository.findById("infra-test-procedure-type-1");
+    expect(reloaded?.controlDefinitions.map((d) => d.id)).toEqual(["infra-def-pain"]);
   });
 });

@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { messages } from "@/messages/en";
 import type { ProcedureTypeDetailView } from "../mappers";
+import { ControlDefinitionForm } from "./ControlDefinitionForm";
+import { ControlDefinitionList } from "./ControlDefinitionList";
 import { CustomFieldForm } from "./CustomFieldForm";
 import { CustomFieldList } from "./CustomFieldList";
 import { ProcedureTypeEditForm } from "./ProcedureTypeEditForm";
@@ -29,7 +31,10 @@ export function ProcedureTypeDetail({ procedureType }: { procedureType: Procedur
           <CardTitle>{messages.procedureTypes.customFields.cardTitle}</CardTitle>
         </CardHeader>
         <CardContent>
-          <CustomFieldList customFields={procedureType.customFields} />
+          <CustomFieldList
+            procedureTypeId={procedureType.id}
+            customFields={procedureType.customFields}
+          />
         </CardContent>
       </Card>
 
@@ -39,6 +44,27 @@ export function ProcedureTypeDetail({ procedureType }: { procedureType: Procedur
         </CardHeader>
         <CardContent>
           <CustomFieldForm procedureTypeId={procedureType.id} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{messages.procedureTypes.controlDefinitions.cardTitle}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ControlDefinitionList
+            procedureTypeId={procedureType.id}
+            controlDefinitions={procedureType.controlDefinitions}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{messages.procedureTypes.controlDefinitions.addCardTitle}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ControlDefinitionForm procedureTypeId={procedureType.id} />
         </CardContent>
       </Card>
     </div>

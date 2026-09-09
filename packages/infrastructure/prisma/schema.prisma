@@ -142,12 +142,40 @@ model ProcedureType {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  physician    Physician               @relation(fields: [physicianId], references: [id])
-  surgeries    Surgery[]
-  customFields CustomFieldDefinition[]
+  physician          Physician               @relation(fields: [physicianId], references: [id])
+  surgeries          Surgery[]
+  customFields       CustomFieldDefinition[]
+  controlDefinitions ControlDefinition[]
 
   @@index([physicianId])
   @@map("procedure_types")
+}
+
+// A control definition (ADR 0026) — typing + an occurrence rule — is an
+// internal collection of the ProcedureType aggregate, mirroring
+// CustomFieldDefinition: name unique within its owning ProcedureType,
+// written/read only through ProcedureTypeRepository.
+//
+// The occurrence rule is flattened: `occurrenceMode` is "uncapped" |
+// "capped"; the three `occurrence*` columns are populated only when
+// capped (count + period every/unit). ADR 0027 freezes a definition once
+// any Control references it — enforced in the Application layer, not here.
+model ControlDefinition {
+  id                    String   @id
+  procedureTypeId       String
+  name                  String
+  occurrenceMode        String
+  occurrenceCount       Int?
+  occurrencePeriodEvery Int?
+  occurrencePeriodUnit  String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  procedureType ProcedureType @relation(fields: [procedureTypeId], references: [id])
+  controls      Control[]
+
+  @@index([procedureTypeId])
+  @@map("control_definitions")
 }
 
 // CustomField definitions are an internal collection of the ProcedureType
@@ -295,18 +323,28 @@ model Surgery {
 model Control {
   id                String   @id
   surgeryId         String
-  observations      String
+  // Optional since Milestone 11 (A4/F-08): a Control may carry only a
+  // datetime + author + CustomField values.
+  observations      String?
   recordedAt        DateTime
   authorType        String
   authorPhysicianId String?
   authorResidentId  String?
+  // The control definition (ADR 0026) this recording is an occurrence of,
+  // or NULL for an ad-hoc control. Id-only column (nullable relation),
+  // mirroring the SurgeryParticipant / research_study_surgeries id-only
+  // precedent — the aggregate boundary is Surgery, and ControlDefinition
+  // lives in the ProcedureType aggregate.
+  definitionId      String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   surgery           Surgery            @relation(fields: [surgeryId], references: [id])
+  definition        ControlDefinition? @relation(fields: [definitionId], references: [id])
   customFieldValues CustomFieldValue[]
 
   @@index([surgeryId])
+  @@index([definitionId])
   @@map("controls")
 }
 

@@ -481,4 +481,116 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
     const all = await app.inject({ method: "GET", url: "/patients", cookies });
     expect(all.json<unknown[]>().length).toBe(3);
   });
+
+  it("editable schemes + capped control types + optional observations (ADR 0026/0027)", async () => {
+    const app = await buildApp(buildDeps());
+    const { sessionId } = await registerAndLogin(app);
+    const cookies = { session_id: sessionId };
+
+    const procedureTypeId = (
+      await app.inject({
+        method: "POST",
+        url: "/procedure-types",
+        cookies,
+        payload: { name: "Pterigión" },
+      })
+    ).json<{ procedureTypeId: string }>().procedureTypeId;
+
+    // Add a capped control definition.
+    const defResponse = await app.inject({
+      method: "POST",
+      url: `/procedure-types/${procedureTypeId}/control-definitions`,
+      cookies,
+      payload: {
+        name: "Pain scale",
+        occurrenceRule: { mode: "capped", count: 2, period: { every: 24, unit: "hours" } },
+      },
+    });
+    expect(defResponse.statusCode).toBe(201);
+    const { controlDefinitionId } = defResponse.json<{ controlDefinitionId: string }>();
+
+    // Editing an unused definition is allowed.
+    const editUnused = await app.inject({
+      method: "PATCH",
+      url: `/procedure-types/${procedureTypeId}/control-definitions/${controlDefinitionId}`,
+      cookies,
+      payload: { name: "Pain scale (EVA)" },
+    });
+    expect(editUnused.statusCode).toBe(200);
+
+    const patientId = (
+      await app.inject({
+        method: "POST",
+        url: "/patients",
+        cookies,
+        payload: { firstName: "Ana", lastName: "García", dateOfBirth: "1990-05-15" },
+      })
+    ).json<{ patientId: string }>().patientId;
+    const surgeryId = (
+      await app.inject({
+        method: "POST",
+        url: "/surgeries",
+        cookies,
+        payload: { patientId, procedureTypeId, performedAt: "2026-01-10" },
+      })
+    ).json<{ surgeryId: string }>().surgeryId;
+
+    // Record N with no observations at all.
+    for (let i = 0; i < 2; i += 1) {
+      const recorded = await app.inject({
+        method: "POST",
+        url: `/surgeries/${surgeryId}/controls`,
+        cookies,
+        payload: {
+          recordedAt: `2026-01-1${i + 1}`,
+          author: { type: "physician" },
+          definitionId: controlDefinitionId,
+        },
+      });
+      expect(recorded.statusCode).toBe(201);
+    }
+
+    // N+1 is rejected.
+    const overCap = await app.inject({
+      method: "POST",
+      url: `/surgeries/${surgeryId}/controls`,
+      cookies,
+      payload: {
+        recordedAt: "2026-01-20",
+        author: { type: "physician" },
+        definitionId: controlDefinitionId,
+      },
+    });
+    expect(overCap.statusCode).toBe(400);
+
+    // A used control definition is frozen.
+    const frozenEdit = await app.inject({
+      method: "PATCH",
+      url: `/procedure-types/${procedureTypeId}/control-definitions/${controlDefinitionId}`,
+      cookies,
+      payload: { name: "nope" },
+    });
+    expect(frozenEdit.statusCode).toBe(400);
+
+    // Adding a new definition is still allowed.
+    const addAnother = await app.inject({
+      method: "POST",
+      url: `/procedure-types/${procedureTypeId}/control-definitions`,
+      cookies,
+      payload: { name: "Wound check", occurrenceRule: { mode: "uncapped" } },
+    });
+    expect(addAnother.statusCode).toBe(201);
+
+    // get-surgery carries followUp.
+    const surgeryGet = await app.inject({
+      method: "GET",
+      url: `/surgeries/${surgeryId}`,
+      cookies,
+    });
+    const followUp = surgeryGet.json<{ followUp: { definitionId: string; recorded: number }[] }>()
+      .followUp;
+    expect(followUp).toEqual([
+      expect.objectContaining({ definitionId: controlDefinitionId, recorded: 2, expected: 2 }),
+    ]);
+  });
 });

@@ -1,6 +1,7 @@
-import type { CustomField, Surgery } from "@cirugias-cruz/domain";
+import type { ControlDefinition, CustomField, Surgery } from "@cirugias-cruz/domain";
 import type { PatientRepository } from "../patient/patient-repository.js";
 import type { ProcedureTypeRepository } from "../procedure-type/procedure-type-repository.js";
+import { computeFollowUp, type FollowUpItem } from "../shared/compute-follow-up.js";
 import { NotFoundError } from "../shared/not-found-error.js";
 import type { SurgeryRepository } from "./surgery-repository.js";
 
@@ -15,6 +16,10 @@ export interface SurgeryForResident {
   procedureTypeName: string;
   /** The owning Procedure Type's CustomField definitions — lets the Resident's UI render the same CONTROL-scoped inputs the Physician sees. */
   procedureTypeCustomFields: readonly CustomField[];
+  /** The owning Procedure Type's control definitions (ADR 0026) — lets the Resident's record form offer a control-type picker. */
+  procedureTypeControlDefinitions: readonly ControlDefinition[];
+  /** Per-capped-control-definition completeness / next-due projection (ADR 0026), computed on read. */
+  followUp: FollowUpItem[];
 }
 
 export interface GetSurgeryForResidentDeps {
@@ -53,6 +58,8 @@ export function getSurgeryForResident(deps: GetSurgeryForResidentDeps) {
       patientName: patient ? `${patient.firstName} ${patient.lastName}` : surgery.patientId,
       procedureTypeName: procedureType ? procedureType.name : surgery.procedureTypeId,
       procedureTypeCustomFields: procedureType ? procedureType.customFields : [],
+      procedureTypeControlDefinitions: procedureType ? procedureType.controlDefinitions : [],
+      followUp: procedureType ? computeFollowUp(procedureType, surgery) : [],
     };
   };
 }

@@ -94,6 +94,59 @@ function toConstraint(row: CustomFieldDefinitionRow): CustomFieldConstraint {
   }
 }
 
+export interface ControlDefinitionRow {
+  id: string;
+  name: string;
+  occurrenceMode: string;
+  occurrenceCount: number | null;
+  occurrencePeriodEvery: number | null;
+  occurrencePeriodUnit: string | null;
+}
+
+export function toControlDefinitionRow(
+  definition: import("@cirugias-cruz/domain").ControlDefinition,
+  procedureTypeId: string,
+): {
+  id: string;
+  procedureTypeId: string;
+  name: string;
+  occurrenceMode: string;
+  occurrenceCount: number | null;
+  occurrencePeriodEvery: number | null;
+  occurrencePeriodUnit: string | null;
+} {
+  const rule = definition.occurrenceRule;
+  return {
+    id: definition.id,
+    procedureTypeId,
+    name: definition.name,
+    occurrenceMode: rule.mode,
+    occurrenceCount: rule.mode === "capped" ? rule.count : null,
+    occurrencePeriodEvery: rule.mode === "capped" ? rule.period.every : null,
+    occurrencePeriodUnit: rule.mode === "capped" ? rule.period.unit : null,
+  };
+}
+
+export function fromControlDefinitionRow(
+  row: ControlDefinitionRow,
+): import("@cirugias-cruz/domain").ControlDefinitionAttributes {
+  if (row.occurrenceMode === "capped") {
+    return {
+      id: row.id,
+      name: row.name,
+      occurrenceRule: {
+        mode: "capped",
+        count: row.occurrenceCount ?? 1,
+        period: {
+          every: row.occurrencePeriodEvery ?? 1,
+          unit: (row.occurrencePeriodUnit ?? "hours") as "hours" | "days" | "weeks",
+        },
+      },
+    };
+  }
+  return { id: row.id, name: row.name, occurrenceRule: { mode: "uncapped" } };
+}
+
 export interface CustomFieldValueRow {
   definitionId: string;
   valueNumber: number | null;

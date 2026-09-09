@@ -128,15 +128,20 @@ describe("recordOwnControlAction", () => {
     expect(post.body.customFieldValues).toEqual([{ definitionId: "eva", value: 3 }]);
   });
 
-  it("rejects a blank observations field before calling api", async () => {
-    const result = await recordOwnControlAction(
-      "s1",
-      {},
-      formData({ observations: "", recordedAt: "2026-01-11T10:00" }),
-    );
+  it("allows a blank observations field (A4/F-08) and omits it from the body", async () => {
+    authedApiRequestMock.mockResolvedValue({ surgeryId: "s1", controlId: "c1" });
 
-    expect(result).toEqual({ error: "Please fill in every required field." });
-    expect(authedApiRequestMock).not.toHaveBeenCalled();
+    await expect(
+      recordOwnControlAction(
+        "s1",
+        {},
+        formData({ observations: "", recordedAt: "2026-01-11T10:00" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    const body = (authedApiRequestMock.mock.calls[0]?.[0] as { body: Record<string, unknown> })
+      .body;
+    expect(body).not.toHaveProperty("observations");
   });
 
   it("unexpected error: propagates uncaught", async () => {

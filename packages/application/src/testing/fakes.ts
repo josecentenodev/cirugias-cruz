@@ -69,6 +69,26 @@ export class InMemorySurgeryRepository implements SurgeryRepository {
     this.surgeries.set(surgery.id, surgery);
     return Promise.resolve();
   }
+
+  isCustomFieldDefinitionInUse(physicianId: string, definitionId: string): Promise<boolean> {
+    const inUse = [...this.surgeries.values()]
+      .filter((surgery) => surgery.physicianId === physicianId)
+      .some(
+        (surgery) =>
+          surgery.customFieldValues.some((value) => value.definitionId === definitionId) ||
+          surgery.controls.some((control) =>
+            control.customFieldValues.some((value) => value.definitionId === definitionId),
+          ),
+      );
+    return Promise.resolve(inUse);
+  }
+
+  isControlDefinitionInUse(physicianId: string, definitionId: string): Promise<boolean> {
+    const inUse = [...this.surgeries.values()]
+      .filter((surgery) => surgery.physicianId === physicianId)
+      .some((surgery) => surgery.controls.some((control) => control.definitionId === definitionId));
+    return Promise.resolve(inUse);
+  }
 }
 
 export class InMemoryResidentRepository implements ResidentRepository {

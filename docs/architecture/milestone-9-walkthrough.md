@@ -14,6 +14,27 @@
 
 ---
 
+## Walkthrough outcome — 2026-09-09 (performed)
+
+**This walkthrough has been run**, with the **product owner (the
+physician who commissioned the product)** as the tester, against the
+deployed product.
+
+**Result: PASSED, with alignment follow-ups.** The full MVP workflow
+(physician registration / login, Procedure Type + CustomField setup,
+Patient register / de-dup / search, Surgery under a Patient, Control
+record / modify with CustomField values, Resident registration /
+assignment / scoped login, Research Study lifecycle) was completed
+**unaided, with no manual API calls, and no P0 finding**.
+
+The session also produced a set of **restructuring directives** — gaps
+between what is built and how the physician needs to work. These are
+**not workflow blockers** (severity P1–P3, no P0) and are tracked in full,
+with per-layer scope and ADR needs, in
+[`alignment-restructuring.md`](alignment-restructuring.md). That document
+is the source of truth for the follow-up work; the Findings Log below is
+the index into it.
+
 ## How to run this
 
 - **Target**: `https://web-production-c686b1.up.railway.app` (the real
@@ -194,13 +215,23 @@ Not a checklist — a short written verdict from the tester:
 
 > One row per ❌. Assign a severity. P0s block Milestone 9 from closing.
 
-| ID   | Area (section #) | Severity | What happened | Repro steps | Status |
-| ---- | ---------------- | -------- | ------------- | ----------- | ------ |
-| F-01 |                  |          |               |             | open   |
-| F-02 |                  |          |               |             | open   |
-| F-03 |                  |          |               |             | open   |
-| F-04 |                  |          |               |             | open   |
-| F-05 |                  |          |               |             | open   |
+All rows below are **alignment/restructuring** findings from the
+2026-09-09 session — none is a P0 workflow blocker. Full scope, per-layer
+impact, and ADR needs are in
+[`alignment-restructuring.md`](alignment-restructuring.md) under the id in
+the last column.
+
+| ID   | Area (section #)          | Severity | What happened                                                                                   | Status | Tracked as |
+| ---- | ------------------------- | -------- | ---------------------------------------------------------------------------------------------- | ------ | ---------- |
+| F-01 | 3 (Patient)               | P1       | Patient carries `email` + `phone` — "no sirve"; must be fully removed, no trace in code/schema | open   | A1 |
+| F-02 | 3 / 3.9 (Patient)         | P1       | Patient age is not computed in the UI; physician should never do the arithmetic                 | open   | B1 |
+| F-03 | 5 (Control)               | P1       | Controls have no type/cardinality: need an optional cap — uncapped by default, or "exactly N" + a measurement period (every 12/24/48 h) when capped | open   | A2 |
+| F-04 | 3–8 (all tables)          | P2       | Only the name cell is a link; the whole row should navigate                                     | open   | B2 |
+| F-05 | 6 / 8 (destructive)       | P1       | Deletes are one-click-after-a-yes/no dialog; need deliberate (type-to-confirm) friction         | open   | B3 |
+| F-06 | 5 (Control)               | P2       | Control datetime has no "Now" affordance                                                        | open   | B4 |
+| F-07 | 4.5 / 5 (Surgery detail)  | P2       | Control history card is mis-placed — should sit directly under the Surgery summary              | open   | B5 |
+| F-08 | 5 (Control)               | P3       | `observations` is required; a Control may legitimately have none                                | open   | A4 |
+| F-09 | 2 (Configuración)         | P2       | CustomField / control-scheme definitions can only be added, not edited or removed              | open   | A3 |
 
 _(add rows as needed)_
 
@@ -210,10 +241,14 @@ _(add rows as needed)_
 
 Milestone 9 is **DONE** when this block is filled in and no P0 finding is open.
 
-- **Tester**: ___________________________
-- **Date**: ___________________________
-- **Build / commit tested**: ___________________________
-- **Result**: ☐ Passed — full workflow completed unaided, 0 open P0
+- **Tester**: Product owner (physician who commissioned the product)
+- **Date**: 2026-09-09
+- **Build / commit tested**: `6d47a25` (`main`)
+- **Result**: ☑ Passed — full workflow completed unaided, 0 open P0
   ☐ Passed with waivers (list waived P1s): ___________________________
   ☐ Failed — see open P0s in the Findings Log
-- **Notes**: ___________________________
+- **Notes**: Full core-loop + Resident + Research workflow completed
+  through the deployed frontend with no manual API calls and no P0
+  finding. Nine alignment/restructuring directives (F-01 … F-09, all
+  P1–P3) were raised and are tracked in `alignment-restructuring.md`;
+  they are follow-up work, not Milestone 9 blockers.

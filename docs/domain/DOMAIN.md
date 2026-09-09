@@ -265,7 +265,7 @@ postoperative follow-up.
   resident) whenever they want to record an observation.
 - There is no automated control scheduling and no auto-generation of
   controls. Control frequency is physician-determined **except** where a
-  control definition is *capped* — see the amendment below.
+  control definition is _capped_ — see the amendment below.
 
 **Amendment — capped control definitions
 ([ADR 0026](../decisions/0026-control-types-cap-and-measurement-period.md),
@@ -277,7 +277,7 @@ Type, §8) carries an **occurrence rule**:
 - **capped** — the physician sets a count `N` and a measurement period
   (e.g. every 24 h / 48 h / 12 h; units: hours, days, weeks). Then
   **exactly `N`** recordings of that definition are expected per Surgery
-  (a Surgery with fewer is *incomplete* — surfaced in the UI, not a
+  (a Surgery with fewer is _incomplete_ — surfaced in the UI, not a
   write-block), and recording the **`N + 1`-th** is **rejected** — this
   is a write invariant on the Surgery aggregate. The cap is per Surgery,
   all authors combined. The `N` recordings are expected at successive
@@ -660,10 +660,10 @@ object, or something else is **not decided**:
   ADR 0018's "Not decided here") — not to be implemented yet.
 - Pterygium-specific measurements and interpretation rules — to be
   obtained from the physician meeting. **Partly supplied 2026-09-09**:
-  the physician defined the *shape* of bounded controls (control
+  the physician defined the _shape_ of bounded controls (control
   definitions with a cap + measurement period — ADR 0026) and made
   Control `observations` optional and Procedure Type schemes editable
-  (ADR 0027). No pterygium-specific field *content* was supplied — that
+  (ADR 0027). No pterygium-specific field _content_ was supplied — that
   stays deferred.
 - Surgery `metadata` — intentionally unresolved, no further definition.
 - The pterygium surgical technique option list — physician-owned

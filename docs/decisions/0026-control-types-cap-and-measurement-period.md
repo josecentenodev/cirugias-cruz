@@ -61,13 +61,13 @@ physician's discretion. Nothing regresses for existing usage.
 
 ### When `capped`
 
-- **Exactly `N`** recordings of that definition are *expected* per
+- **Exactly `N`** recordings of that definition are _expected_ per
   Surgery. Until all `N` exist, that Surgery's follow-up is **incomplete**
   for that definition. This is a **completeness projection surfaced for
   display** — it does **not** block anything. A Surgery with missing
   capped recordings is still a fully valid Surgery.
 - Recording the **`N + 1`-th** control of that definition on that Surgery
-  is **rejected**. This *is* a write invariant, enforced inside
+  is **rejected**. This _is_ a write invariant, enforced inside
   `Surgery.recordControl` — Surgery owns its Controls and can count them.
 - The cap is **per Surgery**, counting all authors together (physician +
   participating residents) — not per author.

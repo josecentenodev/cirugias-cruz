@@ -24,11 +24,11 @@ open question that still needs the physician before implementation.
 
 ## Status legend
 
-| Mark | Meaning |
-| ---- | ------- |
-| 🔴 | Not started |
-| 🟡 | In design / ADR drafting |
-| 🟢 | Implemented & verified |
+| Mark | Meaning                  |
+| ---- | ------------------------ |
+| 🔴   | Not started              |
+| 🟡   | In design / ADR drafting |
+| 🟢   | Implemented & verified   |
 
 ## Priority
 
@@ -130,11 +130,11 @@ Type's control scheme — see A3). A control type is in one of two modes:
 - **Capped** — the physician sets a cap `N` **and** a measurement period
   `P` (e.g. every 12 h / 24 h / 48 h). Then:
   - the `N` recordings become **mandatory** — the Surgery's follow-up is
-    incomplete until all `N` exist (this is a *completeness* expectation
+    incomplete until all `N` exist (this is a _completeness_ expectation
     surfaced in the UI, not a write-blocking invariant — a Surgery with
     missing capped controls is still a valid Surgery);
   - **exactly `N`** may be recorded — the `N+1`-th recording of that type
-    on that Surgery is **rejected** (this *is* a write invariant on the
+    on that Surgery is **rejected** (this _is_ a write invariant on the
     Surgery aggregate);
   - the `N` recordings are expected at successive multiples of `P` from a
     baseline (the Surgery's performed date, unless the physician says
@@ -247,9 +247,10 @@ valid. (Longer term the physician sees observations as secondary to the
 structured schemes — but only the optionality is in scope now.)
 
 **Current state.** DOMAIN.md / project skill: a Control has "observations
-+ a mandatory datetime + an author". Verify whether the domain currently
-requires non-empty observations and whether the Prisma column is already
-nullable.
+
+- a mandatory datetime + an author". Verify whether the domain currently
+  requires non-empty observations and whether the Prisma column is already
+  nullable.
 
 **Work by layer.** Domain (`Control` record/modify — drop the non-empty
 requirement), Application, Infrastructure (nullable column + migration if
@@ -305,8 +306,8 @@ clickable.
 
 **Doc update.** Add the "row-as-link" pattern to
 `docs/design/design-system.md` (Table section) so it is applied
-consistently. Relevant `ux-laws` principles: *Fitts's Law* (larger target),
-*consistency*.
+consistently. Relevant `ux-laws` principles: _Fitts's Law_ (larger target),
+_consistency_.
 
 **ADR.** No — design-system doc change.
 
@@ -337,7 +338,7 @@ have no delete path by design — unchanged.
 **Scope.** `packages/web` — a shared `DangerousConfirm` component
 (type-to-confirm) replacing bare `ConfirmSubmit` on data-destroying
 actions; keep the light dialog for reversible ones. Update
-`docs/design/ux-principles.md` (the *Forgiving* principle) and
+`docs/design/ux-principles.md` (the _Forgiving_ principle) and
 `design-system.md` with the pattern and when each tier applies.
 
 **ADR.** No — UX-principles / design-system doc change, but call it out
@@ -392,7 +393,7 @@ it goes above or below the history.
 The physician called an alignment/restructuring document "fundamental for
 the MVP". This file is it. Keep it current as items land.
 
-### C2 — Update the Milestone 9 walkthrough as *performed* 🟢
+### C2 — Update the Milestone 9 walkthrough as _performed_ 🟢
 
 `milestone-9-walkthrough.md` gets a "Walkthrough outcome" section
 recording that it was run with the product owner, that the core workflow

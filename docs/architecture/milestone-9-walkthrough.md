@@ -221,17 +221,17 @@ impact, and ADR needs are in
 [`alignment-restructuring.md`](alignment-restructuring.md) under the id in
 the last column.
 
-| ID   | Area (section #)          | Severity | What happened                                                                                   | Status | Tracked as |
-| ---- | ------------------------- | -------- | ---------------------------------------------------------------------------------------------- | ------ | ---------- |
-| F-01 | 3 (Patient)               | P1       | Patient carries `email` + `phone` — "no sirve"; must be fully removed, no trace in code/schema | open   | A1 |
-| F-02 | 3 / 3.9 (Patient)         | P1       | Patient age is not computed in the UI; physician should never do the arithmetic                 | open   | B1 |
-| F-03 | 5 (Control)               | P1       | Controls have no type/cardinality: need an optional cap — uncapped by default, or "exactly N" + a measurement period (every 12/24/48 h) when capped | open   | A2 |
-| F-04 | 3–8 (all tables)          | P2       | Only the name cell is a link; the whole row should navigate                                     | open   | B2 |
-| F-05 | 6 / 8 (destructive)       | P1       | Deletes are one-click-after-a-yes/no dialog; need deliberate (type-to-confirm) friction         | open   | B3 |
-| F-06 | 5 (Control)               | P2       | Control datetime has no "Now" affordance                                                        | open   | B4 |
-| F-07 | 4.5 / 5 (Surgery detail)  | P2       | Control history card is mis-placed — should sit directly under the Surgery summary              | open   | B5 |
-| F-08 | 5 (Control)               | P3       | `observations` is required; a Control may legitimately have none                                | open   | A4 |
-| F-09 | 2 (Configuración)         | P2       | CustomField / control-scheme definitions can only be added, not edited or removed              | open   | A3 |
+| ID   | Area (section #)         | Severity | What happened                                                                                                                                       | Status | Tracked as |
+| ---- | ------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ---------- |
+| F-01 | 3 (Patient)              | P1       | Patient carries `email` + `phone` — "no sirve"; must be fully removed, no trace in code/schema                                                      | open   | A1         |
+| F-02 | 3 / 3.9 (Patient)        | P1       | Patient age is not computed in the UI; physician should never do the arithmetic                                                                     | open   | B1         |
+| F-03 | 5 (Control)              | P1       | Controls have no type/cardinality: need an optional cap — uncapped by default, or "exactly N" + a measurement period (every 12/24/48 h) when capped | open   | A2         |
+| F-04 | 3–8 (all tables)         | P2       | Only the name cell is a link; the whole row should navigate                                                                                         | open   | B2         |
+| F-05 | 6 / 8 (destructive)      | P1       | Deletes are one-click-after-a-yes/no dialog; need deliberate (type-to-confirm) friction                                                             | open   | B3         |
+| F-06 | 5 (Control)              | P2       | Control datetime has no "Now" affordance                                                                                                            | open   | B4         |
+| F-07 | 4.5 / 5 (Surgery detail) | P2       | Control history card is mis-placed — should sit directly under the Surgery summary                                                                  | open   | B5         |
+| F-08 | 5 (Control)              | P3       | `observations` is required; a Control may legitimately have none                                                                                    | open   | A4         |
+| F-09 | 2 (Configuración)        | P2       | CustomField / control-scheme definitions can only be added, not edited or removed                                                                   | open   | A3         |
 
 _(add rows as needed)_
 

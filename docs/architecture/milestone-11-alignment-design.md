@@ -50,12 +50,12 @@ milestone but do not individually block sign-off.
 
 ## 1. Work packages
 
-| WP | Scope | Findings | ADRs | Size | Depends on |
-| -- | ----- | -------- | ---- | ---- | ---------- |
-| **WP1** | Patient PII demolition + computed age | F-01, F-02 | 0025 | M | — |
-| **WP2** | Web UX hardening: row-as-link, deliberate delete | F-04, F-05 | — | S–M | — |
-| **WP3** | Editable schemes + typed/capped controls + optional observations (absorbs the "Now" button and the Surgery-detail reorder) | F-03, F-07, F-08, F-09 | 0026, 0027 | L | — (critical path) |
-| **WP4** | Doc closeout + walkthrough re-run & sign-off | all | 0025–0027 | S | WP1–WP3 merged |
+| WP      | Scope                                                                                                                      | Findings               | ADRs       | Size | Depends on        |
+| ------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ---------- | ---- | ----------------- |
+| **WP1** | Patient PII demolition + computed age                                                                                      | F-01, F-02             | 0025       | M    | —                 |
+| **WP2** | Web UX hardening: row-as-link, deliberate delete                                                                           | F-04, F-05             | —          | S–M  | —                 |
+| **WP3** | Editable schemes + typed/capped controls + optional observations (absorbs the "Now" button and the Surgery-detail reorder) | F-03, F-07, F-08, F-09 | 0026, 0027 | L    | — (critical path) |
+| **WP4** | Doc closeout + walkthrough re-run & sign-off                                                                               | all                    | 0025–0027  | S    | WP1–WP3 merged    |
 
 ```
 WP1 (M) ─┐
@@ -115,7 +115,7 @@ the critical path. WP4 begins only once WP1–WP3 are on `main`.
 ### 3.3 Infrastructure
 
 - Migration `drop_patient_contact_pii` → `ALTER TABLE patients DROP
-  COLUMN phone, DROP COLUMN email`. No data backfill — no production
+COLUMN phone, DROP COLUMN email`. No data backfill — no production
   patient data exists (walkthrough run 2026-09-09 with fake data).
 - `PrismaPatientRepository` + its round-trip tests: remove the two
   fields from the row mapping.
@@ -160,14 +160,14 @@ derivation), Playwright (`full-workflow.spec.ts` still green).
   `position: relative`; a single `<Link>` gets an absolutely-positioned
   `::after` (or an overlay span) covering the row. Inline secondary
   controls (delete buttons, credential actions) get `position: relative;
-  z-index: 1` so they stay clickable above the overlay. The row link is
+z-index: 1` so they stay clickable above the overlay. The row link is
   a real `<a>` — keyboard focus and screen-reader semantics are
   preserved; do **not** attach `onClick` to a `<tr>`.
 - **Applies to:** `PatientList`, `SurgeryList`, `ResidentList`,
   `ProcedureTypeList`, the research-studies list, and the
   resident-session surgery list.
 - **Doc:** add "row-as-link" to `docs/design/design-system.md` (Table
-  section). `ux-laws`: *Fitts's Law*, *consistency*.
+  section). `ux-laws`: _Fitts's Law_, _consistency_.
 
 ### 4.2 B3 — deliberate (type-to-confirm) delete
 
@@ -180,7 +180,7 @@ derivation), Playwright (`full-workflow.spec.ts` still green).
   and the deactivate action in `ResidentCredentialActions`.
 - Keep the light `ConfirmSubmit` for reversible actions (e.g. logout,
   research-study state transitions).
-- **Docs:** `docs/design/ux-principles.md` (the *Forgiving* principle —
+- **Docs:** `docs/design/ux-principles.md` (the _Forgiving_ principle —
   call it out as the product owner did) and `design-system.md` (the two
   tiers and when each applies).
 
@@ -371,13 +371,13 @@ infra/migrations → http/e2e → web**.
 
 ## 7. Risks & mitigations
 
-| Risk | Mitigation |
-| ---- | ---------- |
-| WP3 scope creep into per-definition CustomField partitioning | Explicitly deferred (§2.1), product-owner-confirmed; recorded in ADR 0026's "Not decided here" during WP4. |
-| `Surgery.recordControl` signature change ripples to the resident record path, `fakes.ts`, and every call site | Contained but wide; land the domain+fakes change first, compile-check before touching Application. |
-| Freeze-check `is…InUse` queries could leak cross-tenant existence | Both queries filtered through the acting physician's own ProcedureType/Surgery rows; called out as a review checkpoint. |
-| Migrations run against the shared Railway Postgres via `preDeployCommand` | No real data yet; standard `prisma migrate deploy` flow; the two migrations are additive except the Patient column drop, which has no data. |
-| `Person` removal from `Patient` breaks shared test helpers | `Person` itself is untouched; only `Patient` stops importing it — scope the change to the patient slice and run the full gate. |
+| Risk                                                                                                          | Mitigation                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| WP3 scope creep into per-definition CustomField partitioning                                                  | Explicitly deferred (§2.1), product-owner-confirmed; recorded in ADR 0026's "Not decided here" during WP4.                                  |
+| `Surgery.recordControl` signature change ripples to the resident record path, `fakes.ts`, and every call site | Contained but wide; land the domain+fakes change first, compile-check before touching Application.                                          |
+| Freeze-check `is…InUse` queries could leak cross-tenant existence                                             | Both queries filtered through the acting physician's own ProcedureType/Surgery rows; called out as a review checkpoint.                     |
+| Migrations run against the shared Railway Postgres via `preDeployCommand`                                     | No real data yet; standard `prisma migrate deploy` flow; the two migrations are additive except the Patient column drop, which has no data. |
+| `Person` removal from `Patient` breaks shared test helpers                                                    | `Person` itself is untouched; only `Patient` stops importing it — scope the change to the patient slice and run the full gate.              |
 
 ---
 

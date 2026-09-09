@@ -34,18 +34,18 @@ A `ProcedureType`'s CustomField definitions and control definitions can be
 **added, edited, and removed** — not just added. Editing the
 ProcedureType's own `name` / `description` stays allowed (unchanged).
 ProcedureType itself is still **never deleted** (ADR 0011, untouched) —
-this ADR only adds mutation *within* a ProcedureType's scheme.
+this ADR only adds mutation _within_ a ProcedureType's scheme.
 
 ### Freeze rule — no modification once data exists
 
 **A scheme element cannot be modified or removed once data has been
 recorded against it** (product owner, 2026-09-09):
 
-- A **CustomField definition** is *frozen* as soon as any `Surgery` or
+- A **CustomField definition** is _frozen_ as soon as any `Surgery` or
   `Control` holds a value for it.
-- A **control definition** is *frozen* as soon as any `Control` on any
+- A **control definition** is _frozen_ as soon as any `Control` on any
   `Surgery` references it.
-- *Frozen* means: **no edit, no remove.** It stays exactly as it is, for
+- _Frozen_ means: **no edit, no remove.** It stays exactly as it is, for
   the historical data that depends on it.
 - **Adding** new definitions is always allowed.
 - **Editing / removing** a definition that has **no** recorded data is
@@ -85,7 +85,7 @@ already cleared the check.
 - **Web** — the scheme editor gains edit + remove affordances, each
   **disabled with an explanation** when the definition is frozen
   ("recorded data exists — add a new field instead"). Removing an
-  *unused* definition still goes through the deliberate-confirmation
+  _unused_ definition still goes through the deliberate-confirmation
   pattern (alignment doc §B3).
 
 ### Consequence for ADR 0026

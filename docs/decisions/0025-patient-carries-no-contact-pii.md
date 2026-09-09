@@ -9,6 +9,12 @@ product-owner session recorded in
 [`../architecture/alignment-restructuring.md`](../architecture/alignment-restructuring.md)
 §A1 and the Milestone 9 walkthrough finding **F-01**.
 
+**Implemented — Milestone 11 WP1** (merged to `main`): `phone`/`email`
+removed across Domain → Application → Infrastructure → HTTP → `web`;
+`Patient` no longer composes `Person`; migration
+`20260909120000_drop_patient_contact_pii` applied to the Railway
+Postgres; full quality gate green.
+
 ## Context
 
 ADR 0009 gave Physician, Resident and Patient a single shared personal

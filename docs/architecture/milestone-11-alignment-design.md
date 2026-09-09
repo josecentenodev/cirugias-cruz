@@ -50,6 +50,12 @@ milestone but do not individually block sign-off.
 
 ## 1. Work packages
 
+> **Progress:** WP1 and WP2 are **implemented and merged to `main`**
+> (integration branch `feat/milestone-11-alignment`), full quality gate
+> green, the ADR 0025 migration applied to the Railway Postgres. WP3 and
+> WP4 remain. The `ResidentList` row-link was dropped by product-owner
+> decision (Option A) — no resident detail route exists to link to.
+
 | WP      | Scope                                                                                                                      | Findings               | ADRs       | Size | Depends on        |
 | ------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ---------- | ---- | ----------------- |
 | **WP1** | Patient PII demolition + computed age                                                                                      | F-01, F-02             | 0025       | M    | —                 |

@@ -18,9 +18,23 @@ interpretation we are committing to, the current state in code, the work
 required per layer, whether a numbered ADR is needed, priority, and any
 open question that still needs the physician before implementation.
 
-> **This is a planning artifact, not an implementation log.** Nothing here
-> is done yet. As each item lands, mark it and cross-reference the ADR /
-> milestone that carried it.
+> **This is a planning artifact.** As each item lands, mark it and
+> cross-reference the ADR / milestone that carried it.
+
+## Implementation status (Milestone 11)
+
+| Done (merged to `main`)                                                                                                 | Pending                                                          |
+| ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **A1** Patient contact-PII removed + `Patient` no longer composes `Person` + Railway migration applied (ADR 0025) — WP1 | **A2** capped control definitions (ADR 0026) — WP3               |
+| **B1** computed patient age in the UI — WP1                                                                             | **A3** editable-but-freezing schemes (ADR 0027) — WP3            |
+| **B2** whole-row table links — WP2                                                                                      | **A4** optional Control observations — WP3                       |
+| **B3** type-to-confirm deletion (`DangerousConfirm`) — WP2                                                              | **B4** "Now" datetime button — WP3                               |
+|                                                                                                                         | **B5** Surgery-detail card reorder — WP3                         |
+|                                                                                                                         | **C3** remaining doc reconciliation + walkthrough sign-off — WP4 |
+
+Exception (product owner, Option A, 2026-09-09): `ResidentList` rows stay
+non-links — there is no resident detail route in `packages/web` and
+building one is out of scope. Documented in `design-system.md`.
 
 ## Status legend
 
@@ -42,7 +56,7 @@ open question that still needs the physician before implementation.
 
 ## A. Domain / model changes (ADR-bearing)
 
-### A1 — Remove `email` and `phone` from Patient — complete demolition 🟡 · P1
+### A1 — Remove `email` and `phone` from Patient — complete demolition 🟢 · P1
 
 > **ADR drafted:** [0025 — Patient carries no contact PII](../decisions/0025-patient-carries-no-contact-pii.md).
 
@@ -264,7 +278,7 @@ the "observations are secondary" framing recorded.
 
 ## B. UI / UX changes (`packages/web` + design docs)
 
-### B1 — Compute and show patient age in the UI 🔴 · P1
+### B1 — Compute and show patient age in the UI 🟢 · P1
 
 **Directive.** "Se tiene que calcular la edad en la UI del paciente. Por
 más que tengamos la fecha de nacimiento, el cálculo ayuda mucho al
@@ -286,7 +300,7 @@ patient DOB is shown there.
 
 ---
 
-### B2 — The whole table row is the link 🔴 · P2
+### B2 — The whole table row is the link 🟢 · P2
 
 **Directive.** "En todas las tablas, la fila debería ser el link, no el
 nombre del dato como lo es actualmente."
@@ -313,7 +327,7 @@ _consistency_.
 
 ---
 
-### B3 — No accidental one-click delete 🔴 · P1
+### B3 — No accidental one-click delete 🟢 · P1
 
 **Directive.** "Tenemos que evitar que el usuario pueda borrar a la
 primera al apretar un botón. Ya lo he mencionado como eje fundamental de

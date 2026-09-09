@@ -39,6 +39,10 @@ export const messages = {
     optional: "(optional)",
     none: "—",
     back: "Back",
+    deleteWord: "DELETE",
+    dangerousConfirm: {
+      prompt: (phrase: string) => `Type ${phrase} to confirm`,
+    },
   },
 
   nav: {

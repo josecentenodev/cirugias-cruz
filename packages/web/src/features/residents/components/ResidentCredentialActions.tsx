@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { ConfirmSubmit } from "@/components/ConfirmSubmit";
+import { DangerousConfirm } from "@/components/ui/DangerousConfirm";
 import { Alert } from "@/components/ui/alert";
 import { PendingButton } from "@/components/ui/pending-button";
 import { messages } from "@/messages/en";
@@ -93,9 +93,10 @@ export function ResidentCredentialActions({
         </form>
 
         {active ? (
-          <ConfirmSubmit
+          <DangerousConfirm
             action={setResidentActiveAction.bind(null, residentId, false)}
             triggerLabel={c.deactivate}
+            confirmationPhrase={residentName}
             confirmLabel={c.deactivate}
             pendingLabel={messages.common.saving}
             message={c.deactivateConfirm(residentName)}

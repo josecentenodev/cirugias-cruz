@@ -63,8 +63,11 @@ Prevent errors, surface them clearly when they happen, and always offer a way ba
 
 - Server-action validation errors render inline near the field via `<Alert variant="danger">`, never as a full-page `error.tsx` throw.
 - Every `new`/edit screen has a visible Cancel / back link.
-- Destructive actions (delete DRAFT study, remove resident) require a confirm step (native `<dialog>` or two-click inline) and use `Button variant="danger"`.
+- Destructive actions require a confirm step (native `<dialog>`) and use `Button variant="danger"`. The product owner calls this "un eje fundamental de UX" — confirmation friction is scaled to how recoverable the action is, in **two tiers**:
+  - **Light** (`ConfirmSubmit`): reversible actions — log out, research-study state transitions (`COMPLETED` is reversible). Consequence sentence + Cancel / Confirm.
+  - **Type-to-confirm** (`DangerousConfirm`): data-destroying, no-undo actions — delete a draft research study, remove a Surgery from a study, remove a Resident from a Surgery, deactivate a Resident login. The confirm button stays `disabled` until the user types the record's name (or the literal word `DELETE` when there is no name).
 - Irreversible-vs-reversible is stated in the confirm copy.
+- See `design-system.md` § "Destructive confirmation — two tiers" for the component/gate details.
 
 ## 5. Providing guidance
 

@@ -9,6 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  stretchedLinkClass,
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
 import { messages } from "@/messages/en";
@@ -50,7 +51,10 @@ export function PatientList({ patients }: { patients: PatientView[] }) {
           {patients.map((patient) => (
             <TableRow key={patient.id}>
               <TableCell>
-                <Link href={`/patients/${patient.id}`} className="font-medium hover:underline">
+                <Link
+                  href={`/patients/${patient.id}`}
+                  className={cn("font-medium hover:underline", stretchedLinkClass)}
+                >
                   {patient.fullName}
                 </Link>
               </TableCell>

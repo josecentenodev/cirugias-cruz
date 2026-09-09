@@ -18,8 +18,29 @@ export function TableBody({ className, ...props }: HTMLAttributes<HTMLTableSecti
 }
 
 export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cn("hover:bg-muted/60", className)} {...props} />;
+  // `relative` is always on so a row can host the stretched-link overlay
+  // (see `stretchedLinkClass`); harmless for rows that don't use it.
+  return <tr className={cn("relative hover:bg-muted/60", className)} {...props} />;
 }
+
+/**
+ * Stretched-link pattern (see design-system.md § Table). The whole row
+ * is one navigation target: put this class on the single real `<Link>`
+ * / `<a>` inside a `<TableRow>`'s first cell. Its `::after` pseudo-
+ * element is an absolutely-positioned overlay covering the (already
+ * `relative`) row, so a click anywhere on the row activates the link.
+ * Keyboard focus and screen-reader semantics stay on the real `<a>`.
+ *
+ * Any inline secondary control in the same row (delete button,
+ * credential action) must carry `rowActionClass` so it renders above
+ * the overlay and stays clickable and focusable.
+ */
+export const stretchedLinkClass =
+  "after:absolute after:inset-0 after:content-[''] " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm";
+
+/** Lift an inline row control above the `stretchedLinkClass` overlay. */
+export const rowActionClass = "relative z-10";
 
 export function TableHead({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (

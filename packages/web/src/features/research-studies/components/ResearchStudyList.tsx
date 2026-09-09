@@ -10,6 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  stretchedLinkClass,
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
 import { messages } from "@/messages/en";
@@ -48,7 +49,7 @@ export function ResearchStudyList({ studies }: { studies: ResearchStudyListView[
               <TableCell>
                 <Link
                   href={`/research-studies/${study.id}`}
-                  className="font-medium hover:underline"
+                  className={cn("font-medium hover:underline", stretchedLinkClass)}
                 >
                   {study.hypothesisPreview}
                 </Link>

@@ -9,6 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  stretchedLinkClass,
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
 import { messages } from "@/messages/en";
@@ -51,7 +52,7 @@ export function ProcedureTypeList({ procedureTypes }: { procedureTypes: Procedur
               <TableCell className="font-medium">
                 <Link
                   href={`/settings/procedure-types/${procedureType.id}`}
-                  className="hover:underline"
+                  className={cn("hover:underline", stretchedLinkClass)}
                 >
                   {procedureType.name}
                 </Link>

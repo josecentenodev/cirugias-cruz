@@ -52,18 +52,19 @@ external stylesheet, CSP unaffected). Weights 400 / 500 / 700. Exposed as
 
 ## Components (`packages/web/src/components/ui/`)
 
-| Component                 | Notes                                                                                                                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `button.tsx`              | variants `primary` \| `secondary` \| `ghost` \| `danger`; sizes `default` (h-9) \| `sm` (h-8). Focus ring = `--ring` + offset.                                           |
-| `pending-button.tsx`      | `"use client"` submit button; shows `Spinner` + optional `pendingText` while the form is pending. Prefer over per-form bespoke submit buttons.                           |
-| `input.tsx` / `label.tsx` | token borders/rings; `aria-invalid` → danger border+ring.                                                                                                                |
-| `card.tsx`                | `--surface` bg, `shadow-sm`.                                                                                                                                             |
-| `alert.tsx`               | variants `danger` \| `warning` \| `success` \| `muted`. `role="alert"` on danger/warning only. Inline, expected messages — unexpected errors go through `app/error.tsx`. |
-| `badge.tsx`               | status pills; variants `neutral` \| `accent` \| `success` \| `warning` \| `danger`.                                                                                      |
-| `empty-state.tsx`         | title + hint + optional action; use for every zero-row list.                                                                                                             |
-| `spinner.tsx`             | indeterminate indicator, inherits `currentColor`.                                                                                                                        |
-| `skeleton.tsx`            | `Skeleton` block + `ListSkeleton` / `DetailSkeleton` for route `loading.tsx`.                                                                                            |
-| `table.tsx`               | header on `--muted`; row hover `--muted`.                                                                                                                                |
+| Component                 | Notes                                                                                                                                                                                                                                                    |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `button.tsx`              | variants `primary` \| `secondary` \| `ghost` \| `danger`; sizes `default` (h-9) \| `sm` (h-8). Focus ring = `--ring` + offset.                                                                                                                           |
+| `pending-button.tsx`      | `"use client"` submit button; shows `Spinner` + optional `pendingText` while the form is pending. Prefer over per-form bespoke submit buttons.                                                                                                           |
+| `input.tsx` / `label.tsx` | token borders/rings; `aria-invalid` → danger border+ring.                                                                                                                                                                                                |
+| `card.tsx`                | `--surface` bg, `shadow-sm`.                                                                                                                                                                                                                             |
+| `alert.tsx`               | variants `danger` \| `warning` \| `success` \| `muted`. `role="alert"` on danger/warning only. Inline, expected messages — unexpected errors go through `app/error.tsx`.                                                                                 |
+| `badge.tsx`               | status pills; variants `neutral` \| `accent` \| `success` \| `warning` \| `danger`.                                                                                                                                                                      |
+| `empty-state.tsx`         | title + hint + optional action; use for every zero-row list.                                                                                                                                                                                             |
+| `spinner.tsx`             | indeterminate indicator, inherits `currentColor`.                                                                                                                                                                                                        |
+| `skeleton.tsx`            | `Skeleton` block + `ListSkeleton` / `DetailSkeleton` for route `loading.tsx`.                                                                                                                                                                            |
+| `table.tsx`               | header on `--muted`; row hover `--muted`. Rows are `position: relative` so they can host the **stretched-link** row pattern (see § Table below).                                                                                                         |
+| `DangerousConfirm.tsx`    | `"use client"` — type-to-confirm `<dialog>` for data-destroying actions. Same mechanics as `ConfirmSubmit`; confirm button stays `disabled` until the user types the required phrase (record name, or literal `DELETE`). See § Destructive confirmation. |
 
 ## Layout primitives (`packages/web/src/components/`)
 
@@ -73,6 +74,43 @@ external stylesheet, CSP unaffected). Weights 400 / 500 / 700. Exposed as
 | `Breadcrumbs.tsx`   | ordered `{ label, href? }[]` trail for nested routes; last crumb is current, never a link. Replaces "← Back to X".                                                           |
 | `ConfirmSubmit.tsx` | `"use client"` — a destructive Server-Action submit behind a native `<dialog>` (consequence sentence + Cancel / Confirm). No dependency. Use for delete / remove / lock-out. |
 | `DashboardNav.tsx`  | `"use client"` — the four-section nav with active-section highlight (`usePathname`).                                                                                         |
+
+## Table
+
+- Header row on `--muted`; body rows `divide-y`; row hover `--muted/60`.
+- **The whole row is the link** (finding F-04). Every list/table row navigates
+  to its detail on a click anywhere in the row — not just on the name cell.
+  Implemented as an accessible **stretched-link** pattern, not an `onClick` on
+  `<tr>`:
+  - `TableRow` is `position: relative` by default.
+  - The first cell holds one real `<Link>` / `<a>`; it carries
+    `stretchedLinkClass` from `table.tsx`, whose `::after` is an
+    absolutely-positioned overlay (`inset-0`) covering the row. Keyboard focus
+    and the accessible name stay on the real `<a>`; the focus ring renders on
+    it.
+  - Any inline secondary control in the same row (delete / remove / credential
+    action) must carry `rowActionClass` (`relative z-10`) so it sits above the
+    overlay and stays clickable and focusable.
+  - Applied in `PatientList`, `SurgeryList`, `ProcedureTypeList`,
+    `ResearchStudyList`, and the resident-session `OwnSurgeryList`. `ResidentList`
+    has no detail route, so its rows are not links.
+
+## Destructive confirmation — two tiers
+
+Both tiers are a native `<dialog>` gating a Server Action; they differ only in
+how much friction the confirm step carries (finding F-05, `ux-principles.md`
+§4 Forgiving).
+
+| Tier            | Component              | Use for                                                                                                                                                             | Gate                                                                          |
+| --------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Light           | `ConfirmSubmit.tsx`    | **reversible** actions — log out, research-study state transitions (`COMPLETED` is reversible)                                                                      | consequence sentence + Cancel / Confirm                                       |
+| Type-to-confirm | `DangerousConfirm.tsx` | **data-destroying / no-undo** actions — delete a draft research study, remove a Surgery from a study, remove a Resident from a Surgery, deactivate a Resident login | confirm button is `disabled` until the user types the required phrase exactly |
+
+The required phrase is the record's own human name when it has one (e.g. the
+resident's full name); otherwise the literal word `DELETE` (from
+`messages.common.deleteWord`). The match is exact after trimming, case-sensitive
+(`matchesConfirmationPhrase` in `components/ui/dangerous-confirm.ts`). Copy for
+the prompt comes from `messages.common.dangerousConfirm.prompt(phrase)`.
 
 ## Accessibility baseline
 

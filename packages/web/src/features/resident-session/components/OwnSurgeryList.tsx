@@ -8,7 +8,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  stretchedLinkClass,
 } from "@/components/ui/table";
+import { cn } from "@/lib/cn";
 import { messages } from "@/messages/en";
 import type { OwnSurgeryListView } from "../mappers";
 
@@ -35,7 +37,7 @@ export function OwnSurgeryList({ surgeries }: { surgeries: OwnSurgeryListView[] 
               <TableCell>
                 <Link
                   href={`/resident/surgeries/${surgery.id}`}
-                  className="font-medium hover:underline"
+                  className={cn("font-medium hover:underline", stretchedLinkClass)}
                 >
                   {surgery.patientName}
                 </Link>

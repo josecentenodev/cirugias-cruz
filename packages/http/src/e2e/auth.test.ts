@@ -176,8 +176,6 @@ describe("Physician registration and authentication (real HTTP, real DB)", () =>
       payload: {
         firstName: "P",
         lastName: "L",
-        phone: "1",
-        email: "p@x.com",
         dateOfBirth: "2000-01-01",
       },
     });
@@ -213,8 +211,6 @@ describe("Physician registration and authentication (real HTTP, real DB)", () =>
       payload: {
         firstName: "P",
         lastName: "L",
-        phone: "1",
-        email: "p@x.com",
         dateOfBirth: "2000-01-01",
       },
       cookies: { session_id: sessionId },
@@ -254,8 +250,6 @@ describe("Physician registration and authentication (real HTTP, real DB)", () =>
       payload: {
         firstName: "P",
         lastName: "L",
-        phone: "1",
-        email: "p@x.com",
         dateOfBirth: "2000-01-01",
       },
       cookies: { session_id: sessionId },

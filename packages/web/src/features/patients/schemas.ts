@@ -12,8 +12,6 @@ import { z } from "zod";
 export const registerPatientSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
   lastName: z.string().trim().min(1, "Last name is required"),
-  phone: z.string().trim().min(1, "Phone is required"),
-  email: z.string().trim().min(1, "Email is required"),
   dateOfBirth: z.string().trim().min(1, "Date of birth is required"),
   dni: z.string().trim().optional(),
   observations: z.string().trim().optional(),

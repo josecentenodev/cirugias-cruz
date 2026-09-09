@@ -41,8 +41,7 @@ export function PatientList({ patients }: { patients: PatientView[] }) {
           <TableRow>
             <TableHead>{messages.patients.columns.name}</TableHead>
             <TableHead>{messages.patients.columns.dni}</TableHead>
-            <TableHead>{messages.patients.columns.phone}</TableHead>
-            <TableHead>{messages.patients.columns.email}</TableHead>
+            <TableHead>{messages.patients.columns.age}</TableHead>
             <TableHead>{messages.patients.columns.dateOfBirth}</TableHead>
           </TableRow>
         </TableHeader>
@@ -55,8 +54,7 @@ export function PatientList({ patients }: { patients: PatientView[] }) {
                 </Link>
               </TableCell>
               <TableCell>{patient.dni ?? messages.common.none}</TableCell>
-              <TableCell>{patient.phone}</TableCell>
-              <TableCell>{patient.email}</TableCell>
+              <TableCell>{patient.age}</TableCell>
               <TableCell>{patient.dateOfBirthLabel}</TableCell>
             </TableRow>
           ))}

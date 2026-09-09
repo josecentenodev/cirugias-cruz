@@ -47,8 +47,6 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await page.goto("/patients/new");
     await page.getByLabel("First name").fill("Juan");
     await page.getByLabel("Last name").fill("Pérez");
-    await page.getByLabel("Phone").fill("+54 11 4444-1111");
-    await page.getByLabel("Email").fill("juan.perez@example.com");
     await page.getByLabel("Date of birth").fill("1990-05-20");
     await page.getByRole("button", { name: "Register patient" }).click();
 

@@ -6,8 +6,6 @@ const validAttributes = {
   physicianId: "physician-1",
   firstName: "Ana",
   lastName: "Gomez",
-  phone: "+54 11 5555-5555",
-  email: "ana@example.com",
   dateOfBirth: new Date("1990-01-01"),
 };
 
@@ -49,7 +47,15 @@ describe("Patient", () => {
   });
 
   it("cannot be created without the required personal information", () => {
+    expect(() => Patient.create({ ...validAttributes, firstName: "" })).toThrow();
     expect(() => Patient.create({ ...validAttributes, lastName: "" })).toThrow();
+  });
+
+  it("exposes no phone or email — Patient carries no contact PII (ADR 0025)", () => {
+    const patient = Patient.create(validAttributes) as unknown as Record<string, unknown>;
+
+    expect(patient.phone).toBeUndefined();
+    expect(patient.email).toBeUndefined();
   });
 
   it("keeps an optional dni, trimmed", () => {

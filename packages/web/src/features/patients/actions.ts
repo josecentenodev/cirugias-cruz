@@ -26,8 +26,6 @@ export async function registerPatientAction(
   const parsed = registerPatientSchema.safeParse({
     firstName: formData.get("firstName"),
     lastName: formData.get("lastName"),
-    phone: formData.get("phone"),
-    email: formData.get("email"),
     dateOfBirth: formData.get("dateOfBirth"),
     dni: formData.get("dni") || undefined,
     observations: formData.get("observations") || undefined,

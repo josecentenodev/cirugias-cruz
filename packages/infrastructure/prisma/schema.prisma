@@ -115,8 +115,6 @@ model Patient {
   physicianId  String
   firstName    String
   lastName     String
-  phone        String
-  email        String
   dateOfBirth  DateTime
   // National ID / identity document — optional (ADR 0021). Unique per
   // tenant when present: Postgres treats NULLs as distinct in a unique

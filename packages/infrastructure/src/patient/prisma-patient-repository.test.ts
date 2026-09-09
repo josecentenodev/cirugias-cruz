@@ -35,8 +35,6 @@ describe("PrismaPatientRepository", () => {
       physicianId: PHYSICIAN_ID,
       firstName: "Ana",
       lastName: "García",
-      phone: "555-0101",
-      email: "ana@example.com",
       dateOfBirth: new Date("1990-05-15"),
       metadata: { insurance: "private" },
       observations: "Sin antecedentes relevantes",
@@ -61,8 +59,6 @@ describe("PrismaPatientRepository", () => {
       physicianId: PHYSICIAN_ID,
       firstName: "Ana",
       lastName: "García",
-      phone: "555-0101",
-      email: "ana@example.com",
       dateOfBirth: new Date("1990-05-15"),
     });
     await repository.save(patient);
@@ -72,8 +68,6 @@ describe("PrismaPatientRepository", () => {
       physicianId: PHYSICIAN_ID,
       firstName: "Ana",
       lastName: "García",
-      phone: "555-0101",
-      email: "ana@example.com",
       dateOfBirth: new Date("1990-05-15"),
       observations: "updated observations",
     });
@@ -93,8 +87,6 @@ describe("PrismaPatientRepository", () => {
         physicianId: PHYSICIAN_ID,
         firstName: "Ana",
         lastName: "García",
-        phone: "555-0101",
-        email: "ana@example.com",
         dateOfBirth: new Date("1990-05-15"),
       }),
     );
@@ -104,8 +96,6 @@ describe("PrismaPatientRepository", () => {
         physicianId: PHYSICIAN_ID,
         firstName: "Luis",
         lastName: "Ramírez",
-        phone: "555-0102",
-        email: "luis@example.com",
         dateOfBirth: new Date("1985-03-20"),
       }),
     );
@@ -115,8 +105,6 @@ describe("PrismaPatientRepository", () => {
         physicianId: OTHER_PHYSICIAN_ID,
         firstName: "Otro",
         lastName: "Físico",
-        phone: "555-0103",
-        email: "otro@example.com",
         dateOfBirth: new Date("1970-01-01"),
       }),
     );
@@ -139,8 +127,6 @@ describe("PrismaPatientRepository", () => {
       physicianId,
       firstName: "Ana",
       lastName: "García",
-      phone: "555-0101",
-      email: "ana@example.com",
       dateOfBirth: new Date("1990-05-15"),
       ...overrides,
     });

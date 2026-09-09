@@ -44,6 +44,37 @@ export {
   type AddCustomFieldDeps,
 } from "./procedure-type/add-custom-field.js";
 export {
+  editCustomField,
+  type EditCustomFieldInput,
+  type EditCustomFieldOutput,
+  type EditCustomFieldDeps,
+} from "./procedure-type/edit-custom-field.js";
+export {
+  removeCustomField,
+  type RemoveCustomFieldInput,
+  type RemoveCustomFieldOutput,
+  type RemoveCustomFieldDeps,
+} from "./procedure-type/remove-custom-field.js";
+export {
+  addControlDefinition,
+  type AddControlDefinitionInput,
+  type AddControlDefinitionOutput,
+  type AddControlDefinitionDeps,
+} from "./procedure-type/add-control-definition.js";
+export {
+  editControlDefinition,
+  type EditControlDefinitionInput,
+  type EditControlDefinitionOutput,
+  type EditControlDefinitionDeps,
+} from "./procedure-type/edit-control-definition.js";
+export {
+  removeControlDefinition,
+  type RemoveControlDefinitionInput,
+  type RemoveControlDefinitionOutput,
+  type RemoveControlDefinitionDeps,
+} from "./procedure-type/remove-control-definition.js";
+export { computeFollowUp, type FollowUpItem } from "./shared/compute-follow-up.js";
+export {
   validateCustomFieldValues,
   type CustomFieldValueInput,
 } from "./shared/validate-custom-field-values.js";
@@ -60,7 +91,12 @@ export {
   type ListSurgeriesInput,
   type ListSurgeriesDeps,
 } from "./surgery/list-surgeries.js";
-export { getSurgery, type GetSurgeryInput, type GetSurgeryDeps } from "./surgery/get-surgery.js";
+export {
+  getSurgery,
+  type GetSurgeryInput,
+  type GetSurgeryOutput,
+  type GetSurgeryDeps,
+} from "./surgery/get-surgery.js";
 export {
   assignResidentToSurgery,
   type AssignResidentToSurgeryInput,

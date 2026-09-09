@@ -12,9 +12,11 @@ export interface RecordControlInput {
   physicianId: string;
   surgeryId: string;
   id: string;
-  observations: string;
+  observations?: string;
   recordedAt: Date;
   author: RecordControlAuthorInput;
+  /** The control definition (ADR 0026) this recording is an occurrence of, or none for an ad-hoc control. */
+  definitionId?: string;
   /** CONTROL-scoped CustomField values (ADR 0018), validated against the Procedure Type's definitions. */
   customFieldValues?: CustomFieldValueInput[];
 }
@@ -63,18 +65,37 @@ export function recordControl(deps: RecordControlDeps) {
     }
     validateCustomFieldValues(procedureType.customFields, input.customFieldValues ?? [], "CONTROL");
 
+    let cappedContext: { definitionId: string; count: number } | undefined;
+    if (input.definitionId !== undefined) {
+      const definition = procedureType.controlDefinitions.find(
+        (candidate) => candidate.id === input.definitionId,
+      );
+      if (!definition) {
+        throw new NotFoundError(
+          `Control definition ${input.definitionId} was not found on this Procedure Type`,
+        );
+      }
+      if (definition.occurrenceRule.mode === "capped") {
+        cappedContext = { definitionId: definition.id, count: definition.occurrenceRule.count };
+      }
+    }
+
     const author =
       input.author.type === "physician"
         ? ({ type: "physician", physicianId: input.physicianId } as const)
         : ({ type: "resident", residentId: input.author.residentId } as const);
 
-    const control = surgery.recordControl({
-      id: input.id,
-      observations: input.observations,
-      recordedAt: input.recordedAt,
-      author,
-      customFieldValues: input.customFieldValues,
-    });
+    const control = surgery.recordControl(
+      {
+        id: input.id,
+        observations: input.observations,
+        recordedAt: input.recordedAt,
+        author,
+        definitionId: input.definitionId,
+        customFieldValues: input.customFieldValues,
+      },
+      cappedContext,
+    );
 
     await deps.surgeryRepository.save(surgery);
 

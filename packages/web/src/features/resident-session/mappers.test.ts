@@ -14,6 +14,8 @@ const baseSurgery: OwnSurgeryDto = {
   participatingResidentIds: ["resident-1"],
   customFieldValues: [],
   customFields: [],
+  controlDefinitions: [],
+  followUp: [],
   controls: [
     {
       id: "control-1",

@@ -8,6 +8,7 @@ function buildDto(overrides: Partial<ProcedureTypeDto> = {}): ProcedureTypeDto {
     physicianId: "physician-1",
     name: "Pterigión",
     customFields: [],
+    controlDefinitions: [],
     ...overrides,
   };
 }

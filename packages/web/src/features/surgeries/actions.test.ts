@@ -296,16 +296,40 @@ describe("recordControlAction", () => {
     expect(authedApiRequestMock).not.toHaveBeenCalled();
   });
 
-  it("rejects missing observations before calling api", async () => {
-    const result = await recordControlAction(
-      "patient-1",
-      "surgery-1",
-      {},
-      formData({ authorType: "physician", observations: "", recordedAt: "2026-01-16T14:30" }),
-    );
+  it("allows a submission with no observations (A4/F-08) and omits the field from the body", async () => {
+    await expect(
+      recordControlAction(
+        "patient-1",
+        "surgery-1",
+        {},
+        formData({ authorType: "physician", observations: "", recordedAt: "2026-01-16T14:30" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(result).toEqual({ error: "Please fill in every required field." });
-    expect(authedApiRequestMock).not.toHaveBeenCalled();
+    const body = (authedApiRequestMock.mock.calls[0]?.[0] as { body: Record<string, unknown> })
+      .body;
+    expect(body).not.toHaveProperty("observations");
+    expect(body.recordedAt).toBe("2026-01-16T14:30");
+  });
+
+  it("passes a chosen control definitionId through to api", async () => {
+    await expect(
+      recordControlAction(
+        "patient-1",
+        "surgery-1",
+        {},
+        formData({
+          authorType: "physician",
+          observations: "x",
+          recordedAt: "2026-01-16T14:30",
+          definitionId: "def-pain",
+        }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    const body = (authedApiRequestMock.mock.calls[0]?.[0] as { body: Record<string, unknown> })
+      .body;
+    expect(body.definitionId).toBe("def-pain");
   });
 
   it("expectable error: surfaces api's DomainError (e.g. a resident no longer participating) inline", async () => {

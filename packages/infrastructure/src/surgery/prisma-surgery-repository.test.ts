@@ -206,6 +206,56 @@ describe("PrismaSurgeryRepository", () => {
     expect(residentControl?.recordedAt).toEqual(new Date("2026-01-18"));
   });
 
+  it("persists a Control with a definitionId and no observations, and the in-use checks report it", async () => {
+    const CONTROL_DEF_ID = "infra-test-control-def-pain";
+    await testPrisma.controlDefinition.create({
+      data: {
+        id: CONTROL_DEF_ID,
+        procedureTypeId: PROCEDURE_TYPE_ID,
+        name: "Pain scale",
+        occurrenceMode: "capped",
+        occurrenceCount: 4,
+        occurrencePeriodEvery: 24,
+        occurrencePeriodUnit: "hours",
+      },
+    });
+
+    try {
+      const surgery = Surgery.create({
+        id: SURGERY_ID,
+        physicianId: PHYSICIAN_ID,
+        patientId: PATIENT_ID,
+        procedureTypeId: PROCEDURE_TYPE_ID,
+        performedAt: new Date("2026-01-10"),
+      });
+      surgery.recordControl({
+        id: "control-1",
+        recordedAt: new Date("2026-01-11"),
+        author: { type: "physician", physicianId: PHYSICIAN_ID },
+        definitionId: CONTROL_DEF_ID,
+      });
+
+      await repository.save(surgery);
+      const found = await repository.findById(SURGERY_ID);
+
+      expect(found?.controls[0]?.observations).toBeUndefined();
+      expect(found?.controls[0]?.definitionId).toBe(CONTROL_DEF_ID);
+
+      await expect(repository.isControlDefinitionInUse(PHYSICIAN_ID, CONTROL_DEF_ID)).resolves.toBe(
+        true,
+      );
+      await expect(
+        repository.isControlDefinitionInUse(OTHER_PHYSICIAN_ID, CONTROL_DEF_ID),
+      ).resolves.toBe(false);
+      await expect(repository.isCustomFieldDefinitionInUse(PHYSICIAN_ID, CF_EVA_ID)).resolves.toBe(
+        false,
+      );
+    } finally {
+      await cleanupSurgery(SURGERY_ID);
+      await testPrisma.controlDefinition.deleteMany({ where: { id: CONTROL_DEF_ID } });
+    }
+  }, 15000);
+
   it("persists participatingResidentIds and reconstructs them as a working roster", async () => {
     const surgery = Surgery.create({
       id: SURGERY_ID,

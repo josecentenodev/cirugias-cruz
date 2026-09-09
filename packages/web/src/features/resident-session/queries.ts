@@ -1,5 +1,5 @@
 import { authedApiRequest } from "@/lib/authed-api-request";
-import type { CustomFieldDto } from "@/features/procedure-types/dtos";
+import type { ControlDefinitionDto, CustomFieldDto } from "@/features/procedure-types/dtos";
 import type { SurgeryDto } from "@/features/surgeries/dtos";
 
 /**
@@ -19,6 +19,8 @@ export interface OwnSurgeryDto extends SurgeryDto {
    * `[]`.
    */
   customFields: CustomFieldDto[];
+  /** The owning Procedure Type's control definitions (ADR 0026). Populated on the single read; `[]` on the list read. */
+  controlDefinitions: ControlDefinitionDto[];
 }
 
 /**

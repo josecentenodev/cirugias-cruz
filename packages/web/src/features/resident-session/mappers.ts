@@ -28,7 +28,10 @@ export interface OwnSurgeryDetailView {
   performedAtLabel: string;
   /** The owning Procedure Type's `CONTROL`-scoped CustomField definitions — rendered as inputs by `RecordOwnControlForm`. */
   controlCustomFields: CustomFieldDto[];
+  /** The owning Procedure Type's control definitions (ADR 0026); `atLimit` set when a capped one is already complete on this Surgery. */
+  controlTypeOptions: { id: string; name: string; atLimit: boolean }[];
   controls: OwnControlView[];
+  followUp: { definitionId: string; name: string; summary: string; complete: boolean }[];
 }
 
 function formatDate(iso: string): string {
@@ -87,7 +90,7 @@ function toOwnControlView(
 ): OwnControlView {
   return {
     id: dto.id,
-    observations: dto.observations,
+    observations: dto.observations ?? "",
     recordedAtLabel: formatDateTime(dto.recordedAt),
     recordedAtInputValue: toDatetimeLocalValue(dto.recordedAt),
     authorLabel:
@@ -114,14 +117,32 @@ export function toOwnSurgeryDetailView(
   ownResidentId: string | null,
 ): OwnSurgeryDetailView {
   const customFieldDefs = new Map((dto.customFields ?? []).map((field) => [field.id, field]));
+  const followUp = (dto.followUp ?? []).map((entry) => {
+    const complete = entry.recorded >= entry.expected;
+    return {
+      definitionId: entry.definitionId,
+      name: entry.name,
+      complete,
+      summary: `${entry.recorded} of ${entry.expected} recorded${complete ? " · complete" : ""}`,
+    };
+  });
+  const completeIds = new Set(
+    followUp.filter((entry) => entry.complete).map((e) => e.definitionId),
+  );
   return {
     id: dto.id,
     patientName: dto.patientName,
     procedureTypeName: dto.procedureTypeName,
     performedAtLabel: formatDate(dto.performedAt),
     controlCustomFields: (dto.customFields ?? []).filter((field) => field.scope === "CONTROL"),
+    controlTypeOptions: (dto.controlDefinitions ?? []).map((definition) => ({
+      id: definition.id,
+      name: definition.name,
+      atLimit: completeIds.has(definition.id),
+    })),
     controls: dto.controls
       .map((control) => toOwnControlView(control, ownResidentId ?? "__none__", customFieldDefs))
       .sort((a, b) => b.recordedAtInputValue.localeCompare(a.recordedAtInputValue)),
+    followUp,
   };
 }

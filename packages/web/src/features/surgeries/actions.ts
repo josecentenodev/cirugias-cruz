@@ -103,18 +103,21 @@ export async function recordControlAction(
   formData: FormData,
 ): Promise<RecordControlFormState> {
   const authorType = formData.get("authorType");
+  const definitionId = formData.get("definitionId") || undefined;
   const parsed = recordControlSchema.safeParse(
     authorType === "resident"
       ? {
           authorType: "resident",
           residentId: formData.get("residentId"),
-          observations: formData.get("observations"),
+          observations: formData.get("observations") || undefined,
           recordedAt: formData.get("recordedAt"),
+          definitionId,
         }
       : {
           authorType: "physician",
-          observations: formData.get("observations"),
+          observations: formData.get("observations") || undefined,
           recordedAt: formData.get("recordedAt"),
+          definitionId,
         },
   );
   if (!parsed.success) {
@@ -135,12 +138,13 @@ export async function recordControlAction(
       method: "POST",
       path: `/surgeries/${surgeryId}/controls`,
       body: {
-        observations: parsed.data.observations,
+        ...(parsed.data.observations ? { observations: parsed.data.observations } : {}),
         recordedAt: parsed.data.recordedAt,
         author:
           parsed.data.authorType === "resident"
             ? { type: "resident", residentId: parsed.data.residentId }
             : { type: "physician" },
+        ...(parsed.data.definitionId ? { definitionId: parsed.data.definitionId } : {}),
         ...(customFieldValues.length > 0 ? { customFieldValues } : {}),
       },
     });

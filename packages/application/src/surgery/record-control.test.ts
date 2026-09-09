@@ -146,6 +146,80 @@ describe("recordControl", () => {
     expect(persisted?.controls[0]?.customFieldValues[0]?.value).toBe(3);
   });
 
+  it("records a control with no observations (A4/F-08)", async () => {
+    const deps = buildDeps();
+    seedSurgery(deps.surgeryRepository);
+
+    const output = await recordControl(deps)({
+      physicianId: PHYSICIAN_ID,
+      surgeryId: "surgery-1",
+      id: "control-1",
+      recordedAt: new Date("2026-01-11"),
+      author: { type: "physician" },
+    });
+
+    expect(output.controlId).toBe("control-1");
+    const persisted = await deps.surgeryRepository.findById("surgery-1");
+    expect(persisted?.controls[0]?.observations).toBeUndefined();
+  });
+
+  it("enforces the capped control cap resolved from the procedure type's definition", async () => {
+    const procedureTypeRepository = new InMemoryProcedureTypeRepository();
+    procedureTypeRepository.seed(
+      ProcedureType.reconstitute({
+        id: "procedure-type-1",
+        physicianId: PHYSICIAN_ID,
+        name: "Pterigión",
+        customFields: [],
+        controlDefinitions: [
+          {
+            id: "def-pain",
+            name: "Pain scale",
+            occurrenceRule: { mode: "capped", count: 1, period: { every: 24, unit: "hours" } },
+          },
+        ],
+      }),
+    );
+    const deps = { surgeryRepository: new InMemorySurgeryRepository(), procedureTypeRepository };
+    seedSurgery(deps.surgeryRepository);
+
+    await recordControl(deps)({
+      physicianId: PHYSICIAN_ID,
+      surgeryId: "surgery-1",
+      id: "control-1",
+      recordedAt: new Date("2026-01-11"),
+      author: { type: "physician" },
+      definitionId: "def-pain",
+    });
+
+    await expect(
+      recordControl(deps)({
+        physicianId: PHYSICIAN_ID,
+        surgeryId: "surgery-1",
+        id: "control-2",
+        recordedAt: new Date("2026-01-12"),
+        author: { type: "physician" },
+        definitionId: "def-pain",
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("rejects a definitionId that is not on the procedure type", async () => {
+    const deps = buildDeps();
+    seedSurgery(deps.surgeryRepository);
+
+    await expect(
+      recordControl(deps)({
+        physicianId: PHYSICIAN_ID,
+        surgeryId: "surgery-1",
+        id: "control-1",
+        recordedAt: new Date("2026-01-11"),
+        author: { type: "physician" },
+        definitionId: "ghost",
+      }),
+    ).rejects.toThrow(/was not found/);
+  });
+
   it("rejects a CustomField value outside its NUMBER constraint's range", async () => {
     const deps = buildDeps();
     seedSurgery(deps.surgeryRepository);

@@ -102,17 +102,8 @@ describe("Surgery", () => {
     ).toThrow();
   });
 
-  it("requires a control to have observations, a date/time and an author", () => {
+  it("requires a control to have a date/time and an author", () => {
     const surgery = createSurgery();
-
-    expect(() =>
-      surgery.recordControl({
-        id: "control-1",
-        observations: "",
-        recordedAt: new Date(),
-        author: { type: "physician", physicianId: PHYSICIAN_ID },
-      }),
-    ).toThrow();
 
     expect(() =>
       surgery.recordControl({
@@ -122,6 +113,84 @@ describe("Surgery", () => {
         author: { type: "physician", physicianId: PHYSICIAN_ID },
       }),
     ).toThrow();
+  });
+
+  it("allows a control with no observations (A4/F-08)", () => {
+    const surgery = createSurgery();
+
+    const control = surgery.recordControl({
+      id: "control-1",
+      recordedAt: new Date("2026-01-11"),
+      author: { type: "physician", physicianId: PHYSICIAN_ID },
+    });
+
+    expect(control.observations).toBeUndefined();
+    expect(surgery.controls).toHaveLength(1);
+  });
+
+  it("stores blank observations as undefined", () => {
+    const surgery = createSurgery();
+
+    const control = surgery.recordControl({
+      id: "control-1",
+      observations: "   ",
+      recordedAt: new Date("2026-01-11"),
+      author: { type: "physician", physicianId: PHYSICIAN_ID },
+    });
+
+    expect(control.observations).toBeUndefined();
+  });
+
+  it("accepts exactly N recordings of a capped control definition and rejects the N+1-th", () => {
+    const surgery = createSurgery();
+    const cappedContext = { definitionId: "def-pain", count: 2 };
+
+    surgery.recordControl(
+      {
+        id: "control-1",
+        recordedAt: new Date("2026-01-11"),
+        author: { type: "physician", physicianId: PHYSICIAN_ID },
+        definitionId: "def-pain",
+      },
+      cappedContext,
+    );
+    surgery.recordControl(
+      {
+        id: "control-2",
+        recordedAt: new Date("2026-01-12"),
+        author: { type: "physician", physicianId: PHYSICIAN_ID },
+        definitionId: "def-pain",
+      },
+      cappedContext,
+    );
+
+    expect(() =>
+      surgery.recordControl(
+        {
+          id: "control-3",
+          recordedAt: new Date("2026-01-13"),
+          author: { type: "physician", physicianId: PHYSICIAN_ID },
+          definitionId: "def-pain",
+        },
+        cappedContext,
+      ),
+    ).toThrow();
+    expect(surgery.controls).toHaveLength(2);
+  });
+
+  it("does not cap recordings of an uncapped / ad-hoc control definition", () => {
+    const surgery = createSurgery();
+
+    for (let index = 0; index < 5; index += 1) {
+      surgery.recordControl({
+        id: `control-${index}`,
+        recordedAt: new Date("2026-01-11"),
+        author: { type: "physician", physicianId: PHYSICIAN_ID },
+        definitionId: "def-open",
+      });
+    }
+
+    expect(surgery.controls).toHaveLength(5);
   });
 
   it("rejects a control authored by a resident who is not participating in this surgery", () => {

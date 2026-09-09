@@ -1,5 +1,7 @@
-import type { CustomFieldDto } from "@/features/procedure-types/dtos";
-import type { ControlDto, CustomFieldValueDto, SurgeryDto } from "./dtos";
+import type { ControlDefinitionDto, CustomFieldDto } from "@/features/procedure-types/dtos";
+import type { ControlDto, CustomFieldValueDto, FollowUpDto, SurgeryDto } from "./dtos";
+
+const EMPTY_PLACEHOLDER = "—";
 
 /** One recorded CustomField value, resolved to its definition's name/unit for display. */
 export interface CustomFieldValueView {
@@ -40,7 +42,36 @@ export interface ControlView {
   recordedAtLabel: string;
   recordedAtInputValue: string;
   authorLabel: string;
+  /** The control definition's name, or "—" for an ad-hoc control. */
+  controlTypeLabel: string;
   customFieldValues: CustomFieldValueView[];
+}
+
+/** One capped control definition's completeness / next-due line, display-ready. */
+export interface FollowUpView {
+  definitionId: string;
+  name: string;
+  /** e.g. "3 of 4 recorded · next due ~Jan 12, 2026" or "4 of 4 recorded · complete". */
+  summary: string;
+  complete: boolean;
+  atLimit: boolean;
+}
+
+export function toFollowUpView(dto: FollowUpDto): FollowUpView {
+  const complete = dto.recorded >= dto.expected;
+  const base = `${dto.recorded} of ${dto.expected} recorded`;
+  const summary = complete
+    ? `${base} · complete`
+    : dto.nextDueAt
+      ? `${base} · next due ~${formatDate(dto.nextDueAt)}`
+      : base;
+  return {
+    definitionId: dto.definitionId,
+    name: dto.name,
+    summary,
+    complete,
+    atLimit: complete,
+  };
 }
 
 export interface SurgeryListView {
@@ -64,6 +95,7 @@ export interface SurgeryDetailView {
   participants: ParticipantView[];
   customFieldValues: CustomFieldValueView[];
   controls: ControlView[];
+  followUp: FollowUpView[];
 }
 
 /**
@@ -87,16 +119,20 @@ export function toControlView(
   dto: ControlDto,
   residentNames: NameLookup,
   customFieldDefs: Map<string, CustomFieldDto> = new Map(),
+  controlDefinitionNames: NameLookup = new Map(),
 ): ControlView {
   return {
     id: dto.id,
-    observations: dto.observations,
+    observations: dto.observations ?? "",
     recordedAtLabel: formatDateTime(dto.recordedAt),
     recordedAtInputValue: toDatetimeLocalValue(dto.recordedAt),
     authorLabel:
       dto.author.type === "physician"
         ? "You (physician)"
         : resolveName(dto.author.residentId, residentNames, "Unknown resident"),
+    controlTypeLabel: dto.definitionId
+      ? resolveName(dto.definitionId, controlDefinitionNames, dto.definitionId)
+      : EMPTY_PLACEHOLDER,
     customFieldValues: resolveCustomFieldValues(dto.customFieldValues, customFieldDefs),
   };
 }
@@ -121,7 +157,11 @@ export function toSurgeryDetailView(
   procedureTypeNames: NameLookup,
   residentNames: NameLookup,
   customFieldDefs: Map<string, CustomFieldDto> = new Map(),
+  controlDefinitions: readonly ControlDefinitionDto[] = [],
 ): SurgeryDetailView {
+  const controlDefinitionNames: NameLookup = new Map(
+    controlDefinitions.map((definition) => [definition.id, definition.name]),
+  );
   return {
     id: dto.id,
     patientName: resolveName(dto.patientId, patientNames, "Unknown patient"),
@@ -133,10 +173,13 @@ export function toSurgeryDetailView(
     })),
     customFieldValues: resolveCustomFieldValues(dto.customFieldValues, customFieldDefs),
     controls: dto.controls
-      .map((control) => toControlView(control, residentNames, customFieldDefs))
+      .map((control) =>
+        toControlView(control, residentNames, customFieldDefs, controlDefinitionNames),
+      )
       // Newest first — a physician reviewing follow-up cares most about
       // the most recent observation; `api` itself doesn't sort this.
       .sort((a, b) => b.recordedAtInputValue.localeCompare(a.recordedAtInputValue)),
+    followUp: dto.followUp.map(toFollowUpView),
   };
 }
 

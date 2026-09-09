@@ -43,6 +43,20 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await expect(page.getByRole("cell", { name: "Pterigión" })).toBeVisible();
   });
 
+  await test.step("define a capped control type on the Procedure Type (ADR 0026)", async () => {
+    await page.getByRole("cell", { name: "Pterigión" }).click();
+    await expect(page).toHaveURL(/\/settings\/procedure-types\/[^/]+$/);
+
+    await page.getByLabel("Name").last().fill("Pain scale");
+    await page.getByLabel("Recording cap").selectOption("capped");
+    await page.getByLabel("Expected recordings").fill("2");
+    await page.getByLabel("Every").fill("24");
+    await page.getByRole("button", { name: "Add control type" }).click();
+
+    await expect(page.getByRole("cell", { name: "Pain scale" })).toBeVisible();
+    await expect(page.getByText("2 × every 24 hours")).toBeVisible();
+  });
+
   await test.step("register a Patient", async () => {
     await page.goto("/patients/new");
     await page.getByLabel("First name").fill("Juan");
@@ -69,18 +83,30 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await page.goto(surgeryUrl);
   });
 
-  await test.step("record a Control, then modify it inline", async () => {
+  await test.step("record a capped Control, then modify it inline", async () => {
+    await page.getByLabel("Control type").selectOption({ label: "Pain scale" });
     await page.getByLabel("Observations").fill("Evolución favorable");
-    await page.getByLabel("Date & time").fill("2026-08-15T09:30");
+    await page.getByRole("button", { name: "Now" }).click();
     await page.getByRole("button", { name: "Record control" }).click();
 
     await expect(page.getByText("Evolución favorable")).toBeVisible();
+    // Follow-up indicator for the capped definition (ADR 0026).
+    await expect(page.getByText(/1 of 2 recorded/)).toBeVisible();
 
     await page.getByRole("button", { name: "Edit" }).click();
     await page.getByRole("textbox").first().fill("Evolución favorable, sin complicaciones");
     await page.getByRole("button", { name: "Save" }).click();
 
     await expect(page.getByText("Evolución favorable, sin complicaciones")).toBeVisible();
+  });
+
+  await test.step("the used control type is now frozen in the scheme editor (ADR 0027)", async () => {
+    await page.goto("/settings/procedure-types");
+    await page.getByRole("cell", { name: "Pterigión" }).click();
+
+    const painRow = page.getByRole("row", { name: /Pain scale/ });
+    await expect(painRow.getByText(/Recorded data exists/)).toBeVisible();
+    await expect(painRow.getByRole("button", { name: "Edit" })).toHaveCount(0);
   });
 
   await test.step("register a Resident and assign them to the Surgery", async () => {

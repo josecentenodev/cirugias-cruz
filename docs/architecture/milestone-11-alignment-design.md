@@ -50,11 +50,22 @@ milestone but do not individually block sign-off.
 
 ## 1. Work packages
 
-> **Progress:** WP1 and WP2 are **implemented and merged to `main`**
-> (integration branch `feat/milestone-11-alignment`), full quality gate
-> green, the ADR 0025 migration applied to the Railway Postgres. WP3 and
-> WP4 remain. The `ResidentList` row-link was dropped by product-owner
-> decision (Option A) — no resident detail route exists to link to.
+> **Progress:** WP1, WP2 and **WP3 are implemented and merged to `main`**
+> (`feat/milestone-11-alignment` for WP1+WP2, `feat/milestone-11-wp3` for
+> WP3), full quality gate green (domain 117 / application 169 /
+> infrastructure 70 / http 42 / web 221), both migrations applied to the
+> Railway Postgres. **Only WP4 remains** — this doc reconciliation plus
+> the product-owner delta walkthrough that lets `milestone-9-walkthrough.md`
+> be signed.
+>
+> **Deviations carried in WP3** (also in `alignment-restructuring.md`):
+> (1) `modify-control` does not accept `definitionId` — a Control is typed
+> at record time only; (2) the web CustomField-definition _edit form_ was
+> not built (remove + API edit are; control-definition edit is fully
+> built); (3) the web freeze indicator is a presentation-layer join over
+> `listSurgeries()` — the API enforces the rule authoritatively.
+> The `ResidentList` row-link was dropped by product-owner decision
+> (Option A) — no resident detail route exists to link to.
 
 | WP      | Scope                                                                                                                      | Findings               | ADRs       | Size | Depends on        |
 | ------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ---------- | ---- | ----------------- |

@@ -1,6 +1,8 @@
 import { assertActingPhysicianOwnsResource } from "../shared/assert-tenant-owner.js";
 import { CustomField, type CustomFieldAttributes } from "../shared/custom-field.js";
 import { DomainError } from "../shared/domain-error.js";
+import { ControlDefinition, type ControlDefinitionAttributes } from "./control-definition.js";
+import type { ControlOccurrenceRule } from "./control-occurrence-rule.js";
 
 export interface ProcedureTypeAttributes {
   id: string;
@@ -9,24 +11,23 @@ export interface ProcedureTypeAttributes {
   description?: string;
 }
 
+/** Raised by every scheme mutator when the target definition has recorded data (ADR 0027). */
+const FROZEN_MESSAGE = "this field/control has recorded data and can no longer be changed";
+
 /**
  * A Procedure Type is owned and managed by a single Physician/Tenant.
- * It is never deleted — no deletion method is exposed by this class.
+ * It is never deleted — no deletion method is exposed by this class
+ * (ADR 0011). ADR 0027 adds mutation *within* its scheme.
  *
- * It owns its CustomField definitions as an internal collection (ADR
- * 0018), mirroring how Control lives inside Surgery: a CustomField
- * definition has no meaning or consistency outside the ProcedureType
- * that defines it (its name must be unique within that ProcedureType),
- * so it is not a separate aggregate with its own repository.
- *
- * Structure is `name` + `description` only. Surgical technique is
- * modelled as a `SURGERY`-scoped `ENUM` CustomField, not a ProcedureType
- * attribute (ADR 0022) — a technique is chosen per Surgery from a closed
- * list the physician defines, not a single value shared by every Surgery
- * of the type.
+ * It owns its CustomField definitions and (ADR 0026) its control
+ * definitions as internal collections, mirroring how Control lives inside
+ * Surgery: neither has meaning or consistency outside the ProcedureType
+ * that defines it (name unique within the type), so neither is a separate
+ * aggregate with its own repository.
  */
 export class ProcedureType {
   private readonly customFields_: CustomField[] = [];
+  private readonly controlDefinitions_: ControlDefinition[] = [];
 
   private constructor(
     private readonly id_: string,
@@ -56,12 +57,15 @@ export class ProcedureType {
 
   /**
    * Rebuilds a ProcedureType already known to be valid — from persisted
-   * state, including its CustomField definitions — without re-running
-   * "is this a valid new ProcedureType" checks. Mirrors
+   * state, including its CustomField and control definitions — without
+   * re-running "is this a valid new ProcedureType" checks. Mirrors
    * `Surgery.reconstitute()`.
    */
   static reconstitute(
-    params: ProcedureTypeAttributes & { customFields: CustomFieldAttributes[] },
+    params: ProcedureTypeAttributes & {
+      customFields: CustomFieldAttributes[];
+      controlDefinitions?: ControlDefinitionAttributes[];
+    },
   ): ProcedureType {
     const procedureType = new ProcedureType(
       params.id,
@@ -72,6 +76,9 @@ export class ProcedureType {
 
     for (const customFieldAttributes of params.customFields) {
       procedureType.customFields_.push(CustomField.create(customFieldAttributes));
+    }
+    for (const controlDefinitionAttributes of params.controlDefinitions ?? []) {
+      procedureType.controlDefinitions_.push(ControlDefinition.create(controlDefinitionAttributes));
     }
 
     return procedureType;
@@ -97,6 +104,10 @@ export class ProcedureType {
     return [...this.customFields_];
   }
 
+  get controlDefinitions(): readonly ControlDefinition[] {
+    return [...this.controlDefinitions_];
+  }
+
   modify(changes: { name?: string; description?: string }, actingPhysicianId: string): void {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
 
@@ -113,11 +124,8 @@ export class ProcedureType {
 
   /**
    * Adds a new CustomField definition. A field's name must be unique
-   * within this ProcedureType — this is the actual invariant that
-   * justifies keeping CustomField definitions inside this aggregate
-   * rather than as a standalone, independently-persisted concept: it
-   * could not be enforced correctly if definitions were loaded/saved
-   * independently of the ProcedureType they belong to.
+   * within this ProcedureType — the invariant that justifies keeping
+   * CustomField definitions inside this aggregate.
    */
   addCustomField(field: CustomField, actingPhysicianId: string): void {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
@@ -127,5 +135,113 @@ export class ProcedureType {
     }
 
     this.customFields_.push(field);
+  }
+
+  /**
+   * Replaces an existing CustomField definition wholesale (all-or-nothing,
+   * ADR 0027). `inUse` is the freeze flag resolved upstream in the
+   * Application layer; when true, the edit is rejected.
+   */
+  editCustomField(
+    fieldId: string,
+    replacement: CustomField,
+    actingPhysicianId: string,
+    context: { inUse: boolean },
+  ): void {
+    assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
+
+    const index = this.customFields_.findIndex((existing) => existing.id === fieldId);
+    if (index === -1) {
+      throw new DomainError("CustomField not found on this ProcedureType");
+    }
+    if (context.inUse) {
+      throw new DomainError(FROZEN_MESSAGE);
+    }
+    if (
+      this.customFields_.some(
+        (existing) => existing.id !== fieldId && existing.name === replacement.name,
+      )
+    ) {
+      throw new DomainError(`ProcedureType already has a CustomField named "${replacement.name}"`);
+    }
+
+    this.customFields_.splice(index, 1, replacement);
+  }
+
+  removeCustomField(fieldId: string, actingPhysicianId: string, context: { inUse: boolean }): void {
+    assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
+
+    const index = this.customFields_.findIndex((existing) => existing.id === fieldId);
+    if (index === -1) {
+      throw new DomainError("CustomField not found on this ProcedureType");
+    }
+    if (context.inUse) {
+      throw new DomainError(FROZEN_MESSAGE);
+    }
+
+    this.customFields_.splice(index, 1);
+  }
+
+  /**
+   * Adds a new control definition (ADR 0026). Name unique within the
+   * ProcedureType, mirroring `addCustomField`.
+   */
+  addControlDefinition(definition: ControlDefinition, actingPhysicianId: string): void {
+    assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
+
+    if (this.controlDefinitions_.some((existing) => existing.name === definition.name)) {
+      throw new DomainError(
+        `ProcedureType already has a control definition named "${definition.name}"`,
+      );
+    }
+
+    this.controlDefinitions_.push(definition);
+  }
+
+  editControlDefinition(
+    definitionId: string,
+    changes: { name?: string; occurrenceRule?: ControlOccurrenceRule },
+    actingPhysicianId: string,
+    context: { inUse: boolean },
+  ): void {
+    assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
+
+    const definition = this.controlDefinitions_.find((existing) => existing.id === definitionId);
+    if (!definition) {
+      throw new DomainError("Control definition not found on this ProcedureType");
+    }
+    if (context.inUse) {
+      throw new DomainError(FROZEN_MESSAGE);
+    }
+    if (
+      changes.name !== undefined &&
+      this.controlDefinitions_.some(
+        (existing) => existing.id !== definitionId && existing.name === changes.name,
+      )
+    ) {
+      throw new DomainError(
+        `ProcedureType already has a control definition named "${changes.name}"`,
+      );
+    }
+
+    definition.applyChanges(changes);
+  }
+
+  removeControlDefinition(
+    definitionId: string,
+    actingPhysicianId: string,
+    context: { inUse: boolean },
+  ): void {
+    assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
+
+    const index = this.controlDefinitions_.findIndex((existing) => existing.id === definitionId);
+    if (index === -1) {
+      throw new DomainError("Control definition not found on this ProcedureType");
+    }
+    if (context.inUse) {
+      throw new DomainError(FROZEN_MESSAGE);
+    }
+
+    this.controlDefinitions_.splice(index, 1);
   }
 }

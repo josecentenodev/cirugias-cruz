@@ -26,14 +26,18 @@ export type RegisterSurgeryInput = z.infer<typeof registerSurgerySchema>;
 export const recordControlSchema = z.discriminatedUnion("authorType", [
   z.object({
     authorType: z.literal("physician"),
-    observations: z.string().trim().min(1, "Observations are required"),
+    // Optional since Milestone 11 (A4/F-08) — a Control may carry only a
+    // datetime + author + CustomField values.
+    observations: z.string().trim().optional(),
     recordedAt: z.string().trim().min(1, "Recorded date is required"),
+    definitionId: z.string().trim().optional(),
   }),
   z.object({
     authorType: z.literal("resident"),
     residentId: z.string().trim().min(1, "Select which resident recorded this"),
-    observations: z.string().trim().min(1, "Observations are required"),
+    observations: z.string().trim().optional(),
     recordedAt: z.string().trim().min(1, "Recorded date is required"),
+    definitionId: z.string().trim().optional(),
   }),
 ]);
 

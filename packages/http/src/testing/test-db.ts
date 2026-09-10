@@ -22,6 +22,9 @@ export async function cleanupPhysician(physicianId: string): Promise<void> {
   await testPrisma.customFieldDefinition.deleteMany({
     where: { procedureType: { physicianId } },
   });
+  await testPrisma.controlDefinition.deleteMany({
+    where: { procedureType: { physicianId } },
+  });
   const researchStudies = await testPrisma.researchStudy.findMany({
     where: { physicianId },
     select: { id: true },

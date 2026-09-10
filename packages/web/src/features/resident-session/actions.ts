@@ -64,8 +64,9 @@ export async function recordOwnControlAction(
   formData: FormData,
 ): Promise<RecordOwnControlFormState> {
   const parsed = recordOwnControlSchema.safeParse({
-    observations: formData.get("observations"),
+    observations: formData.get("observations") || undefined,
     recordedAt: formData.get("recordedAt"),
+    definitionId: formData.get("definitionId") || undefined,
   });
   if (!parsed.success) {
     return { error: "Please fill in every required field." };
@@ -91,7 +92,9 @@ export async function recordOwnControlAction(
       // "resident" shape here is honest about who's asking, even though
       // the residentId named is never trusted.
       body: {
-        ...parsed.data,
+        recordedAt: parsed.data.recordedAt,
+        ...(parsed.data.observations ? { observations: parsed.data.observations } : {}),
+        ...(parsed.data.definitionId ? { definitionId: parsed.data.definitionId } : {}),
         author: { type: "resident", residentId: "self" },
         ...(customFieldValues.length > 0 ? { customFieldValues } : {}),
       },

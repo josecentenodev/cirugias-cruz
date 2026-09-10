@@ -13,8 +13,10 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
  * `recordControlSchema`, there is no `authorType` field here at all.
  */
 export const recordOwnControlSchema = z.object({
-  observations: z.string().trim().min(1, "Observations are required"),
+  // Optional since Milestone 11 (A4/F-08).
+  observations: z.string().trim().optional(),
   recordedAt: z.string().trim().min(1, "Recorded date is required"),
+  definitionId: z.string().trim().optional(),
 });
 
 export type RecordOwnControlInput = z.infer<typeof recordOwnControlSchema>;

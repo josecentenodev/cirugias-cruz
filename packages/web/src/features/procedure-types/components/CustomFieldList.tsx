@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import { messages } from "@/messages/en";
 import type { CustomFieldView } from "../mappers";
+import { CustomFieldRemoveButton } from "./CustomFieldRemoveButton";
 
 /**
  * Purely presentational, same shape as `ProcedureTypeList` — receives
@@ -20,7 +21,13 @@ import type { CustomFieldView } from "../mappers";
  * how `SurgeryDetail.tsx` places `RecordControlForm` inline rather than
  * linking to a `controls/new` page.
  */
-export function CustomFieldList({ customFields }: { customFields: CustomFieldView[] }) {
+export function CustomFieldList({
+  procedureTypeId,
+  customFields,
+}: {
+  procedureTypeId: string;
+  customFields: CustomFieldView[];
+}) {
   if (customFields.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">{messages.procedureTypes.customFields.empty}</p>
@@ -38,6 +45,7 @@ export function CustomFieldList({ customFields }: { customFields: CustomFieldVie
           <TableHead>{c.columns.type}</TableHead>
           <TableHead>{c.columns.rules}</TableHead>
           <TableHead>{c.columns.unit}</TableHead>
+          <TableHead />
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -50,6 +58,17 @@ export function CustomFieldList({ customFields }: { customFields: CustomFieldVie
             <TableCell>{field.typeLabel}</TableCell>
             <TableCell>{field.rulesSummary}</TableCell>
             <TableCell>{field.unit}</TableCell>
+            <TableCell>
+              {field.inUse ? (
+                <span className="text-xs text-muted-foreground">{c.frozenHint}</span>
+              ) : (
+                <CustomFieldRemoveButton
+                  procedureTypeId={procedureTypeId}
+                  fieldId={field.id}
+                  fieldName={field.name}
+                />
+              )}
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>

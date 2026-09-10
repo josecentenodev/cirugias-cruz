@@ -9,14 +9,10 @@ import { RecordControlForm } from "./RecordControlForm";
 import { RemoveResidentButton } from "./RemoveResidentButton";
 
 /**
- * Server Component — reads are rendered directly, no client-side fetch.
- * `ControlRow`, `RecordControlForm`, `AssignResidentForm`, and
- * `RemoveResidentButton` are the only Client Components nested inside;
- * everything else here — headings, layout, the surgery's own fields —
- * needs no interactivity. Assigning/removing a Resident lives on this
- * page, not on a Resident-owned one, mirroring `api` itself
- * (`assignResidentToSurgery`/`removeResidentFromSurgery` are Surgery's
- * own operations — see `features/surgeries/actions.ts`).
+ * Server Component. Card order (B5, Milestone 11): Summary → Control
+ * history (with the inline "record a control" form) → Residents — a
+ * physician opening a Surgery is here to review and add follow-up, so
+ * that work comes first; roster management is secondary.
  */
 export function SurgeryDetail({
   patientId,
@@ -24,15 +20,16 @@ export function SurgeryDetail({
   availableResidents,
   totalResidentCount,
   controlCustomFields,
+  controlTypeOptions,
 }: {
-  /** Owning Patient — Surgeries are navigated under their Patient (Milestone 10 IA); used only for redirect targets in the nested forms. */
   patientId: string;
   surgery: SurgeryDetailView;
   availableResidents: { id: string; label: string }[];
-  /** Total Residents registered in the tenant — lets `AssignResidentForm` tell "no Residents exist" apart from "all are already assigned" (see that component). */
   totalResidentCount: number;
   /** The Procedure Type's `CONTROL`-scoped CustomField definitions, rendered as inputs by `RecordControlForm`. */
   controlCustomFields: CustomFieldDto[];
+  /** The Procedure Type's control definitions (ADR 0026), `atLimit` set when a capped one is already complete on this Surgery. */
+  controlTypeOptions: { id: string; name: string; atLimit: boolean }[];
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -46,6 +43,61 @@ export function SurgeryDetail({
           {surgery.customFieldValues.map((value) => (
             <Field key={value.definitionId} label={value.label} value={value.displayValue} />
           ))}
+        </CardContent>
+      </Card>
+
+      {surgery.followUp.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{messages.surgeries.followUp.cardTitle}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-col gap-2">
+              {surgery.followUp.map((entry) => (
+                <li
+                  key={entry.definitionId}
+                  className="flex items-center justify-between rounded-md border border-border p-2 text-sm"
+                >
+                  <span className="font-medium">{entry.name}</span>
+                  <span className={entry.complete ? "text-muted-foreground" : "text-foreground"}>
+                    {entry.summary}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{messages.surgeries.controlHistory.cardTitle}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {surgery.controls.length === 0 ? (
+            <EmptyState title={messages.surgeries.controlHistory.empty} />
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {surgery.controls.map((control) => (
+                <ControlRow
+                  key={control.id}
+                  patientId={patientId}
+                  surgeryId={surgery.id}
+                  control={control}
+                />
+              ))}
+            </ul>
+          )}
+          <div className="rounded-md border border-border p-3">
+            <p className="mb-3 text-sm font-medium">{messages.surgeries.recordControl.cardTitle}</p>
+            <RecordControlForm
+              patientId={patientId}
+              surgeryId={surgery.id}
+              participants={surgery.participants}
+              customFields={controlCustomFields}
+              controlTypeOptions={controlTypeOptions}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -79,42 +131,6 @@ export function SurgeryDetail({
             surgeryId={surgery.id}
             residents={availableResidents}
             totalResidentCount={totalResidentCount}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{messages.surgeries.controlHistory.cardTitle}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {surgery.controls.length === 0 ? (
-            <EmptyState title={messages.surgeries.controlHistory.empty} />
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {surgery.controls.map((control) => (
-                <ControlRow
-                  key={control.id}
-                  patientId={patientId}
-                  surgeryId={surgery.id}
-                  control={control}
-                />
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{messages.surgeries.recordControl.cardTitle}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RecordControlForm
-            patientId={patientId}
-            surgeryId={surgery.id}
-            participants={surgery.participants}
-            customFields={controlCustomFields}
           />
         </CardContent>
       </Card>

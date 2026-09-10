@@ -90,13 +90,15 @@ export class PrismaSurgeryRepository implements SurgeryRepository {
           create: {
             id: control.id,
             surgeryId: surgery.id,
-            observations: control.observations,
+            observations: control.observations ?? null,
             recordedAt: control.recordedAt,
+            definitionId: control.definitionId ?? null,
             ...authorColumns,
           },
           update: {
-            observations: control.observations,
+            observations: control.observations ?? null,
             recordedAt: control.recordedAt,
+            definitionId: control.definitionId ?? null,
           },
         });
       }),
@@ -148,6 +150,29 @@ export class PrismaSurgeryRepository implements SurgeryRepository {
     ]);
   }
 
+  /**
+   * ADR 0027 freeze check. Tenant-scoped: the count is filtered through
+   * this physician's own Surgery rows (`surgery: { physicianId }` /
+   * `control: { surgery: { physicianId } }`), so it can never reveal that
+   * another tenant's data references the definition.
+   */
+  async isCustomFieldDefinitionInUse(physicianId: string, definitionId: string): Promise<boolean> {
+    const count = await this.prisma.customFieldValue.count({
+      where: {
+        definitionId,
+        OR: [{ surgery: { physicianId } }, { control: { surgery: { physicianId } } }],
+      },
+    });
+    return count > 0;
+  }
+
+  async isControlDefinitionInUse(physicianId: string, definitionId: string): Promise<boolean> {
+    const count = await this.prisma.control.count({
+      where: { definitionId, surgery: { physicianId } },
+    });
+    return count > 0;
+  }
+
   private async loadValueTypes(definitionIds: Set<string>): Promise<Map<string, string>> {
     if (definitionIds.size === 0) {
       return new Map();
@@ -168,11 +193,12 @@ function toSurgery(row: {
   performedAt: Date;
   controls: {
     id: string;
-    observations: string;
+    observations: string | null;
     recordedAt: Date;
     authorType: string;
     authorPhysicianId: string | null;
     authorResidentId: string | null;
+    definitionId: string | null;
     customFieldValues: CustomFieldValueRow[];
   }[];
   participants: { residentId: string }[];
@@ -180,9 +206,10 @@ function toSurgery(row: {
 }): Surgery {
   const controls: ControlAttributes[] = row.controls.map((control) => ({
     id: control.id,
-    observations: control.observations,
+    observations: control.observations ?? undefined,
     recordedAt: control.recordedAt,
     author: toControlAuthor(control),
+    definitionId: control.definitionId ?? undefined,
     customFieldValues: control.customFieldValues.map(fromCustomFieldValueRow),
   }));
 

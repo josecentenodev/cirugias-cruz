@@ -43,7 +43,20 @@ export default async function SurgeryDetailPage({
     procedureTypeNames,
     residentNames,
     customFieldDefs,
+    procedureType?.controlDefinitions ?? [],
   );
+
+  // Control-type options for RecordControlForm — a capped type at its
+  // limit is flagged so the form can disable submit for it (the same
+  // rule `Surgery.recordControl` enforces server-side).
+  const completeCappedIds = new Set(
+    view.followUp.filter((entry) => entry.complete).map((entry) => entry.definitionId),
+  );
+  const controlTypeOptions = (procedureType?.controlDefinitions ?? []).map((definition) => ({
+    id: definition.id,
+    name: definition.name,
+    atLimit: completeCappedIds.has(definition.id),
+  }));
 
   const participatingIds = new Set(view.participants.map((p) => p.id));
   const availableResidents = residents
@@ -67,6 +80,7 @@ export default async function SurgeryDetailPage({
         availableResidents={availableResidents}
         totalResidentCount={residents.length}
         controlCustomFields={controlScopedFields}
+        controlTypeOptions={controlTypeOptions}
       />
     </div>
   );

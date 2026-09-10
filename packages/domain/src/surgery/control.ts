@@ -6,11 +6,26 @@ export type ControlAuthor =
 
 export interface ControlAttributes {
   id: string;
-  observations: string;
+  /**
+   * Free-text observations. Optional (A4/F-08): a Control may carry only a
+   * datetime + author + CustomField values. Empty/whitespace is stored as
+   * `undefined`.
+   */
+  observations?: string;
   recordedAt: Date;
   author: ControlAuthor;
+  /** The control definition (ADR 0026) this recording is an occurrence of, or none for an ad-hoc control. */
+  definitionId?: string;
   /** CONTROL-scoped CustomField values recorded on this Control (ADR 0018). */
   customFieldValues?: CustomFieldValueAttributes[];
+}
+
+function normaliseObservations(observations: string | undefined): string | undefined {
+  if (observations === undefined) {
+    return undefined;
+  }
+  const trimmed = observations.trim();
+  return trimmed.length === 0 ? undefined : observations;
 }
 
 /**
@@ -24,17 +39,15 @@ export class Control {
 
   private constructor(
     private readonly id_: string,
-    private observations_: string,
+    private observations_: string | undefined,
     private recordedAt_: Date,
     private readonly author_: ControlAuthor,
+    private readonly definitionId_: string | undefined,
   ) {}
 
   static create(attributes: ControlAttributes): Control {
     if (!attributes.id.trim()) {
       throw new DomainError("Control requires an id");
-    }
-    if (!attributes.observations.trim()) {
-      throw new DomainError("Control requires observations");
     }
     if (!attributes.recordedAt) {
       throw new DomainError("Control requires a date/time");
@@ -45,9 +58,10 @@ export class Control {
 
     const control = new Control(
       attributes.id,
-      attributes.observations,
+      normaliseObservations(attributes.observations),
       attributes.recordedAt,
       attributes.author,
+      attributes.definitionId,
     );
 
     for (const valueAttributes of attributes.customFieldValues ?? []) {
@@ -61,7 +75,7 @@ export class Control {
     return this.id_;
   }
 
-  get observations(): string {
+  get observations(): string | undefined {
     return this.observations_;
   }
 
@@ -73,15 +87,16 @@ export class Control {
     return this.author_;
   }
 
+  get definitionId(): string | undefined {
+    return this.definitionId_;
+  }
+
   get customFieldValues(): readonly CustomFieldValue[] {
     return [...this.customFieldValues_];
   }
 
-  updateObservations(observations: string): void {
-    if (!observations.trim()) {
-      throw new DomainError("Control requires observations");
-    }
-    this.observations_ = observations;
+  updateObservations(observations: string | undefined): void {
+    this.observations_ = normaliseObservations(observations);
   }
 
   updateRecordedAt(recordedAt: Date): void {

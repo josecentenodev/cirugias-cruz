@@ -1,4 +1,9 @@
-import type { CustomFieldDto, ProcedureTypeDto } from "./dtos";
+import type {
+  ControlDefinitionDto,
+  ControlOccurrenceRuleDto,
+  CustomFieldDto,
+  ProcedureTypeDto,
+} from "./dtos";
 
 /** What `ProcedureTypeList` actually renders — display-ready, decoupled from the wire DTO. */
 export interface ProcedureTypeView {
@@ -32,6 +37,8 @@ export interface CustomFieldView {
   scope: "SURGERY" | "CONTROL";
   typeLabel: string;
   rulesSummary: string;
+  /** True when a value already references it — frozen (ADR 0027). */
+  inUse: boolean;
 }
 
 const TYPE_LABELS: Record<CustomFieldDto["constraint"]["valueType"], string> = {
@@ -40,7 +47,7 @@ const TYPE_LABELS: Record<CustomFieldDto["constraint"]["valueType"], string> = {
   TEXT: "Text",
 };
 
-export function toCustomFieldView(dto: CustomFieldDto): CustomFieldView {
+export function toCustomFieldView(dto: CustomFieldDto, inUse = false): CustomFieldView {
   return {
     id: dto.id,
     name: dto.name,
@@ -52,6 +59,7 @@ export function toCustomFieldView(dto: CustomFieldDto): CustomFieldView {
     scope: dto.scope,
     typeLabel: TYPE_LABELS[dto.constraint.valueType],
     rulesSummary: summarizeRules(dto.constraint),
+    inUse,
   };
 }
 
@@ -78,6 +86,44 @@ function summarizeRules(constraint: CustomFieldDto["constraint"]): string {
   }
 }
 
+/** What `ControlDefinitionList` renders (ADR 0026). */
+export interface ControlDefinitionView {
+  id: string;
+  name: string;
+  /** "Uncapped" or e.g. "4 × every 24 hours". */
+  ruleSummary: string;
+  mode: "uncapped" | "capped";
+  count?: number;
+  periodEvery?: number;
+  periodUnit?: "hours" | "days" | "weeks";
+  /** True when a Control already references it — frozen (ADR 0027): no edit, no remove. */
+  inUse: boolean;
+}
+
+export function summarizeOccurrenceRule(rule: ControlOccurrenceRuleDto): string {
+  if (rule.mode === "uncapped") {
+    return "Uncapped";
+  }
+  return `${rule.count} × every ${rule.period.every} ${rule.period.unit}`;
+}
+
+export function toControlDefinitionView(
+  dto: ControlDefinitionDto,
+  inUse: boolean,
+): ControlDefinitionView {
+  const rule = dto.occurrenceRule;
+  return {
+    id: dto.id,
+    name: dto.name,
+    ruleSummary: summarizeOccurrenceRule(rule),
+    mode: rule.mode,
+    count: rule.mode === "capped" ? rule.count : undefined,
+    periodEvery: rule.mode === "capped" ? rule.period.every : undefined,
+    periodUnit: rule.mode === "capped" ? rule.period.unit : undefined,
+    inUse,
+  };
+}
+
 /**
  * What the detail/edit page renders. Deliberately keeps `description` as
  * `undefined` rather than `ProcedureTypeView`'s "—" placeholder: this
@@ -89,13 +135,30 @@ export interface ProcedureTypeDetailView {
   name: string;
   description?: string;
   customFields: CustomFieldView[];
+  controlDefinitions: ControlDefinitionView[];
 }
 
-export function toProcedureTypeDetailView(dto: ProcedureTypeDto): ProcedureTypeDetailView {
+/**
+ * `inUseDefinitionIds` is a presentation-layer join the page computes by
+ * scanning the tenant's Surgeries (`listSurgeries`) for any Control or
+ * CustomFieldValue referencing a definition — the same posture the app
+ * uses elsewhere (resolving names from sibling reads). It drives ADR
+ * 0027's "frozen: no edit, no remove" affordance state; `api` still
+ * enforces the rule authoritatively on every mutation.
+ */
+export function toProcedureTypeDetailView(
+  dto: ProcedureTypeDto,
+  inUseDefinitionIds: ReadonlySet<string> = new Set(),
+): ProcedureTypeDetailView {
   return {
     id: dto.id,
     name: dto.name,
     description: dto.description,
-    customFields: dto.customFields.map(toCustomFieldView),
+    customFields: dto.customFields.map((field) =>
+      toCustomFieldView(field, inUseDefinitionIds.has(field.id)),
+    ),
+    controlDefinitions: (dto.controlDefinitions ?? []).map((definition) =>
+      toControlDefinitionView(definition, inUseDefinitionIds.has(definition.id)),
+    ),
   };
 }

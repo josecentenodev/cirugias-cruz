@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { CustomFieldDto } from "@/features/procedure-types/dtos";
-import { toControlView, toSurgeryDetailView, toSurgeryListView } from "./mappers.js";
+import {
+  toControlView,
+  toFollowUpView,
+  toSurgeryDetailView,
+  toSurgeryListView,
+} from "./mappers.js";
 import type { ControlDto, SurgeryDto } from "./dtos.js";
 
 const evaDef: CustomFieldDto = {
@@ -28,6 +33,7 @@ function buildSurgery(overrides: Partial<SurgeryDto> = {}): SurgeryDto {
     participatingResidentIds: [],
     customFieldValues: [],
     controls: [],
+    followUp: [],
     ...overrides,
   };
 }
@@ -185,5 +191,35 @@ describe("toSurgeryDetailView", () => {
     expect(view.customFieldValues).toEqual([
       { definitionId: "gone", label: "gone", displayValue: "x" },
     ]);
+  });
+});
+
+describe("toFollowUpView", () => {
+  it("summarizes an incomplete capped definition with a next-due date", () => {
+    const view = toFollowUpView({
+      definitionId: "def-pain",
+      name: "Pain scale",
+      recorded: 2,
+      expected: 4,
+      nextDueAt: "2026-01-18T00:00:00.000Z",
+    });
+
+    expect(view.complete).toBe(false);
+    expect(view.atLimit).toBe(false);
+    expect(view.summary).toBe("2 of 4 recorded · next due ~Jan 18, 2026");
+  });
+
+  it("marks a fully recorded capped definition complete", () => {
+    const view = toFollowUpView({
+      definitionId: "def-pain",
+      name: "Pain scale",
+      recorded: 4,
+      expected: 4,
+      nextDueAt: null,
+    });
+
+    expect(view.complete).toBe(true);
+    expect(view.atLimit).toBe(true);
+    expect(view.summary).toBe("4 of 4 recorded · complete");
   });
 });

@@ -78,3 +78,37 @@ export const addCustomFieldSchema = z.discriminatedUnion("valueType", [
 ]);
 
 export type AddCustomFieldInput = z.infer<typeof addCustomFieldSchema>;
+
+/**
+ * Mirrors `api`'s own `controlOccurrenceRuleSchema` / control-definition
+ * body schemas (ADR 0026). The form submits a flat `mode` + optional
+ * `count`/`every`/`unit`; this reassembles the discriminated union `api`
+ * expects. `api` (`ControlDefinition.create`) stays the sole authority on
+ * name-uniqueness and the freeze rule (ADR 0027).
+ */
+export const controlDefinitionSchema = z
+  .object({
+    name: z.string().trim().min(1, "Name is required"),
+    mode: z.enum(["uncapped", "capped"]),
+    count: z.coerce.number().int().min(1).optional(),
+    every: z.coerce.number().int().min(1).optional(),
+    unit: z.enum(["hours", "days", "weeks"]).optional(),
+  })
+  .refine(
+    (value) =>
+      value.mode === "uncapped" ||
+      (value.count !== undefined && value.every !== undefined && value.unit !== undefined),
+    "A capped control needs a count and a measurement period",
+  );
+
+export type ControlDefinitionInput = z.infer<typeof controlDefinitionSchema>;
+
+export function toOccurrenceRuleBody(input: ControlDefinitionInput) {
+  return input.mode === "uncapped"
+    ? { mode: "uncapped" as const }
+    : {
+        mode: "capped" as const,
+        count: input.count as number,
+        period: { every: input.every as number, unit: input.unit as "hours" | "days" | "weeks" },
+      };
+}

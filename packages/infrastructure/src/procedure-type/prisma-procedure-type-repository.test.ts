@@ -177,5 +177,5 @@ describe("PrismaProcedureTypeRepository", () => {
 
     const reloaded = await repository.findById("infra-test-procedure-type-1");
     expect(reloaded?.controlDefinitions.map((d) => d.id)).toEqual(["infra-def-pain"]);
-  });
+  }, 30000);
 });

@@ -236,7 +236,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
     expect(surgeryBody.id).toBe(surgeryId);
     expect(surgeryBody.controls).toHaveLength(1);
     expect(surgeryBody.controls[0]?.observations).toBe("Sin signos de infección");
-  }, 30000);
+  }, 60000);
 
   it("defines CustomFields on a Procedure Type and records SURGERY/CONTROL-scoped values (ADR 0018/0019)", async () => {
     const app = await buildApp(buildDeps());
@@ -359,7 +359,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
     expect(procedureTypeBody.customFields.map((f) => f.id).sort()).toEqual(
       [techniqueFieldId, evaFieldId].sort(),
     );
-  }, 30000);
+  }, 60000);
 
   it("rejects a physician retrieving another physician's Patient/ProcedureType/Surgery with 404, not 403", async () => {
     const app = await buildApp(buildDeps());

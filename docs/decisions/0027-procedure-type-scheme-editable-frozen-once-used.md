@@ -12,6 +12,18 @@ implicitly, whether definitions can be edited at all). Companion to
 ([`../architecture/alignment-restructuring.md`](../architecture/alignment-restructuring.md)
 §A3, walkthrough finding **F-09**).
 
+**Implemented — Milestone 11 WP3** (merged to `main`): `ProcedureType`
+gains `editCustomField` / `removeCustomField` / `editControlDefinition` /
+`removeControlDefinition`, each taking an `{ inUse }` flag and rejecting
+when set; the Application ops resolve `inUse` via
+`SurgeryRepository.isCustomFieldDefinitionInUse` /
+`isControlDefinitionInUse` (tenant-scoped) before delegating; HTTP
+`PATCH` / `DELETE` routes added; the web scheme editor shows edit/remove
+affordances disabled with a "recorded data exists" note when frozen.
+Deviation: the web _edit form_ for a CustomField definition was not
+built (control-definition editing is) — the API path is complete; see
+`milestone-11-alignment-design.md` §1.
+
 ## Context
 
 A `ProcedureType`'s scheme — its CustomField definitions and (ADR 0026)

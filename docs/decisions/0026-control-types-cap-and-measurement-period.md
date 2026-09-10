@@ -15,6 +15,16 @@ Comes out of the 2026-09-09 product-owner session
 ([`../architecture/alignment-restructuring.md`](../architecture/alignment-restructuring.md)
 §A2, walkthrough finding **F-03**).
 
+**Implemented — Milestone 11 WP3** (merged to `main`): `ControlDefinition`
+inside the `ProcedureType` aggregate; `Control.definitionId?`;
+`Surgery.recordControl` enforces the `≤ N` cap per capped definition;
+`computeFollowUp` gives the per-Surgery "recorded / next due"
+projection on the get-surgery reads; migration
+`20260909140000_add_control_definitions_and_optional_observations`
+applied to the Railway Postgres; full quality gate green. Deviation:
+`modify-control` does not take a `definitionId` — a Control is typed at
+record time only (see `milestone-11-alignment-design.md` §1).
+
 ## Context
 
 A `Control` is a generic timestamped entry (observations + datetime +

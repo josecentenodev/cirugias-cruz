@@ -23,14 +23,38 @@ open question that still needs the physician before implementation.
 
 ## Implementation status (Milestone 11)
 
-| Done (merged to `main`)                                                                                                 | Pending                                                          |
-| ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| **A1** Patient contact-PII removed + `Patient` no longer composes `Person` + Railway migration applied (ADR 0025) — WP1 | **A2** capped control definitions (ADR 0026) — WP3               |
-| **B1** computed patient age in the UI — WP1                                                                             | **A3** editable-but-freezing schemes (ADR 0027) — WP3            |
-| **B2** whole-row table links — WP2                                                                                      | **A4** optional Control observations — WP3                       |
-| **B3** type-to-confirm deletion (`DangerousConfirm`) — WP2                                                              | **B4** "Now" datetime button — WP3                               |
-|                                                                                                                         | **B5** Surgery-detail card reorder — WP3                         |
-|                                                                                                                         | **C3** remaining doc reconciliation + walkthrough sign-off — WP4 |
+| Done (merged to `main`)                                                                                                 | Pending                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **A1** Patient contact-PII removed + `Patient` no longer composes `Person` + Railway migration applied (ADR 0025) — WP1 | **C3 / WP4** last doc reconciliation + the Milestone 9 walkthrough sign-off (a short delta re-run with the product owner) |
+| **A2** capped control definitions — `≤ N` Surgery invariant + measurement-period follow-up projection (ADR 0026) — WP3  |                                                                                                                           |
+| **A3** editable Procedure Type schemes, frozen once a definition has data (ADR 0027) — WP3; Railway migration applied   |                                                                                                                           |
+| **A4** Control `observations` optional — WP3                                                                            |                                                                                                                           |
+| **B1** computed patient age in the UI — WP1                                                                             |                                                                                                                           |
+| **B2** whole-row table links — WP2                                                                                      |                                                                                                                           |
+| **B3** type-to-confirm deletion (`DangerousConfirm`) — WP2                                                              |                                                                                                                           |
+| **B4** "Now" datetime button on the control forms — WP3                                                                 |                                                                                                                           |
+| **B5** Surgery-detail card reorder (Summary → Follow-up → Control history → Residents) — WP3                            |                                                                                                                           |
+
+All build work for Milestone 11 is merged to `main` (WP1+WP2 via
+`feat/milestone-11-alignment`, WP3 via `feat/milestone-11-wp3`); full
+quality gate green; both migrations applied to the Railway Postgres.
+What remains is **WP4**: this reconciliation pass and the product-owner
+delta walkthrough that lets `milestone-9-walkthrough.md` be signed.
+
+**Scope notes / deviations recorded during WP3:**
+
+- **`modify-control` does not accept `definitionId`.** A Control's type is
+  set at record time only; `Surgery.modifyControl` has no affordance to
+  re-type a Control. Adding one is a later change if the physician wants it.
+- **CustomField-definition editing is remove-only in the web scheme
+  editor.** The API and `editCustomFieldAction` are complete and wired;
+  the inline _edit form_ for a CustomField definition was not built
+  (control-definition editing _is_ fully built). CustomField rows show
+  Remove + the "recorded data exists" freeze note.
+- **The web freeze indicator is a presentation-layer join** (scans
+  `listSurgeries()`); the API still enforces the freeze rule
+  authoritatively on every mutation, so a stale client view cannot bypass
+  it.
 
 Exception (product owner, Option A, 2026-09-09): `ResidentList` rows stay
 non-links — there is no resident detail route in `packages/web` and
@@ -126,7 +150,7 @@ carrying `phone` / `email`.
 
 ---
 
-### A2 — Capped controls with a measurement period ("Escala de Dolor") 🟡 · P1
+### A2 — Capped controls with a measurement period ("Escala de Dolor") 🟢 · P1
 
 > **ADR drafted:** [0026 — Control definitions with an optional recording cap and measurement period](../decisions/0026-control-types-cap-and-measurement-period.md).
 
@@ -209,7 +233,7 @@ the semantics.
 
 ---
 
-### A3 — Control schemes must be editable 🟡 · P2
+### A3 — Control schemes must be editable 🟢 · P2
 
 > **ADR drafted:** [0027 — Procedure Type schemes are editable, but a definition freezes once it has data](../decisions/0027-procedure-type-scheme-editable-frozen-once-used.md).
 
@@ -249,7 +273,7 @@ pattern).
 
 ---
 
-### A4 — Control observations are optional 🔴 · P3
+### A4 — Control observations are optional 🟢 · P3
 
 **Directive.** "En el control puede que no haya observaciones. Las
 observaciones están entorpeciendo un poco los esquemas — pero prioridad
@@ -360,7 +384,7 @@ explicitly there because the physician named it "fundamental".
 
 ---
 
-### B4 — "Now" for the control datetime 🔴 · P2
+### B4 — "Now" for the control datetime 🟢 · P2
 
 **Directive.** "El horario de los controles se debe poder fijar al
 now()."
@@ -376,7 +400,7 @@ API change (the datetime is already sent explicitly). Add a message key.
 
 ---
 
-### B5 — Control history is mis-placed on the Surgery detail 🔴 · P2
+### B5 — Control history is mis-placed on the Surgery detail 🟢 · P2
 
 **Directive.** "El control history está mal ubicado."
 

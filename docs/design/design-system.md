@@ -48,32 +48,47 @@ external stylesheet, CSP unaffected). Weights 400 / 500 / 700. Exposed as
 
 - Radius: `--radius` `0.5rem` (`rounded-md`) everywhere — buttons, inputs, cards, badges use `rounded-full`.
 - Surfaces: page is `--background`; cards and raised elements are `--surface` (`#FFFFFF`) with `border-border` + `shadow-sm`.
-- Standard page container: `mx-auto max-w-5xl px-4 py-6` (already the layout convention).
+- Page container, by route intent (see `desktop-space-usage.md` — this app is
+  desktop-first, no mobile target):
+  - **Workspace** — `mx-auto max-w-[90rem] px-6 py-6` — every list and detail /
+    editor route (`(dashboard)` and `resident/` `<main>`). The wide default.
+  - **Form** — `FormLayout` (`mx-auto w-full max-w-2xl`) — every create / edit
+    screen (`*/new`, `*/edit`), wrapped inside the workspace shell so a
+    single-task form stays focused. Auth screens use the `(auth)` layout's own
+    `max-w-sm`.
+  - Detail screens use the two-column `DetailGrid` (primary work ‖ sticky
+    context rail — see § Layout primitives and `desktop-space-usage.md` §4).
+    Text blocks inside a workspace still cap their own measure (~65–80ch).
+    Remaining per-screen polish (density pass, research edit as a 2×2 grid) is
+    `desktop-space-usage.md` §7 steps 5–6.
 
 ## Components (`packages/web/src/components/ui/`)
 
-| Component                 | Notes                                                                                                                                                                                                                                                    |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `button.tsx`              | variants `primary` \| `secondary` \| `ghost` \| `danger`; sizes `default` (h-9) \| `sm` (h-8). Focus ring = `--ring` + offset.                                                                                                                           |
-| `pending-button.tsx`      | `"use client"` submit button; shows `Spinner` + optional `pendingText` while the form is pending. Prefer over per-form bespoke submit buttons.                                                                                                           |
-| `input.tsx` / `label.tsx` | token borders/rings; `aria-invalid` → danger border+ring.                                                                                                                                                                                                |
-| `card.tsx`                | `--surface` bg, `shadow-sm`.                                                                                                                                                                                                                             |
-| `alert.tsx`               | variants `danger` \| `warning` \| `success` \| `muted`. `role="alert"` on danger/warning only. Inline, expected messages — unexpected errors go through `app/error.tsx`.                                                                                 |
-| `badge.tsx`               | status pills; variants `neutral` \| `accent` \| `success` \| `warning` \| `danger`.                                                                                                                                                                      |
-| `empty-state.tsx`         | title + hint + optional action; use for every zero-row list.                                                                                                                                                                                             |
-| `spinner.tsx`             | indeterminate indicator, inherits `currentColor`.                                                                                                                                                                                                        |
-| `skeleton.tsx`            | `Skeleton` block + `ListSkeleton` / `DetailSkeleton` for route `loading.tsx`.                                                                                                                                                                            |
-| `table.tsx`               | header on `--muted`; row hover `--muted`. Rows are `position: relative` so they can host the **stretched-link** row pattern (see § Table below).                                                                                                         |
-| `DangerousConfirm.tsx`    | `"use client"` — type-to-confirm `<dialog>` for data-destroying actions. Same mechanics as `ConfirmSubmit`; confirm button stays `disabled` until the user types the required phrase (record name, or literal `DELETE`). See § Destructive confirmation. |
+| Component                 | Notes                                                                                                                                                                                                                                                                                                                |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `button.tsx`              | variants `primary` \| `secondary` \| `ghost` \| `danger`; sizes `default` (h-9) \| `sm` (h-8). Focus ring = `--ring` + offset.                                                                                                                                                                                       |
+| `pending-button.tsx`      | `"use client"` submit button; shows `Spinner` + optional `pendingText` while the form is pending. Prefer over per-form bespoke submit buttons.                                                                                                                                                                       |
+| `input.tsx` / `label.tsx` | token borders/rings; `aria-invalid` → danger border+ring.                                                                                                                                                                                                                                                            |
+| `card.tsx`                | `--surface` bg, `shadow-sm`.                                                                                                                                                                                                                                                                                         |
+| `alert.tsx`               | variants `danger` \| `warning` \| `success` \| `muted`. `role="alert"` on danger/warning only. Inline, expected messages — unexpected errors go through `app/error.tsx`.                                                                                                                                             |
+| `badge.tsx`               | status pills; variants `neutral` \| `accent` \| `success` \| `warning` \| `danger`.                                                                                                                                                                                                                                  |
+| `empty-state.tsx`         | title + hint + optional action; use for every zero-row list.                                                                                                                                                                                                                                                         |
+| `spinner.tsx`             | indeterminate indicator, inherits `currentColor`.                                                                                                                                                                                                                                                                    |
+| `skeleton.tsx`            | `Skeleton` block + `ListSkeleton` / `DetailSkeleton` for route `loading.tsx`.                                                                                                                                                                                                                                        |
+| `table.tsx`               | header on `--muted`; row hover `--muted`. Rows are `position: relative` so they can host the **stretched-link** row pattern (see § Table below).                                                                                                                                                                     |
+| `DangerousConfirm.tsx`    | `"use client"` — type-to-confirm `<dialog>` for data-destroying actions. Same mechanics as `ConfirmSubmit`; confirm button stays `disabled` until the user types the required phrase (record name, or literal `DELETE`). See § Destructive confirmation.                                                             |
+| `Disclosure.tsx`          | native `<details>`/`<summary>` collapsible — no client JS. Folds a low-frequency form (an "add / record" form on a detail screen) away until needed. `defaultOpen` sets initial state only (renders no `open` attr when false, so a Server-Component re-render never resets it). See `desktop-space-usage.md` §3 P3. |
 
 ## Layout primitives (`packages/web/src/components/`)
 
-| Component           | Notes                                                                                                                                                                        |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `PageHeader.tsx`    | title + optional description + optional action (CTA node); `level` 1 or 2. The one page-title treatment — no ad-hoc `<div><h1>…</div>`.                                      |
-| `Breadcrumbs.tsx`   | ordered `{ label, href? }[]` trail for nested routes; last crumb is current, never a link. Replaces "← Back to X".                                                           |
-| `ConfirmSubmit.tsx` | `"use client"` — a destructive Server-Action submit behind a native `<dialog>` (consequence sentence + Cancel / Confirm). No dependency. Use for delete / remove / lock-out. |
-| `DashboardNav.tsx`  | `"use client"` — the four-section nav with active-section highlight (`usePathname`).                                                                                         |
+| Component           | Notes                                                                                                                                                                                                    |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PageHeader.tsx`    | title + optional description + optional action (CTA node); `level` 1 or 2. The one page-title treatment — no ad-hoc `<div><h1>…</div>`.                                                                  |
+| `Breadcrumbs.tsx`   | ordered `{ label, href? }[]` trail for nested routes; last crumb is current, never a link. Replaces "← Back to X".                                                                                       |
+| `ConfirmSubmit.tsx` | `"use client"` — a destructive Server-Action submit behind a native `<dialog>` (consequence sentence + Cancel / Confirm). No dependency. Use for delete / remove / lock-out.                             |
+| `DashboardNav.tsx`  | `"use client"` — the four-section nav with active-section highlight (`usePathname`).                                                                                                                     |
+| `FormLayout.tsx`    | narrow centred wrapper (`max-w-2xl`) for a single-task create/edit screen, inside the wide workspace shell. Server Component. See `desktop-space-usage.md` §3 P1.                                        |
+| `DetailGrid.tsx`    | `primary` + `aside` slots — wide work column ‖ sticky context rail; single column below `lg` (aside last). Server Component. See `desktop-space-usage.md` §3 P2. Not yet adopted by any screen (step 3). |
 
 ## Table
 

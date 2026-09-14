@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-[90rem] items-center justify-between px-6 py-3">
           <Link href="/patients" className="text-sm font-semibold text-foreground">
             {messages.brand.name}
           </Link>
@@ -31,7 +31,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </DashboardNav>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-[90rem] px-6 py-6">{children}</main>
     </div>
   );
 }

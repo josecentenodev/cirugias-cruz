@@ -42,7 +42,7 @@ export function ResearchStudyFieldsForm({ study }: { study: ResearchStudyDetailV
   if (!isEditing) {
     return (
       <div className="flex flex-col gap-4">
-        <dl className="grid gap-4 sm:grid-cols-2">
+        <dl className="grid gap-x-8 gap-y-4 lg:grid-cols-2">
           <Field label={messages.research.fields.hypothesis} value={study.hypothesis} />
           <Field label={messages.research.fields.results} value={study.results} />
           <Field label={messages.research.fields.analysis} value={study.analysis} />
@@ -63,48 +63,50 @@ export function ResearchStudyFieldsForm({ study }: { study: ResearchStudyDetailV
     <form action={formAction} className="flex flex-col gap-4">
       {state.error ? <Alert>{state.error}</Alert> : null}
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="hypothesis">{messages.research.fields.hypothesis}</Label>
-        <textarea
-          id="hypothesis"
-          name="hypothesis"
-          rows={3}
-          defaultValue={study.hypothesis}
-          className={textareaClassName}
-        />
-      </div>
+      <div className="grid gap-x-8 gap-y-4 lg:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="hypothesis">{messages.research.fields.hypothesis}</Label>
+          <textarea
+            id="hypothesis"
+            name="hypothesis"
+            rows={4}
+            defaultValue={study.hypothesis}
+            className={textareaClassName}
+          />
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="results">{messages.research.fields.results}</Label>
-        <textarea
-          id="results"
-          name="results"
-          rows={3}
-          defaultValue={study.results}
-          className={textareaClassName}
-        />
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="results">{messages.research.fields.results}</Label>
+          <textarea
+            id="results"
+            name="results"
+            rows={4}
+            defaultValue={study.results}
+            className={textareaClassName}
+          />
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="analysis">{messages.research.fields.analysis}</Label>
-        <textarea
-          id="analysis"
-          name="analysis"
-          rows={3}
-          defaultValue={study.analysis}
-          className={textareaClassName}
-        />
-      </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="analysis">{messages.research.fields.analysis}</Label>
+          <textarea
+            id="analysis"
+            name="analysis"
+            rows={4}
+            defaultValue={study.analysis}
+            className={textareaClassName}
+          />
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="conclusion">{messages.research.fields.conclusion}</Label>
-        <textarea
-          id="conclusion"
-          name="conclusion"
-          rows={3}
-          defaultValue={study.conclusion}
-          className={textareaClassName}
-        />
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="conclusion">{messages.research.fields.conclusion}</Label>
+          <textarea
+            id="conclusion"
+            name="conclusion"
+            rows={4}
+            defaultValue={study.conclusion}
+            className={textareaClassName}
+          />
+        </div>
       </div>
 
       <div className="flex gap-2">

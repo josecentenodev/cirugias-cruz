@@ -24,6 +24,7 @@ reach their goal. Only the necessary elements — no information overload.
 - No page presents more than ~7 top-level choices without grouping/chunking.
 - Field labels and section headings say what the thing is, not how the backend names it.
 - Forms ask only for what the operation needs.
+- On a detail screen the **primary task** fills the main column of `DetailGrid`; summary / metadata and low-frequency actions ("add a field", "assign a resident", "record a control") go in the sticky aside or behind a `Disclosure`. Serial Position Effect: the first and last things in view are the work, not chrome. See `desktop-space-usage.md`.
 
 ## 2. Providing feedback
 
@@ -50,7 +51,9 @@ behaves the same everywhere.
 
 - Shared page-header component (title + description + primary action) on every page.
 - Same verb for the same operation everywhere ("Registrar", "Guardar", "Eliminar" — pick one each).
-- Navigation, spacing container, and card usage identical across sections.
+- Navigation and card usage identical across sections.
+- **Container width is chosen by route intent, not per page:** the **workspace** width (`max-w-[90rem]`) for every list and detail screen; the **form** width (`FormLayout`, `max-w-2xl`, centred) for every `*/new` / `*/edit`. Auth keeps the `(auth)` layout's own narrow width. See `design-system.md` § Shape & spacing.
+- **Every detail screen uses the one `DetailGrid` layout** (primary work column ‖ sticky context aside) — not an ad-hoc stack of full-width cards.
 - Links look like links; buttons like buttons.
 
 ## 4. Forgiving
@@ -94,6 +97,8 @@ accelerators for experts.
 - Keyboard-only completion of every core flow.
 - No information conveyed by color alone — pair with text/icon (badges include a label).
 - Semantic HTML: real `<table>`, `<nav>`, `<form>`, heading order.
+- **`DetailGrid` keeps DOM / source order = primary content first**, so reading order and `Tab` order follow the work regardless of the visual left/right split. The sticky aside stays offset (`top-6`), never full-bleed, so it can't cover a focused control. Visual columns don't change the document outline — one `<h1>`, headings in order.
+- A form folded into a `Disclosure` is a native `<details>` — keyboard-reachable as-is; `defaultOpen` leaves it expanded on the empty-list first run so a first-time user isn't hunting for it.
 
 ## 7. Satisfying
 
@@ -133,6 +138,14 @@ errors are still a single inline `<Alert>` per form (deferred by product
 decision); a few composed strings in `features/*/mappers.ts`
 (`summarizeRules`, procedure-type `TYPE_LABELS` phrasing) are English but
 not yet in `messages/en.ts` — the i18n extraction pass folds them in.
+
+**Post-Milestone-10 layout pass (2026-09-10):** the single-column
+`max-w-5xl` convention the audit above assumed was replaced — desktop-first
+workspace width, `FormLayout` for single-task forms, `DetailGrid` on every
+detail screen, `Disclosure` for low-frequency "add" forms, and a density
+pass on metadata grids. Full analysis and per-screen rationale in
+[`desktop-space-usage.md`](./desktop-space-usage.md); the §1/§3/§6
+acceptance criteria above are updated for it.
 
 ## Future i18n
 

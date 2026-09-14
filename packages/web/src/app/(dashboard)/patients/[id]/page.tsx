@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { DetailGrid } from "@/components/DetailGrid";
 import { PageHeader } from "@/components/PageHeader";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -38,21 +39,27 @@ export default async function PatientDetailPage({ params }: { params: Promise<{ 
           { label: view.fullName },
         ]}
       />
-      <PatientDetail patient={view} />
 
-      <PageHeader
-        level={2}
-        title={messages.surgeries.sectionTitle}
-        action={
-          <Link
-            href={`/patients/${id}/surgeries/new`}
-            className={cn(buttonVariants({ size: "sm" }))}
-          >
-            {messages.surgeries.register}
-          </Link>
+      <DetailGrid
+        primary={
+          <div className="flex flex-col gap-4">
+            <PageHeader
+              level={2}
+              title={messages.surgeries.sectionTitle}
+              action={
+                <Link
+                  href={`/patients/${id}/surgeries/new`}
+                  className={cn(buttonVariants({ size: "sm" }))}
+                >
+                  {messages.surgeries.register}
+                </Link>
+              }
+            />
+            <SurgeryList patientId={id} surgeries={surgeries} />
+          </div>
         }
+        aside={<PatientDetail patient={view} />}
       />
-      <SurgeryList patientId={id} surgeries={surgeries} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { FormLayout } from "@/components/FormLayout";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { messages } from "@/messages/en";
@@ -17,23 +18,25 @@ export default async function NewSurgeryPage({ params }: { params: Promise<{ id:
   const patientName = `${patient.firstName} ${patient.lastName}`;
 
   return (
-    <div className="flex flex-col gap-4">
-      <Breadcrumbs
-        items={[
-          { label: messages.patients.listTitle, href: "/patients" },
-          { label: patientName, href: `/patients/${id}` },
-          { label: messages.surgeries.register },
-        ]}
-      />
-      <PageHeader title={messages.surgeries.registerFor(patientName)} />
-      <Card>
-        <CardHeader>
-          <CardTitle>{messages.surgeries.detailsCard}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SurgeryForm patientId={id} procedureTypes={procedureTypes} />
-        </CardContent>
-      </Card>
-    </div>
+    <FormLayout>
+      <div className="flex flex-col gap-4">
+        <Breadcrumbs
+          items={[
+            { label: messages.patients.listTitle, href: "/patients" },
+            { label: patientName, href: `/patients/${id}` },
+            { label: messages.surgeries.register },
+          ]}
+        />
+        <PageHeader title={messages.surgeries.registerFor(patientName)} />
+        <Card>
+          <CardHeader>
+            <CardTitle>{messages.surgeries.detailsCard}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SurgeryForm patientId={id} procedureTypes={procedureTypes} />
+          </CardContent>
+        </Card>
+      </div>
+    </FormLayout>
   );
 }

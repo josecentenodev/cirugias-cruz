@@ -1,6 +1,8 @@
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { DetailGrid } from "@/components/DetailGrid";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { EmptyState } from "@/components/ui/empty-state";
 import { messages } from "@/messages/en";
 import { OwnControlRow } from "@/features/resident-session/components/OwnControlRow";
@@ -27,51 +29,73 @@ export default async function ResidentSurgeryDetailPage({
   const view = toOwnSurgeryDetailView(surgery, ownResidentId);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <Breadcrumbs
         items={[
           { label: messages.resident.surgeriesTitle, href: "/resident/surgeries" },
           { label: `${view.procedureTypeName} · ${view.performedAtLabel}` },
         ]}
       />
-      <PageHeader
-        title={messages.resident.surgeryTitle}
-        description={messages.resident.surgeryMeta(
-          view.patientName,
-          view.procedureTypeName,
-          view.performedAtLabel,
-        )}
+      <PageHeader title={messages.resident.surgeryTitle} />
+
+      <DetailGrid
+        primary={
+          <div className="flex flex-col gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">{messages.resident.controls.cardTitle}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                {view.controls.length === 0 ? (
+                  <EmptyState title={messages.resident.controls.empty} />
+                ) : (
+                  <ul className="flex flex-col gap-2">
+                    {view.controls.map((control) => (
+                      <OwnControlRow key={control.id} surgeryId={view.id} control={control} />
+                    ))}
+                  </ul>
+                )}
+                <Disclosure
+                  summary={messages.resident.recordControl.cardTitle}
+                  defaultOpen={view.controls.length === 0}
+                >
+                  <RecordOwnControlForm
+                    surgeryId={view.id}
+                    customFields={view.controlCustomFields}
+                    controlTypeOptions={view.controlTypeOptions}
+                  />
+                </Disclosure>
+              </CardContent>
+            </Card>
+          </div>
+        }
+        aside={
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">{view.patientName}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+              <MetaField
+                label={messages.resident.columns.procedureType}
+                value={view.procedureTypeName}
+              />
+              <MetaField
+                label={messages.resident.columns.performed}
+                value={view.performedAtLabel}
+              />
+            </CardContent>
+          </Card>
+        }
       />
+    </div>
+  );
+}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{messages.resident.controls.cardTitle}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {view.controls.length === 0 ? (
-            <EmptyState title={messages.resident.controls.empty} />
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {view.controls.map((control) => (
-                <OwnControlRow key={control.id} surgeryId={view.id} control={control} />
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{messages.resident.recordControl.cardTitle}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RecordOwnControlForm
-            surgeryId={view.id}
-            customFields={view.controlCustomFields}
-            controlTypeOptions={view.controlTypeOptions}
-          />
-        </CardContent>
-      </Card>
+function MetaField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 text-sm">{value}</dd>
     </div>
   );
 }

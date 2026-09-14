@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  FakePasswordHasher,
-  FakeTemporaryPasswordGenerator,
   InMemoryPhysicianCredentialRepository,
   InMemoryResidentCredentialRepository,
   InMemoryResidentRepository,
@@ -15,8 +13,6 @@ function buildDeps() {
     residentRepository: new InMemoryResidentRepository(),
     residentCredentialRepository: new InMemoryResidentCredentialRepository(),
     physicianCredentialRepository: new InMemoryPhysicianCredentialRepository(),
-    passwordHasher: new FakePasswordHasher(),
-    temporaryPasswordGenerator: new FakeTemporaryPasswordGenerator("Temp1234"),
   };
 }
 
@@ -36,22 +32,22 @@ describe("registerResident", () => {
 
     const output = await registerResident(deps)(validInput);
 
-    expect(output).toEqual({ residentId: "resident-1", temporaryPassword: "Temp1234" });
+    expect(output).toEqual({ residentId: "resident-1" });
     const persisted = await deps.residentRepository.findById("resident-1");
     expect(persisted?.physicianId).toBe(PHYSICIAN_ID);
     expect(persisted?.firstName).toBe("Laura");
   });
 
-  it("creates a login credential with a system-generated temporary password, requiring a change on first login (ADR 0017)", async () => {
+  it("creates a credential with no usable password yet, pending invitation acceptance (ADR 0029)", async () => {
     const deps = buildDeps();
 
     await registerResident(deps)(validInput);
 
     const credential = await deps.residentCredentialRepository.findByResidentId("resident-1");
-    expect(credential?.temporaryPassword).toBe("Temp1234");
-    expect(credential?.mustChangePassword).toBe(true);
+    expect(credential?.passwordHash).toBeNull();
+    expect(credential?.acceptedAt).toBeNull();
     expect(credential?.active).toBe(true);
-    expect(credential?.passwordHash).not.toBe("Temp1234");
+    expect(credential?.invitedAt).toBeInstanceOf(Date);
   });
 
   it("accepts optional metadata", async () => {
@@ -88,8 +84,8 @@ describe("registerResident", () => {
       physicianId: PHYSICIAN_ID,
       email: validInput.email,
       passwordHash: "hash",
-      temporaryPassword: null,
-      mustChangePassword: false,
+      invitedAt: new Date(),
+      acceptedAt: new Date(),
       active: true,
     });
 

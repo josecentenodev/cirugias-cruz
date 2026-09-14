@@ -108,6 +108,20 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 ### Not started
 
+- **Physician email confirmation re-enabled (ADR 0028) — not scoped to a
+  milestone number yet.** `seguimientocirugias.com` is purchased and
+  verified in Resend (DNS in Cloudflare); `RESEND_API_KEY` is set on the
+  live `api` service. Implementation (restore the `confirmedAt` check in
+  `login`, add `resendConfirmationEmail` + route + `web` affordance, set
+  `RESEND_FROM_EMAIL`/`WEB_BASE_URL`) has not started at any layer.
+- **Resident invitation by email (ADR 0029) — not scoped to a milestone
+  number yet.** Replaces ADR 0017's visible-temporary-password mechanism
+  with an emailed invitation the Resident accepts by setting their own
+  password — a real security-posture change (no one but the Resident
+  ever holds their own password), not a cosmetic one. Implementation
+  (Application operations, `ResidentInvitationTokenRepository`,
+  nullable `passwordHash`, HTTP routes, `web`'s `/accept-invitation`
+  page) has not started at any layer.
 - **Patient identity & search (Milestone 8.7) — `MVP-required`** (product
   owner decision, this pass). Add an identifying field to Patient so the
   same real person isn't loaded twice — `DNI` is the leading candidate —
@@ -119,12 +133,15 @@ gets corrected — it is not meant to be treated as fixed once written.
 
 ### Public domain
 
-**Decided (product owner, this pass): keep Railway's own generated
-domain (`https://web-production-c686b1.up.railway.app`) for the MVP.**
-Attaching a custom domain is **post-MVP** — a product/ops call that can
-be made later without losing anything already built. `api` never needs a
-public domain (BFF pattern; Milestone 7/8). Milestone 9's "public domain"
-line is therefore satisfied by the existing Railway URL; only its human
+**Superseded**: `web` is now served on the custom domain
+`https://seguimientocirugias.com` — the domain purchased for ADR 0028's
+verified Resend sending domain was also attached to `web` itself
+(product/ops decision made outside this doc, discovered while wiring
+`WEB_BASE_URL` for ADR 0028/0029). The Railway-generated URL
+(`https://web-production-c686b1.up.railway.app`) may still resolve but is
+no longer the canonical public address. `api` never needs a public
+domain (BFF pattern; Milestone 7/8). Milestone 9's "public domain" line
+is satisfied by `https://seguimientocirugias.com`; only its human
 walkthrough remains.
 
 ### Hosting platform
@@ -333,8 +350,8 @@ field content, which remains deferred exactly as before.
 | Capability                                                                                                       | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                                                                                                                                                                                                                                                                                          |
 | ---------------------------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Physician authentication (login/logout)                                                                          | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                                                                                                                                                                                                                                                                |
-| Physician self-registration                                                                                      | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation dormant, not enforced (ADR 0016)                                                                                                                                                                                                                                                                                    |
-| Resident authentication (login, forced password change, temp-password issue/reset, deactivate)                   | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED; no human walkthrough yet                                                                                                                                                                                                                                                                                                                                      |
+| Physician self-registration                                                                                      | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation gate re-enabled by decision (ADR 0028) — sending domain verified, `RESEND_API_KEY` set, but the `login` check restoration + resend-email UX are **not implemented yet**                                                                                                                                             |
+| Resident authentication (login, forced password change, temp-password issue/reset, deactivate)                   | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED under ADR 0017; **ADR 0029 replaces the temp-password mechanism with emailed invitation-and-acceptance, not yet implemented at any layer** — treat "temp-password issue/reset" as superseded design, not current target                                                                                                                                        |
 | Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                                       | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType **by name** (resolved in `c7d7a30` — `getSurgeryForResident`/`listSurgeriesForResident` resolve them server-side, see Risks); no human walkthrough yet                                                                                                                                                                            |
 | Patient (register + retrieve)                                                                                    | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | Milestone 11 WP1 (ADR 0025) merged: `email`/`phone` removed at every layer, `Patient` no longer composes `Person`, computed age in the UI, Railway migration applied. Walkthrough delta sign-off pending (WP4)                                                                                                                                                                          |
 | Patient identity (dedup field, e.g. DNI) + patient search (**MVP-required**)                                     | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Milestone 8.7 — not started at any layer; product owner decision, pre-MVP                                                                                                                                                                                                                                                                                                               |

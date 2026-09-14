@@ -56,8 +56,8 @@ describe("listResidents", () => {
       physicianId: PHYSICIAN_ID,
       email: "ana@example.com",
       passwordHash: "hash",
-      temporaryPassword: null,
-      mustChangePassword: false,
+      invitedAt: new Date(),
+      acceptedAt: new Date(),
       active: false,
     });
 

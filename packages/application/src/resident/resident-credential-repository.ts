@@ -17,28 +17,19 @@ export interface ResidentCredential {
   residentId: string;
   physicianId: string;
   email: string;
-  passwordHash: string;
   /**
-   * The current password in cleartext, but ONLY while it is still the
-   * system-generated temporary one the Physician hasn't yet handed off
-   * (ADR 0017, decision item 4: the Physician can view it in `web`
-   * repeatedly, for as long as it hasn't been changed). This is a
-   * deliberate, narrow departure from `PhysicianCredential`'s hash-only
-   * posture — see ADR 0017 "Scope of this decision" for why. `null`
-   * once the Resident has changed it; the password itself still lives
-   * on, hashed, in `passwordHash` — this field stops being the source
-   * of truth for what the current password *is* the moment it's no
-   * longer temporary, it only tracks "is there still a temporary
-   * password worth showing."
+   * `null` until the Resident accepts their invitation and sets their
+   * own password (ADR 0029) — there is no system-generated password to
+   * fall back on, unlike the temporary-password mechanism this
+   * replaced. "Has this Resident accepted?" is exactly "is this set?" —
+   * see ADR 0029's "Technical representation" for why no separate
+   * status field exists.
    */
-  temporaryPassword: string | null;
-  /**
-   * `true` until the Resident has changed their password at least once.
-   * A Resident with `mustChangePassword: true` may authenticate (so they
-   * can reach the change-password action) but is blocked from every
-   * other Resident-scoped route — enforced in `packages/http`, not here.
-   */
-  mustChangePassword: boolean;
+  passwordHash: string | null;
+  /** When the current (still-pending or already-superseded) invitation was sent. Status/UI display only (ADR 0029, decision item 5) — never used for access control. */
+  invitedAt: Date;
+  /** When the Resident accepted their invitation and set a password. `null` while `passwordHash` is `null`. Display only, same as `invitedAt`. */
+  acceptedAt: Date | null;
   /**
    * `false` once the Physician has deactivated this Resident. `login`
    * refuses a deactivated credential even with the correct password.
@@ -52,20 +43,30 @@ export interface ResidentCredentialRepository {
   findByResidentId(residentId: string): Promise<ResidentCredential | null>;
   save(credential: ResidentCredential): Promise<void>;
   /**
-   * Records a password the Resident chose themselves: hashes it,
-   * clears `temporaryPassword` (nothing valid left to show), and sets
-   * `mustChangePassword` to `false`.
+   * Records a password the already-logged-in Resident chose to change
+   * to voluntarily — distinct from `recordInvitationAccepted` below,
+   * which is what sets the *first* password. Doesn't touch
+   * `acceptedAt`.
    */
   recordPasswordChange(residentId: string, passwordHash: string): Promise<void>;
   /**
-   * The Physician-triggered "blanqueo" (ADR 0017, decision item 8):
-   * issues a fresh temporary password, re-arming `mustChangePassword`.
-   * Same mechanism as initial issuance, just re-triggered on demand.
+   * Records that this Resident accepted a pending invitation by setting
+   * their first password (ADR 0029, decision item 4) — distinct from
+   * `recordPasswordChange` in that it also stamps `acceptedAt`.
    */
-  reissueTemporaryPassword(
+  recordInvitationAccepted(
     residentId: string,
-    temporaryPassword: string,
     passwordHash: string,
+    acceptedAt: Date,
   ): Promise<void>;
+  /**
+   * The Physician-triggered "resend invitation" (ADR 0029, decision item
+   * 6 — replaces 0017's "blanqueo"): clears `passwordHash` back to
+   * unset and `acceptedAt` back to `null`, and stamps a fresh
+   * `invitedAt`. There is no valid credential left until the Resident
+   * accepts again — a deliberate tightening over the mechanism this
+   * replaced.
+   */
+  recordInvitationResent(residentId: string, invitedAt: Date): Promise<void>;
   setActive(residentId: string, active: boolean): Promise<void>;
 }

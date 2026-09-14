@@ -35,16 +35,16 @@ export class PrismaResidentCredentialRepository implements ResidentCredentialRep
         email: credential.email,
         emailNormalized: normalizeEmail(credential.email),
         passwordHash: credential.passwordHash,
-        temporaryPassword: credential.temporaryPassword,
-        mustChangePassword: credential.mustChangePassword,
+        invitedAt: credential.invitedAt,
+        acceptedAt: credential.acceptedAt,
         active: credential.active,
       },
       update: {
         email: credential.email,
         emailNormalized: normalizeEmail(credential.email),
         passwordHash: credential.passwordHash,
-        temporaryPassword: credential.temporaryPassword,
-        mustChangePassword: credential.mustChangePassword,
+        invitedAt: credential.invitedAt,
+        acceptedAt: credential.acceptedAt,
         active: credential.active,
       },
     });
@@ -53,18 +53,25 @@ export class PrismaResidentCredentialRepository implements ResidentCredentialRep
   async recordPasswordChange(residentId: string, passwordHash: string): Promise<void> {
     await this.prisma.residentCredential.update({
       where: { residentId },
-      data: { passwordHash, temporaryPassword: null, mustChangePassword: false },
+      data: { passwordHash },
     });
   }
 
-  async reissueTemporaryPassword(
+  async recordInvitationAccepted(
     residentId: string,
-    temporaryPassword: string,
     passwordHash: string,
+    acceptedAt: Date,
   ): Promise<void> {
     await this.prisma.residentCredential.update({
       where: { residentId },
-      data: { passwordHash, temporaryPassword, mustChangePassword: true },
+      data: { passwordHash, acceptedAt },
+    });
+  }
+
+  async recordInvitationResent(residentId: string, invitedAt: Date): Promise<void> {
+    await this.prisma.residentCredential.update({
+      where: { residentId },
+      data: { passwordHash: null, acceptedAt: null, invitedAt },
     });
   }
 
@@ -77,9 +84,9 @@ function toResidentCredential(row: {
   residentId: string;
   physicianId: string;
   email: string;
-  passwordHash: string;
-  temporaryPassword: string | null;
-  mustChangePassword: boolean;
+  passwordHash: string | null;
+  invitedAt: Date;
+  acceptedAt: Date | null;
   active: boolean;
 }): ResidentCredential {
   return {
@@ -87,8 +94,8 @@ function toResidentCredential(row: {
     physicianId: row.physicianId,
     email: row.email,
     passwordHash: row.passwordHash,
-    temporaryPassword: row.temporaryPassword,
-    mustChangePassword: row.mustChangePassword,
+    invitedAt: row.invitedAt,
+    acceptedAt: row.acceptedAt,
     active: row.active,
   };
 }

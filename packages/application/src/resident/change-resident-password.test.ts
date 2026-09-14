@@ -14,15 +14,15 @@ function seed(deps: ReturnType<typeof buildDeps>) {
     residentId: "resident-1",
     physicianId: "physician-1",
     email: "resident@example.com",
-    passwordHash: "fake-hash:Temp1234",
-    temporaryPassword: "Temp1234",
-    mustChangePassword: true,
+    passwordHash: "fake-hash:OldPass1",
+    invitedAt: new Date(),
+    acceptedAt: new Date(),
     active: true,
   });
 }
 
 describe("changeResidentPassword", () => {
-  it("hashes and stores the new password, clears the temporary one, and un-arms the must-change flag", async () => {
+  it("hashes and stores the new password", async () => {
     const deps = buildDeps();
     seed(deps);
 
@@ -30,8 +30,6 @@ describe("changeResidentPassword", () => {
 
     const credential = await deps.residentCredentialRepository.findByResidentId("resident-1");
     expect(credential?.passwordHash).toBe("fake-hash:MyNewPass1");
-    expect(credential?.temporaryPassword).toBeNull();
-    expect(credential?.mustChangePassword).toBe(false);
   });
 
   it("rejects an empty password", async () => {

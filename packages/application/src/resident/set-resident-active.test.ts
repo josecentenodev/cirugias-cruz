@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   InMemoryResidentCredentialRepository,
+  InMemoryResidentInvitationTokenRepository,
   InMemorySessionRepository,
 } from "../testing/fakes.js";
 import { setResidentActive } from "./set-resident-active.js";
@@ -11,6 +12,7 @@ function buildDeps() {
   return {
     residentCredentialRepository: new InMemoryResidentCredentialRepository(),
     sessionRepository: new InMemorySessionRepository(),
+    residentInvitationTokenRepository: new InMemoryResidentInvitationTokenRepository(),
   };
 }
 
@@ -20,8 +22,8 @@ function seed(deps: ReturnType<typeof buildDeps>) {
     physicianId: PHYSICIAN_ID,
     email: "resident@example.com",
     passwordHash: "hash",
-    temporaryPassword: null,
-    mustChangePassword: false,
+    invitedAt: new Date(),
+    acceptedAt: new Date(),
     active: true,
   });
 }
@@ -45,6 +47,20 @@ describe("setResidentActive", () => {
     const credential = await deps.residentCredentialRepository.findByResidentId("resident-1");
     expect(credential?.active).toBe(false);
     expect(await deps.sessionRepository.findById(session.id)).toBeNull();
+  });
+
+  it("invalidates any outstanding invitation token when deactivating (ADR 0029)", async () => {
+    const deps = buildDeps();
+    seed(deps);
+    const token = await deps.residentInvitationTokenRepository.create("resident-1");
+
+    await setResidentActive(deps)({
+      physicianId: PHYSICIAN_ID,
+      residentId: "resident-1",
+      active: false,
+    });
+
+    expect(await deps.residentInvitationTokenRepository.findById(token.id)).toBeNull();
   });
 
   it("reactivates a resident without touching sessions (there shouldn't be any live ones anyway)", async () => {

@@ -5,6 +5,7 @@ import {
   login,
   logout,
   registerPhysician,
+  resendConfirmationEmail,
   sendConfirmationEmail,
 } from "@cirugias-cruz/application";
 import type { AppDeps } from "../deps.js";
@@ -28,6 +29,11 @@ interface LoginBody {
 
 interface ConfirmEmailBody {
   token: string;
+}
+
+interface ResendConfirmationBody {
+  email: string;
+  firstName?: string;
 }
 
 /**
@@ -65,6 +71,15 @@ const confirmEmailBodySchema = {
   required: ["token"],
   properties: {
     token: { type: "string" },
+  },
+} as const;
+
+const resendConfirmationBodySchema = {
+  type: "object",
+  required: ["email"],
+  properties: {
+    email: { type: "string" },
+    firstName: { type: "string" },
   },
 } as const;
 
@@ -142,6 +157,39 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps): void {
     },
   );
 
+  // ADR 0028: self-service resend, closing ADR 0015's own open item.
+  // Rate-limited the same way as the other auth routes — this is as
+  // much a brute-force/abuse target as registration or login. Silent
+  // for "no such email"/"already confirmed" (see resend-confirmation-
+  // email.ts) — the response shape never varies with either case.
+  app.post<{ Body: ResendConfirmationBody }>(
+    "/email-confirmations/resend",
+    {
+      schema: { body: resendConfirmationBodySchema },
+      config: { rateLimit: authRateLimit },
+    },
+    async (request, reply) => {
+      try {
+        // Same resilience posture as the confirmation email sent on
+        // registration (see below): a Resend outage/misconfiguration is
+        // logged, never a 500 to the caller — there is nothing the
+        // caller did wrong.
+        try {
+          await resendConfirmationEmail(deps)({
+            email: request.body.email,
+            firstName: request.body.firstName,
+            webBaseUrl: deps.webBaseUrl,
+          });
+        } catch (error) {
+          request.log.error({ err: error }, "Failed to resend confirmation email");
+        }
+        return await reply.code(204).send();
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
   app.post<{ Body: LoginBody }>(
     "/sessions",
     {
@@ -156,20 +204,12 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AppDeps): void {
         });
         reply.setCookie(SESSION_COOKIE_NAME, session.id, sessionCookieOptions(session.expiresAt));
 
-        // web needs to know which kind of principal just logged in (and,
-        // for a Resident, whether they still must change their temporary
-        // password) to redirect to the right place — ADR 0017. Physician
-        // logins keep the same 200-with-a-small-body shape rather than
-        // the previous bare 204, so `web` has one response shape to
-        // parse regardless of who logged in.
+        // web needs to know which kind of principal just logged in, to
+        // redirect to the right place. Physician logins keep the same
+        // 200-with-a-small-body shape rather than a bare 204, so `web`
+        // has one response shape to parse regardless of who logged in.
         if (session.userType === "resident") {
-          const credential = await deps.residentCredentialRepository.findByResidentId(
-            session.residentId as string,
-          );
-          return await reply.code(200).send({
-            userType: "resident",
-            mustChangePassword: credential?.mustChangePassword ?? false,
-          });
+          return await reply.code(200).send({ userType: "resident" });
         }
         return await reply.code(200).send({ userType: "physician" });
       } catch (error) {

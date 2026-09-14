@@ -19,12 +19,8 @@ redirectMock.mockImplementation((path: string) => {
 const { revalidatePathMock } = vi.hoisted(() => ({ revalidatePathMock: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: revalidatePathMock }));
 
-const {
-  registerResidentAction,
-  viewResidentTemporaryPasswordAction,
-  resetResidentPasswordAction,
-  setResidentActiveAction,
-} = await import("./actions.js");
+const { registerResidentAction, resendResidentInvitationAction, setResidentActiveAction } =
+  await import("./actions.js");
 
 function formData(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -98,51 +94,27 @@ describe("registerResidentAction", () => {
   });
 });
 
-describe("viewResidentTemporaryPasswordAction (ADR 0017)", () => {
+describe("resendResidentInvitationAction (ADR 0029)", () => {
   afterEach(() => vi.clearAllMocks());
 
-  it("returns the temporary password while it hasn't been changed", async () => {
-    authedApiRequestMock.mockResolvedValue({ temporaryPassword: "Temp1234" });
+  it("posts to the resend-invitation route and reports success", async () => {
+    authedApiRequestMock.mockResolvedValue(undefined);
 
-    const result = await viewResidentTemporaryPasswordAction("resident-1", {});
+    const result = await resendResidentInvitationAction("resident-1", {});
 
-    expect(result).toEqual({ temporaryPassword: "Temp1234", revealed: true });
+    expect(result).toEqual({ sent: true });
     expect(authedApiRequestMock).toHaveBeenCalledWith({
-      method: "GET",
-      path: "/residents/resident-1/temporary-password",
+      method: "POST",
+      path: "/residents/resident-1/resend-invitation",
     });
-  });
-
-  it("returns null once the resident has changed it", async () => {
-    authedApiRequestMock.mockResolvedValue({ temporaryPassword: null });
-
-    const result = await viewResidentTemporaryPasswordAction("resident-1", {});
-
-    expect(result).toEqual({ temporaryPassword: null, revealed: true });
   });
 
   it("surfaces a not-found error inline (e.g. another tenant's resident)", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiDomainError("Resident resident-1 was not found"));
 
-    const result = await viewResidentTemporaryPasswordAction("resident-1", {});
+    const result = await resendResidentInvitationAction("resident-1", {});
 
     expect(result).toEqual({ error: "Resident resident-1 was not found" });
-  });
-});
-
-describe("resetResidentPasswordAction (ADR 0017 blanqueo)", () => {
-  afterEach(() => vi.clearAllMocks());
-
-  it("issues a fresh temporary password", async () => {
-    authedApiRequestMock.mockResolvedValue({ temporaryPassword: "NewTemp99" });
-
-    const result = await resetResidentPasswordAction("resident-1", {});
-
-    expect(result).toEqual({ temporaryPassword: "NewTemp99" });
-    expect(authedApiRequestMock).toHaveBeenCalledWith({
-      method: "POST",
-      path: "/residents/resident-1/password-reset",
-    });
   });
 });
 

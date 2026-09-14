@@ -26,7 +26,6 @@ import type { AppDeps } from "../deps.js";
 import { replyForError } from "../shared/errors.js";
 import { requireAuth } from "../shared/require-auth.js";
 import { requirePhysicianAuth } from "../shared/require-physician-auth.js";
-import { requireResidentPasswordChanged } from "../shared/require-resident-password-changed.js";
 
 interface RegisterPatientBody {
   firstName: string;
@@ -660,12 +659,6 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
         // from the body (ADR 0017). A Physician session keeps its
         // existing freedom to record on behalf of either themselves or
         // a participating Resident.
-        if (request.userType === "resident") {
-          await requireResidentPasswordChanged(deps.residentCredentialRepository)(request, reply);
-          if (reply.sent) {
-            return reply;
-          }
-        }
         const author =
           request.userType === "resident"
             ? ({ type: "resident", residentId: request.residentId as string } as const)
@@ -696,12 +689,6 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
     },
     async (request, reply) => {
       try {
-        if (request.userType === "resident") {
-          await requireResidentPasswordChanged(deps.residentCredentialRepository)(request, reply);
-          if (reply.sent) {
-            return reply;
-          }
-        }
         const actor =
           request.userType === "resident"
             ? ({ type: "resident", residentId: request.residentId as string } as const)

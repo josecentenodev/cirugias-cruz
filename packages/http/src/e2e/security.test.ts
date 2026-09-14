@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   FakeEmailSender,
   FakePasswordHasher,
-  FakeTemporaryPasswordGenerator,
   InMemoryEmailConfirmationTokenRepository,
   InMemoryPatientRepository,
   InMemoryPhysicianCredentialRepository,
@@ -11,6 +10,7 @@ import {
   InMemoryProcedureTypeRepository,
   InMemoryResearchStudyRepository,
   InMemoryResidentCredentialRepository,
+  InMemoryResidentInvitationTokenRepository,
   InMemoryResidentRepository,
   InMemorySessionRepository,
   InMemorySurgeryRepository,
@@ -37,7 +37,7 @@ function buildTestDeps(): AppDeps {
     surgeryRepository: new InMemorySurgeryRepository(),
     residentRepository: new InMemoryResidentRepository(),
     residentCredentialRepository: new InMemoryResidentCredentialRepository(),
-    temporaryPasswordGenerator: new FakeTemporaryPasswordGenerator(),
+    residentInvitationTokenRepository: new InMemoryResidentInvitationTokenRepository(),
     researchStudyRepository: new InMemoryResearchStudyRepository(),
     webBaseUrl: "http://localhost:3001",
   };

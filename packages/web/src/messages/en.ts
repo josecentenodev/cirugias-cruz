@@ -96,6 +96,12 @@ export const messages = {
       noAccount: "Don’t have an account?",
       createOne: "Create one",
     },
+    resendConfirmation: {
+      prompt: "Didn't get the email?",
+      button: "Resend confirmation email",
+      sending: "Sending…",
+      sent: "If that email is registered and unconfirmed, we've sent a new confirmation link.",
+    },
     signup: {
       title: "Create your account",
       submit: "Create account",
@@ -116,6 +122,15 @@ export const messages = {
       confirmedBody: "Your account is confirmed. You can sign in now.",
       missingToken: "This confirmation link is missing its token.",
       goToSignIn: "Go to sign in",
+    },
+    acceptInvitation: {
+      title: "Accept your invitation",
+      subtitle:
+        "Your physician invited you to Seguimiento de Cirugías. Set your password to continue.",
+      missingToken: "This invitation link is missing its token.",
+      submit: "Accept invitation",
+      submitting: "Accepting…",
+      accepted: "Invitation accepted — you can sign in now.",
     },
   },
 
@@ -169,6 +184,7 @@ export const messages = {
     },
     residents: {
       cardTitle: "Residents",
+      assignAction: "Assign a resident",
       empty: "No residents assigned yet.",
       assign: "Assign",
       assigning: "Assigning…",
@@ -219,6 +235,7 @@ export const messages = {
     detailsCard: "Study details",
     backToList: "Back to research",
     cardTitle: "Research study",
+    statusCardTitle: "Status",
     fields: {
       hypothesis: "Hypothesis",
       results: "Results",
@@ -365,19 +382,17 @@ export const messages = {
       cta: "Register your first resident",
     },
     credentials: {
-      viewTempPassword: "View temporary password",
-      resetPassword: "Reset password",
+      resendInvitation: "Resend invitation",
+      resendingInvitation: "Resending…",
       deactivate: "Deactivate",
       reactivate: "Reactivate",
       reactivated: "Resident reactivated.",
       deactivated: "Resident deactivated.",
-      tempPasswordLabel: "Temporary password:",
-      newTempPasswordLabel: "New temporary password:",
-      alreadyChanged: "Already changed by the resident — nothing to show.",
+      invitationResent: "Invitation resent — the previous one no longer works.",
+      invitationPending: "Invitation sent, not yet accepted.",
+      invitationAccepted: "Invitation accepted.",
       deactivateConfirm: (name: string) =>
         `Deactivate ${name}’s login? They won’t be able to sign in until reactivated.`,
-      resetConfirm: (name: string) =>
-        `Issue a new temporary password for ${name}? The current one stops working.`,
     },
   },
 

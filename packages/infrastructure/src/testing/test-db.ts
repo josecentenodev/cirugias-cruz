@@ -22,6 +22,7 @@ export async function cleanupPatient(patientId: string): Promise<void> {
 
 export async function cleanupResident(residentId: string): Promise<void> {
   await testPrisma.session.deleteMany({ where: { residentId } });
+  await testPrisma.residentInvitationToken.deleteMany({ where: { residentId } });
   await testPrisma.residentCredential.deleteMany({ where: { residentId } });
   await testPrisma.resident.deleteMany({ where: { id: residentId } });
 }
@@ -73,6 +74,21 @@ export async function seedResident(id: string, physicianId: string): Promise<voi
       phone: "555-0200",
       email: `${id}@example.com`,
       dateOfBirth: new Date("1995-01-01"),
+    },
+    update: {},
+  });
+}
+
+/** For tests exercising `ResidentInvitationToken`, which FKs to `ResidentCredential`, not `Resident`. */
+export async function seedResidentCredential(id: string, physicianId: string): Promise<void> {
+  await testPrisma.residentCredential.upsert({
+    where: { residentId: id },
+    create: {
+      residentId: id,
+      physicianId,
+      email: `${id}@example.com`,
+      emailNormalized: `${id}@example.com`,
+      passwordHash: null,
     },
     update: {},
   });

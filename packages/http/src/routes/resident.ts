@@ -1,23 +1,24 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import {
+  acceptResidentInvitation,
   assignResidentToSurgery,
   changeResidentPassword,
   getResident,
   getSurgeryForResident,
   listResidents,
   listSurgeriesForResident,
+  NotFoundError,
   registerResident,
   removeResidentFromSurgery,
-  resetResidentPassword,
+  resendResidentInvitation,
+  sendResidentInvitation,
   setResidentActive,
-  viewResidentTemporaryPassword,
 } from "@cirugias-cruz/application";
 import type { AppDeps } from "../deps.js";
 import { replyForError } from "../shared/errors.js";
 import { requirePhysicianAuth } from "../shared/require-physician-auth.js";
 import { requireResidentAuth } from "../shared/require-resident-auth.js";
-import { requireResidentPasswordChanged } from "../shared/require-resident-password-changed.js";
 import { serializeControlDefinition, serializeCustomField, serializeSurgery } from "./core-loop.js";
 
 /**
@@ -66,6 +67,11 @@ interface SetActiveBody {
 
 interface ChangePasswordBody {
   newPassword: string;
+}
+
+interface AcceptInvitationBody {
+  token: string;
+  password: string;
 }
 
 /**
@@ -124,6 +130,16 @@ const changePasswordBodySchema = {
   properties: { newPassword: { type: "string" } },
 } as const;
 
+const acceptInvitationBodySchema = {
+  type: "object",
+  required: ["token", "password"],
+  properties: { token: { type: "string" }, password: { type: "string" } },
+} as const;
+
+// Same posture as the auth routes (routes/auth.ts) — a brute-
+// force/abuse target for the same reason.
+const invitationRateLimit = { max: 5, timeWindow: "1 minute" };
+
 function toResidentDto(entry: {
   resident: {
     id: string;
@@ -136,8 +152,11 @@ function toResidentDto(entry: {
     metadata?: Record<string, unknown>;
   };
   active: boolean;
+  invitationAccepted: boolean;
+  invitedAt: Date | null;
+  acceptedAt: Date | null;
 }) {
-  const { resident, active } = entry;
+  const { resident, active, invitationAccepted, invitedAt, acceptedAt } = entry;
   return {
     id: resident.id,
     physicianId: resident.physicianId,
@@ -148,24 +167,30 @@ function toResidentDto(entry: {
     dateOfBirth: resident.dateOfBirth.toISOString(),
     metadata: resident.metadata,
     active,
+    invitationAccepted,
+    invitedAt: invitedAt?.toISOString() ?? null,
+    acceptedAt: acceptedAt?.toISOString() ?? null,
   };
 }
 
 /**
  * Resident vertical slice, reached over HTTP — Milestone 5's original
- * physician-management routes, plus ADR 0017's own login/self-service
- * for the Resident as a principal in their own right.
+ * physician-management routes, ADR 0017's login/self-service for the
+ * Resident as a principal in their own right, and ADR 0029's
+ * invitation-by-email onboarding (replacing 0017's visible-temporary-
+ * password mechanism).
  *
- * Two auth postures live in this one file:
+ * Three auth postures live in this one file:
  * - `physicianAuth` — the Physician managing their Residents (create,
- *   list, get, assign/remove from a Surgery, view/reset the temporary
- *   password, activate/deactivate). Unchanged in spirit from Milestone 5.
+ *   list, get, assign/remove from a Surgery, resend an invitation,
+ *   activate/deactivate). Unchanged in spirit from Milestone 5.
+ * - unauthenticated — accepting an invitation (there is no session yet
+ *   to attach until a password exists), same posture as
+ *   `/physicians`/`/email-confirmations`.
  * - `residentAuth` (`/me/...`) — a Resident acting as themselves: their
  *   own Surgery panel (read-only; Control create/edit lives in
  *   routes/core-loop.ts, shared with the Physician) and changing their
- *   own password. `requireResidentPasswordChanged` gates every one of
- *   these EXCEPT changing the password itself — see ADR 0017, decision
- *   item 3.
+ *   own password.
  */
 export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): void {
   const physicianAuth = { preHandler: requirePhysicianAuth(deps.sessionRepository) };
@@ -186,6 +211,23 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
           dateOfBirth: new Date(request.body.dateOfBirth),
           metadata: request.body.metadata,
         });
+        // ADR 0029: registration alone creates no usable credential —
+        // the emailed invitation is what makes login possible at all,
+        // same non-blocking-on-send-failure posture as
+        // `sendConfirmationEmail` after `registerPhysician` (0015).
+        try {
+          await sendResidentInvitation(deps)({
+            residentId: output.residentId,
+            email: request.body.email,
+            firstName: request.body.firstName,
+            webBaseUrl: deps.webBaseUrl,
+          });
+        } catch (error) {
+          request.log.error(
+            { err: error, residentId: output.residentId },
+            "Failed to send resident invitation email",
+          );
+        }
         return await reply.code(201).send(output);
       } catch (error) {
         return replyForError(error, reply);
@@ -220,32 +262,33 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
     },
   );
 
-  app.get<{ Params: { id: string } }>(
-    "/residents/:id/temporary-password",
-    { ...physicianAuth, schema: { params: residentIdParamsSchema } },
-    async (request, reply) => {
-      try {
-        const output = await viewResidentTemporaryPassword(deps)({
-          physicianId: request.physicianId as string,
-          residentId: request.params.id,
-        });
-        return await reply.code(200).send(output);
-      } catch (error) {
-        return replyForError(error, reply);
-      }
-    },
-  );
-
   app.post<{ Params: { id: string } }>(
-    "/residents/:id/password-reset",
-    { ...physicianAuth, schema: { params: residentIdParamsSchema } },
+    "/residents/:id/resend-invitation",
+    {
+      ...physicianAuth,
+      schema: { params: residentIdParamsSchema },
+      config: { rateLimit: invitationRateLimit },
+    },
     async (request, reply) => {
       try {
-        const output = await resetResidentPassword(deps)({
+        await resendResidentInvitation(deps)({
           physicianId: request.physicianId as string,
           residentId: request.params.id,
+          webBaseUrl: deps.webBaseUrl,
+        }).catch((error) => {
+          // The credential state is already cleared by this point
+          // regardless of whether the email itself sends — a Resend
+          // outage/misconfiguration is logged, never a 500, same
+          // resilience posture as the invitation sent on registration.
+          if (error instanceof NotFoundError) {
+            throw error;
+          }
+          request.log.error(
+            { err: error, residentId: request.params.id },
+            "Failed to resend resident invitation email",
+          );
         });
-        return await reply.code(200).send(output);
+        return await reply.code(204).send();
       } catch (error) {
         return replyForError(error, reply);
       }
@@ -306,14 +349,35 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
     },
   );
 
+  // --- Accepting an invitation (ADR 0029) — unauthenticated by
+  // definition, same reasoning as /physicians and /email-confirmations:
+  // there is no session yet to attach until the Resident sets a password.
+  app.post<{ Body: AcceptInvitationBody }>(
+    "/resident-invitations/accept",
+    {
+      schema: { body: acceptInvitationBodySchema },
+      config: { rateLimit: invitationRateLimit },
+    },
+    async (request, reply) => {
+      try {
+        const output = await acceptResidentInvitation(deps)({
+          token: request.body.token,
+          password: request.body.password,
+        });
+        return await reply.code(200).send(output);
+      } catch (error) {
+        return replyForError(error, reply);
+      }
+    },
+  );
+
   // --- A Resident acting as themselves (ADR 0017) ---
 
   // Lets `web` learn its own residentId — the session cookie is opaque
   // by design (BFF pattern), so this is the one read that closes the
   // gap for anything client-side that needs to compare "is this control
   // mine" (e.g. showing an Edit button only where it would actually be
-  // allowed). Not gated by requireResidentPasswordChanged — knowing who
-  // you are isn't gated on having changed your password.
+  // allowed).
   app.get("/me", residentAuth, async (request, reply) => {
     return reply.code(200).send({ residentId: request.residentId as string });
   });
@@ -336,11 +400,6 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
 
   app.get("/me/surgeries", residentAuth, async (request, reply) => {
     try {
-      await requireResidentPasswordChanged(deps.residentCredentialRepository)(request, reply);
-      if (reply.sent) {
-        return reply;
-      }
-
       const surgeries = await listSurgeriesForResident(deps)({
         residentId: request.residentId as string,
       });
@@ -355,11 +414,6 @@ export function registerResidentRoutes(app: FastifyInstance, deps: AppDeps): voi
     { ...residentAuth, schema: { params: surgeryIdParamsSchema } },
     async (request, reply) => {
       try {
-        await requireResidentPasswordChanged(deps.residentCredentialRepository)(request, reply);
-        if (reply.sent) {
-          return reply;
-        }
-
         const surgery = await getSurgeryForResident(deps)({
           residentId: request.residentId as string,
           surgeryId: request.params.id,

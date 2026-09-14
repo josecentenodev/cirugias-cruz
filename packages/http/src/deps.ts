@@ -8,10 +8,10 @@ import type {
   PasswordHasher,
   ResearchStudyRepository,
   ResidentCredentialRepository,
+  ResidentInvitationTokenRepository,
   ResidentRepository,
   SessionRepository,
   SurgeryRepository,
-  TemporaryPasswordGenerator,
 } from "@cirugias-cruz/application";
 
 /**
@@ -32,13 +32,14 @@ export interface AppDeps {
   surgeryRepository: SurgeryRepository;
   residentRepository: ResidentRepository;
   residentCredentialRepository: ResidentCredentialRepository;
-  temporaryPasswordGenerator: TemporaryPasswordGenerator;
+  residentInvitationTokenRepository: ResidentInvitationTokenRepository;
   researchStudyRepository: ResearchStudyRepository;
   /**
-   * `web`'s own public origin — the base every confirmation link is
-   * built from (ADR 0015). Plain config, not a repository/service, but
-   * lives here for the same reason: assembled once at process start,
-   * not read from `process.env` deeper in the call stack.
+   * `web`'s own public origin — the base every confirmation link (ADR
+   * 0015) and resident invitation link (ADR 0029) is built from. Plain
+   * config, not a repository/service, but lives here for the same
+   * reason: assembled once at process start, not read from
+   * `process.env` deeper in the call stack.
    */
   webBaseUrl: string;
 }

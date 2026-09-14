@@ -2,7 +2,12 @@
 
 ## Status
 
-Established (current iteration). Extends [0012](0012-physician-identified-by-email.md)
+Established. Its enforcement (items 2/5) was paused by
+[0016](0016-physician-email-confirmation-paused-for-mvp.md) and later
+restored by [0028](0028-physician-email-confirmation-reenabled.md) —
+this ADR's own decisions (token/link mechanics, `EmailSender` port) are
+current and unamended; check 0028 for the current enforcement state.
+Extends [0012](0012-physician-identified-by-email.md)
 — does not amend or supersede it. Motivated by needing a real way for
 physicians to obtain their own login, now that `packages/web` is
 publicly deployed (Milestone 8) with no self-registration screen.

@@ -42,10 +42,18 @@ export function login(deps: LoginDeps) {
         throw new DomainError("Invalid email or password");
       }
 
-      // ADR 0016: email confirmation is paused for MVP. `confirmedAt`
-      // is still recorded on the credential (dormant — see the ADR) but
-      // no longer checked here; re-enabling it later is restoring the
-      // check this comment used to describe, not rebuilding anything.
+      // ADR 0028: the confirmation gate is enforced again (0016's pause
+      // lifted now that a verified sending domain exists). Checked only
+      // after the password is confirmed correct — same non-leaking
+      // posture ADR 0015 originally established and ADR 0017 item 9
+      // reuses for a deactivated Resident: the caller has already proven
+      // they hold this credential, so a specific message costs nothing.
+      if (!physicianCredential.confirmedAt) {
+        throw new DomainError(
+          "Please confirm your email before logging in. Check your inbox for the confirmation link.",
+        );
+      }
+
       return deps.sessionRepository.create({
         userType: "physician",
         physicianId: physicianCredential.physicianId,
@@ -55,6 +63,17 @@ export function login(deps: LoginDeps) {
     const residentCredential = await deps.residentCredentialRepository.findByEmail(input.email);
     if (!residentCredential) {
       throw new DomainError("Invalid email or password");
+    }
+
+    if (!residentCredential.passwordHash) {
+      // ADR 0029, decision item 7: distinct from the generic case — an
+      // invited-but-not-yet-accepted Resident has no password to prove
+      // wrong in the first place, so there's nothing left to stay vague
+      // about (same non-leaking-is-moot reasoning as the deactivated-
+      // account case just below, and ADR 0028's confirmation gate).
+      throw new DomainError(
+        "This invitation hasn't been accepted yet. Check your email for the invitation link.",
+      );
     }
 
     const passwordMatches = await deps.passwordHasher.verify(

@@ -11,6 +11,10 @@ export interface GetResidentInput {
 export interface ResidentWithActive {
   resident: Resident;
   active: boolean;
+  /** Invitation status (ADR 0029) — `false` while the Resident hasn't accepted yet. */
+  invitationAccepted: boolean;
+  invitedAt: Date | null;
+  acceptedAt: Date | null;
 }
 
 export interface GetResidentDeps {
@@ -20,12 +24,12 @@ export interface GetResidentDeps {
 
 /**
  * Retrieves a single Resident, verifying it belongs to the acting
- * physician's tenant, alongside whether it's currently active (see
- * `listResidents`'s doc-comment for why that's merged in from
- * `ResidentCredentialRepository` rather than living on Domain). A
- * resident belonging to a different physician is reported as not found
- * (404), never as forbidden (403) — mirrors getPatient/getSurgery
- * exactly.
+ * physician's tenant, alongside whether it's currently active and its
+ * invitation status (see `listResidents`'s doc-comment for why that's
+ * merged in from `ResidentCredentialRepository` rather than living on
+ * Domain). A resident belonging to a different physician is reported as
+ * not found (404), never as forbidden (403) — mirrors getPatient/
+ * getSurgery exactly.
  */
 export function getResident(deps: GetResidentDeps) {
   return async function execute(input: GetResidentInput): Promise<ResidentWithActive> {
@@ -35,6 +39,12 @@ export function getResident(deps: GetResidentDeps) {
     }
 
     const credential = await deps.residentCredentialRepository.findByResidentId(resident.id);
-    return { resident, active: credential?.active ?? true };
+    return {
+      resident,
+      active: credential?.active ?? true,
+      invitationAccepted: Boolean(credential?.passwordHash),
+      invitedAt: credential?.invitedAt ?? null,
+      acceptedAt: credential?.acceptedAt ?? null,
+    };
   };
 }

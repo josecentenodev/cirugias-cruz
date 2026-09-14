@@ -89,25 +89,9 @@ describe("loginAction", () => {
     ).rejects.toThrow("NEXT_REDIRECT:/patients");
   });
 
-  it("resident login, must change password: redirects to /resident/change-password (ADR 0017)", async () => {
+  it("resident login redirects to /resident/surgeries (ADR 0029 — no forced first-login change anymore)", async () => {
     apiRequestRawMock.mockResolvedValue(
-      new Response(JSON.stringify({ userType: "resident", mustChangePassword: true }), {
-        status: 200,
-        headers: {
-          "set-cookie":
-            "session_id=abc-123; Path=/; Expires=Thu, 02 Oct 2025 12:00:00 GMT; HttpOnly",
-        },
-      }),
-    );
-
-    await expect(
-      loginAction({}, formData({ email: "resident@example.com", password: "temp-pass" })),
-    ).rejects.toThrow("NEXT_REDIRECT:/resident/change-password");
-  });
-
-  it("resident login, already changed: redirects to /resident/surgeries (ADR 0017)", async () => {
-    apiRequestRawMock.mockResolvedValue(
-      new Response(JSON.stringify({ userType: "resident", mustChangePassword: false }), {
+      new Response(JSON.stringify({ userType: "resident" }), {
         status: 200,
         headers: {
           "set-cookie":

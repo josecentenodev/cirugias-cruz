@@ -6,46 +6,39 @@ import { Alert } from "@/components/ui/alert";
 import { PendingButton } from "@/components/ui/pending-button";
 import { messages } from "@/messages/en";
 import {
-  resetResidentPasswordAction,
+  resendResidentInvitationAction,
   setResidentActiveAction,
-  viewResidentTemporaryPasswordAction,
-  type ResetPasswordFormState,
+  type ResendInvitationFormState,
   type SetResidentActiveFormState,
-  type ViewTemporaryPasswordFormState,
 } from "../actions";
 
-const viewInitialState: ViewTemporaryPasswordFormState = {};
-const resetInitialState: ResetPasswordFormState = {};
+const resendInitialState: ResendInvitationFormState = {};
 const activeInitialState: SetResidentActiveFormState = {};
 
 const c = messages.residents.credentials;
 
 /**
- * Per-resident credential controls (ADR 0017): view the temporary
- * password while it's still valid, reissue a new one ("blanqueo"), and
- * deactivate/reactivate login. Lives on the list row itself — this
- * milestone has no dedicated Resident detail page (see
- * `features/residents/queries.ts`). Deactivating a login is
+ * Per-resident credential controls (ADR 0029): show invitation status,
+ * resend the invitation, and deactivate/reactivate login. Lives on the
+ * list row itself — this milestone has no dedicated Resident detail
+ * page (see `features/residents/queries.ts`). Deactivating a login is
  * confirmed via `ConfirmSubmit` (it immediately ends the resident's
- * session); viewing, reissuing (recoverable — just reissue again), and
- * reactivating are plain submits.
+ * session); resending and reactivating are plain submits.
  */
 export function ResidentCredentialActions({
   residentId,
   residentName,
   active,
+  invitationAccepted,
 }: {
   residentId: string;
   residentName: string;
   active: boolean;
+  invitationAccepted: boolean;
 }) {
-  const [viewState, viewAction] = useActionState(
-    viewResidentTemporaryPasswordAction.bind(null, residentId),
-    viewInitialState,
-  );
-  const [resetState, resetAction] = useActionState(
-    resetResidentPasswordAction.bind(null, residentId),
-    resetInitialState,
+  const [resendState, resendAction] = useActionState(
+    resendResidentInvitationAction.bind(null, residentId),
+    resendInitialState,
   );
   const [activeState, activeAction] = useActionState(
     setResidentActiveAction.bind(null, residentId, true),
@@ -54,8 +47,7 @@ export function ResidentCredentialActions({
 
   return (
     <div className="flex flex-col gap-2">
-      {viewState.error ? <Alert>{viewState.error}</Alert> : null}
-      {resetState.error ? <Alert>{resetState.error}</Alert> : null}
+      {resendState.error ? <Alert>{resendState.error}</Alert> : null}
       {activeState.error ? <Alert>{activeState.error}</Alert> : null}
       {activeState.succeededActive !== undefined ? (
         <Alert variant="success">
@@ -63,32 +55,16 @@ export function ResidentCredentialActions({
         </Alert>
       ) : null}
 
-      {viewState.revealed ? (
-        <p className="text-xs">
-          {viewState.temporaryPassword ? (
-            <>
-              {c.tempPasswordLabel} <code className="font-mono">{viewState.temporaryPassword}</code>
-            </>
-          ) : (
-            c.alreadyChanged
-          )}
-        </p>
-      ) : null}
-      {resetState.temporaryPassword ? (
-        <p className="text-xs">
-          {c.newTempPasswordLabel} <code className="font-mono">{resetState.temporaryPassword}</code>
-        </p>
-      ) : null}
+      {resendState.sent ? (
+        <p className="text-xs">{c.invitationResent}</p>
+      ) : (
+        <p className="text-xs">{invitationAccepted ? c.invitationAccepted : c.invitationPending}</p>
+      )}
 
       <div className="flex flex-wrap items-start gap-2">
-        <form action={viewAction}>
-          <PendingButton variant="ghost" size="sm">
-            {c.viewTempPassword}
-          </PendingButton>
-        </form>
-        <form action={resetAction}>
-          <PendingButton variant="ghost" size="sm" pendingText={messages.common.saving}>
-            {c.resetPassword}
+        <form action={resendAction}>
+          <PendingButton variant="ghost" size="sm" pendingText={c.resendingInvitation}>
+            {c.resendInvitation}
           </PendingButton>
         </form>
 

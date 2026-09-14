@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import { buildApp } from "../build-app.js";
 import { buildDeps } from "../index.js";
-import { cleanupPhysician } from "../testing/test-db.js";
+import { cleanupPhysician, testPrisma } from "../testing/test-db.js";
 
 const physicianIds: string[] = [];
 
@@ -26,6 +26,10 @@ async function registerAndLoginPhysician(app: Awaited<ReturnType<typeof buildApp
   });
   const physicianId = registerResponse.json<{ physicianId: string }>().physicianId;
   physicianIds.push(physicianId);
+  await testPrisma.physicianCredential.update({
+    where: { physicianId },
+    data: { confirmedAt: new Date() },
+  });
 
   const loginResponse = await app.inject({
     method: "POST",
@@ -54,11 +58,29 @@ async function registerResident(
       dateOfBirth: "1995-02-02",
     },
   });
-  const { residentId, temporaryPassword } = response.json<{
-    residentId: string;
-    temporaryPassword: string;
-  }>();
-  return { residentId, email, temporaryPassword };
+  const { residentId } = response.json<{ residentId: string }>();
+  return { residentId, email };
+}
+
+async function latestInvitationToken(residentId: string) {
+  return testPrisma.residentInvitationToken.findFirstOrThrow({
+    where: { residentId },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+async function acceptInvitation(
+  app: Awaited<ReturnType<typeof buildApp>>,
+  residentId: string,
+  password: string,
+) {
+  const token = await latestInvitationToken(residentId);
+  const response = await app.inject({
+    method: "POST",
+    url: "/resident-invitations/accept",
+    payload: { token: token.id, password },
+  });
+  return response;
 }
 
 async function registerPatientProcedureAndSurgery(
@@ -94,48 +116,44 @@ async function registerPatientProcedureAndSurgery(
   return surgeryResponse.json<{ surgeryId: string }>().surgeryId;
 }
 
-describe("Resident authentication over real HTTP, against real Postgres (ADR 0017)", () => {
-  it("issues a temporary password the physician can view repeatedly, logs the resident in, forces a password change before any other resident route, then allows it after changing", async () => {
+describe("Resident authentication over real HTTP, against real Postgres (ADR 0029)", () => {
+  it("cannot log in before accepting the invitation, can accept it by setting their own password, and logs in afterward", async () => {
     const app = await buildApp(buildDeps());
     const physician = await registerAndLoginPhysician(app);
     const physicianCookies = { session_id: physician.sessionId };
-    const { residentId, email, temporaryPassword } = await registerResident(app, physicianCookies);
+    const { residentId, email } = await registerResident(app, physicianCookies);
 
-    // Physician can view the temp password repeatedly while unchanged.
-    const view1 = await app.inject({
-      method: "GET",
-      url: `/residents/${residentId}/temporary-password`,
-      cookies: physicianCookies,
+    const loginBeforeAccept = await app.inject({
+      method: "POST",
+      url: "/sessions",
+      payload: { email, password: "whatever" },
     });
-    expect(view1.statusCode).toBe(200);
-    expect(view1.json()).toEqual({ temporaryPassword });
-    const view2 = await app.inject({
-      method: "GET",
-      url: `/residents/${residentId}/temporary-password`,
-      cookies: physicianCookies,
-    });
-    expect(view2.json()).toEqual({ temporaryPassword });
+    expect(loginBeforeAccept.statusCode).toBe(400);
+    expect(loginBeforeAccept.json<{ error: string }>().error).toMatch(
+      /invitation hasn't been accepted/,
+    );
 
-    // Resident logs in with it.
+    const accept = await acceptInvitation(app, residentId, "MyOwnPassword1");
+    expect(accept.statusCode).toBe(200);
+    expect(accept.json()).toEqual({ residentId });
+
     const residentLogin = await app.inject({
       method: "POST",
       url: "/sessions",
-      payload: { email, password: temporaryPassword },
+      payload: { email, password: "MyOwnPassword1" },
     });
     expect(residentLogin.statusCode).toBe(200);
-    expect(residentLogin.json()).toEqual({ userType: "resident", mustChangePassword: true });
-    const residentSessionId = residentLogin.cookies.find((c) => c.name === "session_id")
-      ?.value as string;
-    const residentCookies = { session_id: residentSessionId };
+    expect(residentLogin.json()).toEqual({ userType: "resident" });
 
-    // Blocked from the Surgery panel until they change it.
-    const blockedPanel = await app.inject({
+    const residentCookies = {
+      session_id: residentLogin.cookies.find((c) => c.name === "session_id")?.value as string,
+    };
+    const panel = await app.inject({
       method: "GET",
       url: "/me/surgeries",
       cookies: residentCookies,
     });
-    expect(blockedPanel.statusCode).toBe(400);
-    expect(blockedPanel.json<{ error: string }>().error).toMatch(/change your temporary password/);
+    expect(panel.statusCode).toBe(200);
 
     // Not blocked from Physician-only routes either — they're simply
     // not authenticated for those at all (401, same as no session).
@@ -145,56 +163,35 @@ describe("Resident authentication over real HTTP, against real Postgres (ADR 001
       cookies: residentCookies,
     });
     expect(blockedFromPhysicianRoute.statusCode).toBe(401);
+  }, 60000);
 
-    // Changing the password is itself allowed while must-change is set.
-    const changePassword = await app.inject({
-      method: "PATCH",
-      url: "/me/password",
-      cookies: residentCookies,
-      payload: { newPassword: "MyOwnPassword1" },
-    });
-    expect(changePassword.statusCode).toBe(204);
+  it("rejects redeeming the same invitation token twice", async () => {
+    const app = await buildApp(buildDeps());
+    const physician = await registerAndLoginPhysician(app);
+    const { residentId } = await registerResident(app, { session_id: physician.sessionId });
+    const token = await latestInvitationToken(residentId);
 
-    // Now the Surgery panel works.
-    const panelAfterChange = await app.inject({
-      method: "GET",
-      url: "/me/surgeries",
-      cookies: residentCookies,
-    });
-    expect(panelAfterChange.statusCode).toBe(200);
-    expect(panelAfterChange.json()).toEqual([]);
-
-    // The temporary password stopped working; the chosen one works.
-    const oldPasswordLogin = await app.inject({
+    const first = await app.inject({
       method: "POST",
-      url: "/sessions",
-      payload: { email, password: temporaryPassword },
+      url: "/resident-invitations/accept",
+      payload: { token: token.id, password: "FirstPassword1" },
     });
-    expect(oldPasswordLogin.statusCode).toBe(400);
+    expect(first.statusCode).toBe(200);
 
-    const newPasswordLogin = await app.inject({
+    const second = await app.inject({
       method: "POST",
-      url: "/sessions",
-      payload: { email, password: "MyOwnPassword1" },
+      url: "/resident-invitations/accept",
+      payload: { token: token.id, password: "SecondPassword1" },
     });
-    expect(newPasswordLogin.statusCode).toBe(200);
-    expect(newPasswordLogin.json()).toEqual({ userType: "resident", mustChangePassword: false });
-
-    // And the physician can no longer see a temporary password — there
-    // isn't one anymore.
-    const viewAfterChange = await app.inject({
-      method: "GET",
-      url: `/residents/${residentId}/temporary-password`,
-      cookies: physicianCookies,
-    });
-    expect(viewAfterChange.json()).toEqual({ temporaryPassword: null });
+    expect(second.statusCode).toBe(400);
   }, 60000);
 
   it("sees only the surgeries it participates in, with full control history, and can edit only its own control", async () => {
     const app = await buildApp(buildDeps());
     const physician = await registerAndLoginPhysician(app);
     const physicianCookies = { session_id: physician.sessionId };
-    const { residentId, email, temporaryPassword } = await registerResident(app, physicianCookies);
+    const { residentId, email } = await registerResident(app, physicianCookies);
+    await acceptInvitation(app, residentId, "ResidentOwnPass1");
 
     const surgeryWithResident = await registerPatientProcedureAndSurgery(app, physicianCookies);
     const surgeryWithoutResident = await registerPatientProcedureAndSurgery(app, physicianCookies);
@@ -218,21 +215,14 @@ describe("Resident authentication over real HTTP, against real Postgres (ADR 001
     });
     const { controlId: physicianControlId } = physicianControl.json<{ controlId: string }>();
 
-    // Log in as the resident and change the forced temp password first.
     const login1 = await app.inject({
       method: "POST",
       url: "/sessions",
-      payload: { email, password: temporaryPassword },
+      payload: { email, password: "ResidentOwnPass1" },
     });
     const residentCookies = {
       session_id: login1.cookies.find((c) => c.name === "session_id")?.value as string,
     };
-    await app.inject({
-      method: "PATCH",
-      url: "/me/password",
-      cookies: residentCookies,
-      payload: { newPassword: "ResidentOwnPass1" },
-    });
 
     const panel = await app.inject({
       method: "GET",
@@ -296,61 +286,52 @@ describe("Resident authentication over real HTTP, against real Postgres (ADR 001
     expect(editOthers.statusCode).toBe(400);
   }, 60000);
 
-  it("blanqueo: the physician can reissue a temporary password, which re-arms the must-change rule", async () => {
+  it("resending an invitation clears any existing password and requires accepting again", async () => {
     const app = await buildApp(buildDeps());
     const physician = await registerAndLoginPhysician(app);
     const physicianCookies = { session_id: physician.sessionId };
-    const { residentId, email, temporaryPassword } = await registerResident(app, physicianCookies);
+    const { residentId, email } = await registerResident(app, physicianCookies);
+    await acceptInvitation(app, residentId, "FirstOwnPassword1");
 
-    const login1 = await app.inject({
+    const resend = await app.inject({
       method: "POST",
-      url: "/sessions",
-      payload: { email, password: temporaryPassword },
-    });
-    await app.inject({
-      method: "PATCH",
-      url: "/me/password",
-      cookies: { session_id: login1.cookies.find((c) => c.name === "session_id")?.value as string },
-      payload: { newPassword: "FirstOwnPassword1" },
-    });
-
-    const reset = await app.inject({
-      method: "POST",
-      url: `/residents/${residentId}/password-reset`,
+      url: `/residents/${residentId}/resend-invitation`,
       cookies: physicianCookies,
     });
-    expect(reset.statusCode).toBe(200);
-    const { temporaryPassword: newTemporaryPassword } = reset.json<{ temporaryPassword: string }>();
-    expect(newTemporaryPassword).not.toBe(temporaryPassword);
+    expect(resend.statusCode).toBe(204);
 
-    // The chosen password no longer works; the fresh temporary one does,
-    // and is must-change again.
-    const oldOwnLogin = await app.inject({
+    // The old password no longer works — there is no credential until
+    // the fresh invitation is accepted again.
+    const oldLogin = await app.inject({
       method: "POST",
       url: "/sessions",
       payload: { email, password: "FirstOwnPassword1" },
     });
-    expect(oldOwnLogin.statusCode).toBe(400);
+    expect(oldLogin.statusCode).toBe(400);
+    expect(oldLogin.json<{ error: string }>().error).toMatch(/invitation hasn't been accepted/);
 
-    const newTempLogin = await app.inject({
+    const acceptAgain = await acceptInvitation(app, residentId, "SecondOwnPassword1");
+    expect(acceptAgain.statusCode).toBe(200);
+
+    const newLogin = await app.inject({
       method: "POST",
       url: "/sessions",
-      payload: { email, password: newTemporaryPassword },
+      payload: { email, password: "SecondOwnPassword1" },
     });
-    expect(newTempLogin.statusCode).toBe(200);
-    expect(newTempLogin.json()).toEqual({ userType: "resident", mustChangePassword: true });
+    expect(newLogin.statusCode).toBe(200);
   }, 60000);
 
-  it("deactivating a resident blocks future logins and closes any session they currently hold", async () => {
+  it("deactivating a resident blocks future logins, closes any session they currently hold, and invalidates a pending invitation", async () => {
     const app = await buildApp(buildDeps());
     const physician = await registerAndLoginPhysician(app);
     const physicianCookies = { session_id: physician.sessionId };
-    const { residentId, email, temporaryPassword } = await registerResident(app, physicianCookies);
+    const { residentId, email } = await registerResident(app, physicianCookies);
+    await acceptInvitation(app, residentId, "MyOwnPassword1");
 
     const login1 = await app.inject({
       method: "POST",
       url: "/sessions",
-      payload: { email, password: temporaryPassword },
+      payload: { email, password: "MyOwnPassword1" },
     });
     const residentSessionId = login1.cookies.find((c) => c.name === "session_id")?.value as string;
 
@@ -375,7 +356,7 @@ describe("Resident authentication over real HTTP, against real Postgres (ADR 001
     const loginAttempt = await app.inject({
       method: "POST",
       url: "/sessions",
-      payload: { email, password: temporaryPassword },
+      payload: { email, password: "MyOwnPassword1" },
     });
     expect(loginAttempt.statusCode).toBe(400);
     expect(loginAttempt.json<{ error: string }>().error).toMatch(/deactivated/);
@@ -392,12 +373,12 @@ describe("Resident authentication over real HTTP, against real Postgres (ADR 001
     const loginAfterReactivate = await app.inject({
       method: "POST",
       url: "/sessions",
-      payload: { email, password: temporaryPassword },
+      payload: { email, password: "MyOwnPassword1" },
     });
     expect(loginAfterReactivate.statusCode).toBe(200);
   }, 60000);
 
-  it("keeps tenant isolation: a physician cannot view/reset/deactivate another tenant's resident", async () => {
+  it("keeps tenant isolation: a physician cannot resend an invitation or deactivate another tenant's resident", async () => {
     const app = await buildApp(buildDeps());
     const owner = await registerAndLoginPhysician(app);
     const intruder = await registerAndLoginPhysician(app);
@@ -405,19 +386,12 @@ describe("Resident authentication over real HTTP, against real Postgres (ADR 001
 
     const intruderCookies = { session_id: intruder.sessionId };
 
-    const view = await app.inject({
-      method: "GET",
-      url: `/residents/${residentId}/temporary-password`,
-      cookies: intruderCookies,
-    });
-    expect(view.statusCode).toBe(404);
-
-    const reset = await app.inject({
+    const resend = await app.inject({
       method: "POST",
-      url: `/residents/${residentId}/password-reset`,
+      url: `/residents/${residentId}/resend-invitation`,
       cookies: intruderCookies,
     });
-    expect(reset.statusCode).toBe(404);
+    expect(resend.statusCode).toBe(404);
 
     const deactivate = await app.inject({
       method: "PATCH",

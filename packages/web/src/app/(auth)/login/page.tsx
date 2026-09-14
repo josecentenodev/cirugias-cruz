@@ -34,6 +34,9 @@ export default async function LoginPage({
         {reason === "session-expired" ? (
           <Alert variant="muted">{messages.auth.login.sessionExpired}</Alert>
         ) : null}
+        {reason === "invitation-accepted" ? (
+          <Alert variant="success">{messages.auth.acceptInvitation.accepted}</Alert>
+        ) : null}
         <LoginForm />
         <p className="text-center text-sm text-muted-foreground">
           {messages.auth.login.noAccount}{" "}

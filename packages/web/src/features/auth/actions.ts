@@ -7,7 +7,7 @@ import { getForwardedClientIp } from "@/lib/client-ip";
 import { valuesFromFormData } from "@/lib/form-values";
 import { clearSessionCookie, getSessionId, setSessionCookie } from "@/lib/session";
 import { parseSessionCookie } from "./parse-session-cookie";
-import { loginSchema, registerSchema } from "./schemas";
+import { acceptInvitationSchema, loginSchema, registerSchema } from "./schemas";
 
 const REGISTER_ECHO_FIELDS = ["firstName", "lastName", "phone", "email", "dateOfBirth"] as const;
 const LOGIN_ECHO_FIELDS = ["email"] as const;
@@ -52,6 +52,77 @@ export async function registerAction(
   }
 
   redirect("/signup/check-email");
+}
+
+export interface ResendConfirmationFormState {
+  sent?: boolean;
+}
+
+/**
+ * Fired from the login screen's "resend confirmation email" prompt
+ * (ADR 0028, closing ADR 0015's own open item). Deliberately always
+ * reports success in the UI regardless of what actually happened
+ * server-side — `resendConfirmationEmail` (Application) is silent for
+ * "no such email"/"already confirmed" on purpose, and this action must
+ * not leak that distinction back out through a different response
+ * shape.
+ */
+export async function resendConfirmationAction(
+  _previousState: ResendConfirmationFormState,
+  formData: FormData,
+): Promise<ResendConfirmationFormState> {
+  const email = formData.get("email");
+  if (typeof email === "string" && email.trim()) {
+    try {
+      await apiRequest({ method: "POST", path: "/email-confirmations/resend", body: { email } });
+    } catch {
+      // Rate-limited or otherwise unavailable — still reported as "sent"
+      // in the UI, per this action's own non-leaking posture above.
+    }
+  }
+  return { sent: true };
+}
+
+export interface AcceptInvitationFormState {
+  error?: string;
+  token?: string;
+}
+
+/**
+ * `POST /resident-invitations/accept` (ADR 0029) — unauthenticated by
+ * definition, same reasoning as `registerAction`/`loginAction`: the
+ * Resident has no session yet, that's the whole point. On success,
+ * redirects to `/login` rather than logging them in directly — same
+ * "accepting isn't the same as authenticating" posture `registerAction`
+ * already uses for the Physician's own confirmation flow.
+ */
+export async function acceptInvitationAction(
+  _previousState: AcceptInvitationFormState,
+  formData: FormData,
+): Promise<AcceptInvitationFormState> {
+  const parsed = acceptInvitationSchema.safeParse({
+    token: formData.get("token"),
+    password: formData.get("password"),
+  });
+  const token = typeof formData.get("token") === "string" ? (formData.get("token") as string) : "";
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Please fill in every field.", token };
+  }
+
+  try {
+    await apiRequest({
+      method: "POST",
+      path: "/resident-invitations/accept",
+      body: parsed.data,
+    });
+  } catch (error) {
+    if (error instanceof ApiDomainError) {
+      return { error: error.message, token };
+    }
+    throw error;
+  }
+
+  redirect("/login?reason=invitation-accepted");
 }
 
 export interface LoginFormState {
@@ -132,28 +203,22 @@ export async function loginAction(
   await setSessionCookie(parsedCookie.sessionId, parsedCookie.expiresAt);
 
   // ADR 0017: `api` now authenticates two kinds of principal through
-  // this one route — the response body says which, and, for a
-  // Resident, whether they still must change their temporary password
-  // before doing anything else. A malformed/missing body is treated as
-  // the physician case (this route's original, still-default shape)
-  // rather than thrown — the session cookie is already set either way.
+  // this one route — the response body says which. A malformed/missing
+  // body is treated as the physician case (this route's original,
+  // still-default shape) rather than thrown — the session cookie is
+  // already set either way.
   let userType: "physician" | "resident" = "physician";
-  let mustChangePassword = false;
   try {
-    const body = (await response.json()) as {
-      userType?: "physician" | "resident";
-      mustChangePassword?: boolean;
-    };
+    const body = (await response.json()) as { userType?: "physician" | "resident" };
     if (body.userType === "resident") {
       userType = "resident";
-      mustChangePassword = body.mustChangePassword ?? false;
     }
   } catch {
     // Fall back to the physician case above.
   }
 
   if (userType === "resident") {
-    redirect(mustChangePassword ? "/resident/change-password" : "/resident/surgeries");
+    redirect("/resident/surgeries");
   }
   redirect("/patients");
 }

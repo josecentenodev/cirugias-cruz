@@ -29,9 +29,9 @@ describe("PrismaResidentCredentialRepository", () => {
       residentId: RESIDENT_ID,
       physicianId: PHYSICIAN_ID,
       email: "Resident.Credential@Example.com",
-      passwordHash: "hashed-temp",
-      temporaryPassword: "Temp1234",
-      mustChangePassword: true,
+      passwordHash: null,
+      invitedAt: new Date(),
+      acceptedAt: null,
       active: true,
     };
   }
@@ -49,38 +49,53 @@ describe("PrismaResidentCredentialRepository", () => {
 
     const byEmail = await repository.findByEmail("resident.credential@example.com");
     expect(byEmail?.residentId).toBe(RESIDENT_ID);
-    expect(byEmail?.temporaryPassword).toBe("Temp1234");
-    expect(byEmail?.mustChangePassword).toBe(true);
+    expect(byEmail?.passwordHash).toBeNull();
+    expect(byEmail?.acceptedAt).toBeNull();
     expect(byEmail?.active).toBe(true);
 
     const byId = await repository.findByResidentId(RESIDENT_ID);
     expect(byId?.email).toBe("Resident.Credential@Example.com");
   });
 
-  it("recordPasswordChange hashes the new password, clears the temporary one, and un-arms must-change", async () => {
-    await repository.save(validCredential());
+  it("recordPasswordChange hashes the new password without touching acceptedAt", async () => {
+    await repository.save({
+      ...validCredential(),
+      passwordHash: "old-hash",
+      acceptedAt: new Date(),
+    });
 
     await repository.recordPasswordChange(RESIDENT_ID, "new-hash");
 
     const found = await repository.findByResidentId(RESIDENT_ID);
     expect(found?.passwordHash).toBe("new-hash");
-    expect(found?.temporaryPassword).toBeNull();
-    expect(found?.mustChangePassword).toBe(false);
+    expect(found?.acceptedAt).toBeInstanceOf(Date);
   });
 
-  it("reissueTemporaryPassword sets a fresh temporary password and re-arms must-change", async () => {
-    await repository.save({
-      ...validCredential(),
-      mustChangePassword: false,
-      temporaryPassword: null,
-    });
+  it("recordInvitationAccepted sets the password and stamps acceptedAt", async () => {
+    await repository.save(validCredential());
 
-    await repository.reissueTemporaryPassword(RESIDENT_ID, "NewTemp99", "new-hash");
+    const acceptedAt = new Date();
+    await repository.recordInvitationAccepted(RESIDENT_ID, "new-hash", acceptedAt);
 
     const found = await repository.findByResidentId(RESIDENT_ID);
-    expect(found?.temporaryPassword).toBe("NewTemp99");
-    expect(found?.mustChangePassword).toBe(true);
     expect(found?.passwordHash).toBe("new-hash");
+    expect(found?.acceptedAt?.getTime()).toBe(acceptedAt.getTime());
+  });
+
+  it("recordInvitationResent clears the password/acceptedAt and stamps a fresh invitedAt", async () => {
+    await repository.save({
+      ...validCredential(),
+      passwordHash: "old-hash",
+      acceptedAt: new Date("2020-01-01"),
+    });
+
+    const invitedAt = new Date();
+    await repository.recordInvitationResent(RESIDENT_ID, invitedAt);
+
+    const found = await repository.findByResidentId(RESIDENT_ID);
+    expect(found?.passwordHash).toBeNull();
+    expect(found?.acceptedAt).toBeNull();
+    expect(found?.invitedAt.getTime()).toBe(invitedAt.getTime());
   });
 
   it("setActive deactivates and reactivates a credential", async () => {

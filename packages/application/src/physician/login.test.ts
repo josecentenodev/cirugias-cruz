@@ -33,17 +33,21 @@ async function seedCredential(
 
 async function seedResidentCredential(
   deps: ReturnType<typeof buildDeps>,
-  overrides: { email?: string; password?: string; active?: boolean } = {},
+  overrides: {
+    email?: string;
+    password?: string | null;
+    active?: boolean;
+  } = {},
 ) {
-  const password = overrides.password ?? "r3sident-password";
+  const password = overrides.password === undefined ? "r3sident-password" : overrides.password;
   const email = overrides.email ?? "resident@example.com";
   deps.residentCredentialRepository.seed({
     residentId: "resident-1",
     physicianId: "physician-1",
     email,
-    passwordHash: await deps.passwordHasher.hash(password),
-    temporaryPassword: password,
-    mustChangePassword: true,
+    passwordHash: password === null ? null : await deps.passwordHasher.hash(password),
+    invitedAt: new Date(),
+    acceptedAt: password === null ? null : new Date(),
     active: overrides.active ?? true,
   });
   return { email, password };
@@ -89,16 +93,23 @@ describe("login", () => {
     expect(session.physicianId).toBe("physician-1");
   });
 
-  it("allows login even when the credential is unconfirmed (ADR 0016: email confirmation paused for MVP)", async () => {
+  it("rejects login when the credential is unconfirmed (ADR 0028: confirmation gate re-enabled)", async () => {
     const deps = buildDeps();
     const { email, password } = await seedCredential(deps, { confirmedAt: null });
+
+    await expect(login(deps)({ email, password })).rejects.toThrow(/confirm your email/i);
+  });
+
+  it("allows login once the credential has been confirmed", async () => {
+    const deps = buildDeps();
+    const { email, password } = await seedCredential(deps, { confirmedAt: new Date() });
 
     const session = await login(deps)({ email, password });
 
     expect(session.physicianId).toBe("physician-1");
   });
 
-  it("still rejects a wrong password regardless of confirmation state", async () => {
+  it("checks the password before the confirmation gate — a wrong password stays a generic error", async () => {
     const deps = buildDeps();
     const { email } = await seedCredential(deps, { confirmedAt: null });
 
@@ -111,7 +122,7 @@ describe("login", () => {
     const deps = buildDeps();
     const { email, password } = await seedResidentCredential(deps);
 
-    const session = await login(deps)({ email, password });
+    const session = await login(deps)({ email, password: password as string });
 
     expect(session.userType).toBe("resident");
     expect(session.physicianId).toBe("physician-1");
@@ -131,16 +142,30 @@ describe("login", () => {
     const deps = buildDeps();
     const { password } = await seedResidentCredential(deps, { email: "resident@example.com" });
 
-    const session = await login(deps)({ email: "RESIDENT@EXAMPLE.com", password });
+    const session = await login(deps)({
+      email: "RESIDENT@EXAMPLE.com",
+      password: password as string,
+    });
 
     expect(session.residentId).toBe("resident-1");
+  });
+
+  it("rejects a resident whose invitation hasn't been accepted yet (ADR 0029)", async () => {
+    const deps = buildDeps();
+    const { email } = await seedResidentCredential(deps, { password: null });
+
+    await expect(login(deps)({ email, password: "whatever" })).rejects.toThrow(
+      /invitation hasn't been accepted/,
+    );
   });
 
   it("rejects a deactivated resident even with the correct password", async () => {
     const deps = buildDeps();
     const { email, password } = await seedResidentCredential(deps, { active: false });
 
-    await expect(login(deps)({ email, password })).rejects.toThrow(/deactivated/);
+    await expect(login(deps)({ email, password: password as string })).rejects.toThrow(
+      /deactivated/,
+    );
   });
 
   it("never confuses a physician email with a resident email — the physician store is checked first", async () => {

@@ -1,9 +1,7 @@
 import { DomainError, Resident } from "@cirugias-cruz/domain";
 import type { PhysicianCredentialRepository } from "../physician/physician-credential-repository.js";
-import type { PasswordHasher } from "../physician/password-hasher.js";
 import type { ResidentCredentialRepository } from "./resident-credential-repository.js";
 import type { ResidentRepository } from "./resident-repository.js";
-import type { TemporaryPasswordGenerator } from "./temporary-password-generator.js";
 
 export interface RegisterResidentInput {
   physicianId: string;
@@ -18,29 +16,22 @@ export interface RegisterResidentInput {
 
 export interface RegisterResidentOutput {
   residentId: string;
-  /**
-   * The freshly generated temporary password — returned once here for
-   * convenience (so the Physician sees it immediately after creating the
-   * Resident), and separately retrievable later via
-   * `viewResidentTemporaryPassword` for as long as it hasn't been
-   * changed (ADR 0017, decision item 4).
-   */
-  temporaryPassword: string;
 }
 
 export interface RegisterResidentDeps {
   residentRepository: ResidentRepository;
   residentCredentialRepository: ResidentCredentialRepository;
   physicianCredentialRepository: PhysicianCredentialRepository;
-  passwordHasher: PasswordHasher;
-  temporaryPasswordGenerator: TemporaryPasswordGenerator;
 }
 
 /**
- * Registers a Resident in the acting physician's tenant, and — new as of
- * ADR 0017 — creates login credentials for them at the same time: a
- * system-generated random temporary password, which the Resident must
- * change on first login. Email uniqueness is enforced across *both*
+ * Registers a Resident in the acting physician's tenant, and creates a
+ * credential row for them with **no usable password yet** (ADR 0029 —
+ * amends ADR 0017's system-generated-temporary-password mechanism): the
+ * Resident becomes able to log in only once they accept the invitation
+ * this operation's caller sends right after (`sendResidentInvitation`,
+ * kept separate the same way `sendConfirmationEmail` is kept separate
+ * from `registerPhysician`). Email uniqueness is enforced across *both*
  * credential stores (Physician's and Resident's), not just this one:
  * `login` looks up a single email across both, so a collision between a
  * Physician and a Resident would make that lookup ambiguous — the same
@@ -70,18 +61,16 @@ export function registerResident(deps: RegisterResidentDeps) {
 
     await deps.residentRepository.save(resident);
 
-    const temporaryPassword = deps.temporaryPasswordGenerator.generate();
-    const passwordHash = await deps.passwordHasher.hash(temporaryPassword);
     await deps.residentCredentialRepository.save({
       residentId: resident.id,
       physicianId: resident.physicianId,
       email: input.email,
-      passwordHash,
-      temporaryPassword,
-      mustChangePassword: true,
+      passwordHash: null,
+      invitedAt: new Date(),
+      acceptedAt: null,
       active: true,
     });
 
-    return { residentId: resident.id, temporaryPassword };
+    return { residentId: resident.id };
   };
 }

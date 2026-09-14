@@ -72,8 +72,8 @@ describe("registerPhysician", () => {
       physicianId: "physician-other",
       email: validInput.email,
       passwordHash: "hash",
-      temporaryPassword: null,
-      mustChangePassword: false,
+      invitedAt: new Date(),
+      acceptedAt: new Date(),
       active: true,
     });
 

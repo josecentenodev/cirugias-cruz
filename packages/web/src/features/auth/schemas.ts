@@ -34,3 +34,16 @@ export const registerSchema = z.object({
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
+
+/**
+ * Mirrors `api`'s own `acceptInvitationBodySchema`
+ * (`packages/http/src/routes/resident.ts`, ADR 0029) — required
+ * non-empty strings, nothing stricter (same reasoning as
+ * `registerSchema`'s own comment: no invented password-strength rule).
+ */
+export const acceptInvitationSchema = z.object({
+  token: z.string().trim().min(1, "This invitation link is missing its token."),
+  password: z.string().min(1, "Password is required"),
+});
+
+export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;

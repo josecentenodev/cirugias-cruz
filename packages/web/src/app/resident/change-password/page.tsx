@@ -7,11 +7,9 @@ import { ChangePasswordForm } from "@/features/resident-session/components/Chang
 export const dynamic = "force-dynamic";
 
 /**
- * Reached two ways: forced right after a first login on a temporary
- * password (ADR 0017 — `api` blocks every other Resident route until
- * this happens), or voluntarily later from the same URL. The form and
- * the action are identical either way; this page doesn't know or care
- * which case it is.
+ * A voluntary "change my password" page — the Resident's first password
+ * is set by accepting their invitation (ADR 0029, `/accept-invitation`),
+ * not here; there is no forced first-login redirect anymore.
  */
 export default function ResidentChangePasswordPage() {
   return (

@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { authedApiRequest } from "@/lib/authed-api-request";
 import { ApiDomainError, ApiNotFoundError } from "@/lib/api-errors";
 import { valuesFromFormData } from "@/lib/form-values";
-import type { TemporaryPasswordResponse } from "./dtos";
 import { registerResidentSchema } from "./schemas";
 
 const REGISTER_RESIDENT_ECHO_FIELDS = [
@@ -50,52 +49,24 @@ export async function registerResidentAction(
   redirect("/staff/residents");
 }
 
-export interface ViewTemporaryPasswordFormState {
-  temporaryPassword?: string | null;
-  revealed?: boolean;
+export interface ResendInvitationFormState {
+  sent?: boolean;
   error?: string;
 }
 
 /**
- * `GET /residents/:id/temporary-password`, called through a Server
- * Action (not a plain query) so a Client Component can reveal it
- * on-demand via `useActionState`, without a page navigation. Returns
- * `null` once the Resident has changed it (ADR 0017) — not an error.
+ * The "resend invitation" action (ADR 0029, replacing 0017's
+ * "blanqueo") — `POST /residents/:id/resend-invitation`. Clears any
+ * existing password on `api`'s side; the Resident cannot log in again
+ * until they accept the fresh invitation.
  */
-export async function viewResidentTemporaryPasswordAction(
+export async function resendResidentInvitationAction(
   residentId: string,
-  _previousState: ViewTemporaryPasswordFormState,
-): Promise<ViewTemporaryPasswordFormState> {
+  _previousState: ResendInvitationFormState,
+): Promise<ResendInvitationFormState> {
   try {
-    const { temporaryPassword } = await authedApiRequest<TemporaryPasswordResponse>({
-      method: "GET",
-      path: `/residents/${residentId}/temporary-password`,
-    });
-    return { temporaryPassword, revealed: true };
-  } catch (error) {
-    if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
-      return { error: error.message };
-    }
-    throw error;
-  }
-}
-
-export interface ResetPasswordFormState {
-  temporaryPassword?: string;
-  error?: string;
-}
-
-/** The "blanqueo" (ADR 0017, decision item 8) — `POST /residents/:id/password-reset`. */
-export async function resetResidentPasswordAction(
-  residentId: string,
-  _previousState: ResetPasswordFormState,
-): Promise<ResetPasswordFormState> {
-  try {
-    const { temporaryPassword } = await authedApiRequest<{ temporaryPassword: string }>({
-      method: "POST",
-      path: `/residents/${residentId}/password-reset`,
-    });
-    return { temporaryPassword };
+    await authedApiRequest({ method: "POST", path: `/residents/${residentId}/resend-invitation` });
+    return { sent: true };
   } catch (error) {
     if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
       return { error: error.message };

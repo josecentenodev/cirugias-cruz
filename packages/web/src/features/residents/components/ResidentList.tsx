@@ -62,6 +62,7 @@ export function ResidentList({ residents }: { residents: ResidentView[] }) {
                   residentId={resident.id}
                   residentName={resident.fullName}
                   active={resident.active}
+                  invitationAccepted={resident.invitationAccepted}
                 />
               </TableCell>
             </TableRow>

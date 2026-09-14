@@ -87,7 +87,7 @@ describe("Physician registration and authentication (real HTTP, real DB)", () =>
     expect(badLogin.statusCode).toBe(400);
   });
 
-  it("allows login before confirming the email, and confirming (still a real, working route) doesn't change that (ADR 0016)", async () => {
+  it("rejects login before confirming the email, and allows it once confirmed (ADR 0028)", async () => {
     const app = await buildApp(buildDeps());
     const payload = newPhysicianPayload();
     const registerResponse = await app.inject({ method: "POST", url: "/physicians", payload });
@@ -99,15 +99,12 @@ describe("Physician registration and authentication (real HTTP, real DB)", () =>
       url: "/sessions",
       payload: { email: payload.email, password: payload.password },
     });
-    expect(loginBeforeConfirm.statusCode).toBe(200);
-    expect(extractSessionCookie(loginBeforeConfirm)).toBeDefined();
+    expect(loginBeforeConfirm.statusCode).toBe(400);
+    expect(loginBeforeConfirm.json<{ error: string }>().error).toMatch(/confirm your email/i);
 
-    // ADR 0016 pauses the login *gate*, not the confirmation machinery
-    // itself — the token/route this test redeems is exactly what 0015
-    // built and 0016 explicitly leaves in place, dormant. No real email
-    // was sent (RESEND_API_KEY isn't configured for this test run — see
-    // routes/auth.ts's resilient-failure comment); the token is read
-    // directly from where the operation persisted it.
+    // No real email was sent (RESEND_API_KEY isn't configured for this
+    // test run — see routes/auth.ts's resilient-failure comment); the
+    // token is read directly from where the operation persisted it.
     const token = await testPrisma.emailConfirmationToken.findFirstOrThrow({
       where: { physicianId },
     });
@@ -127,6 +124,43 @@ describe("Physician registration and authentication (real HTTP, real DB)", () =>
     });
     expect(loginAfterConfirm.statusCode).toBe(200);
     expect(extractSessionCookie(loginAfterConfirm)).toBeDefined();
+  });
+
+  it("resends a confirmation email, redeemable the same way as the original (ADR 0028)", async () => {
+    const app = await buildApp(buildDeps());
+    const payload = newPhysicianPayload();
+    const registerResponse = await app.inject({ method: "POST", url: "/physicians", payload });
+    const physicianId = registerResponse.json<{ physicianId: string }>().physicianId;
+    physicianIds.push(physicianId);
+
+    const resendResponse = await app.inject({
+      method: "POST",
+      url: "/email-confirmations/resend",
+      payload: { email: payload.email, firstName: payload.firstName },
+    });
+    expect(resendResponse.statusCode).toBe(204);
+
+    const token = await testPrisma.emailConfirmationToken.findFirstOrThrow({
+      where: { physicianId },
+      orderBy: { createdAt: "desc" },
+    });
+    const confirmResponse = await app.inject({
+      method: "POST",
+      url: "/email-confirmations",
+      payload: { token: token.id },
+    });
+    expect(confirmResponse.statusCode).toBe(200);
+  });
+
+  it("resending confirmation for an unknown email is a silent no-op, not an error", async () => {
+    const app = await buildApp(buildDeps());
+
+    const resendResponse = await app.inject({
+      method: "POST",
+      url: "/email-confirmations/resend",
+      payload: { email: "unknown@example.com", firstName: "Nobody" },
+    });
+    expect(resendResponse.statusCode).toBe(204);
   });
 
   it("rejects redeeming the same confirmation token twice", async () => {

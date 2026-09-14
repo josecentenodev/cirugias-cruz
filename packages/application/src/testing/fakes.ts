@@ -32,7 +32,10 @@ import type {
   ResidentCredential,
   ResidentCredentialRepository,
 } from "../resident/resident-credential-repository.js";
-import type { TemporaryPasswordGenerator } from "../resident/temporary-password-generator.js";
+import type {
+  ResidentInvitationToken,
+  ResidentInvitationTokenRepository,
+} from "../resident/resident-invitation-token-repository.js";
 
 /**
  * In-memory fakes for Application orchestration tests. No Infrastructure
@@ -375,29 +378,33 @@ export class InMemoryResidentCredentialRepository implements ResidentCredentialR
   recordPasswordChange(residentId: string, passwordHash: string): Promise<void> {
     for (const [key, credential] of this.credentials) {
       if (credential.residentId === residentId) {
-        this.credentials.set(key, {
-          ...credential,
-          passwordHash,
-          temporaryPassword: null,
-          mustChangePassword: false,
-        });
+        this.credentials.set(key, { ...credential, passwordHash });
       }
     }
     return Promise.resolve();
   }
 
-  reissueTemporaryPassword(
+  recordInvitationAccepted(
     residentId: string,
-    temporaryPassword: string,
     passwordHash: string,
+    acceptedAt: Date,
   ): Promise<void> {
+    for (const [key, credential] of this.credentials) {
+      if (credential.residentId === residentId) {
+        this.credentials.set(key, { ...credential, passwordHash, acceptedAt });
+      }
+    }
+    return Promise.resolve();
+  }
+
+  recordInvitationResent(residentId: string, invitedAt: Date): Promise<void> {
     for (const [key, credential] of this.credentials) {
       if (credential.residentId === residentId) {
         this.credentials.set(key, {
           ...credential,
-          passwordHash,
-          temporaryPassword,
-          mustChangePassword: true,
+          passwordHash: null,
+          acceptedAt: null,
+          invitedAt,
         });
       }
     }
@@ -414,11 +421,38 @@ export class InMemoryResidentCredentialRepository implements ResidentCredentialR
   }
 }
 
-/** Deterministic, not random — a fake for Application-level tests. */
-export class FakeTemporaryPasswordGenerator implements TemporaryPasswordGenerator {
-  constructor(private readonly value: string = "Temp1234") {}
+export class InMemoryResidentInvitationTokenRepository implements ResidentInvitationTokenRepository {
+  private readonly tokens = new Map<string, ResidentInvitationToken>();
 
-  generate(): string {
-    return this.value;
+  create(residentId: string): Promise<ResidentInvitationToken> {
+    const token: ResidentInvitationToken = {
+      id: randomUUID(),
+      residentId,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    };
+    this.tokens.set(token.id, token);
+    return Promise.resolve(token);
+  }
+
+  findById(tokenId: string): Promise<ResidentInvitationToken | null> {
+    const token = this.tokens.get(tokenId);
+    if (!token || token.expiresAt.getTime() < Date.now()) {
+      return Promise.resolve(null);
+    }
+    return Promise.resolve(token);
+  }
+
+  delete(tokenId: string): Promise<void> {
+    this.tokens.delete(tokenId);
+    return Promise.resolve();
+  }
+
+  deleteByResidentId(residentId: string): Promise<void> {
+    for (const [id, token] of this.tokens) {
+      if (token.residentId === residentId) {
+        this.tokens.delete(id);
+      }
+    }
+    return Promise.resolve();
   }
 }

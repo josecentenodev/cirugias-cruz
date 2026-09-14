@@ -169,19 +169,43 @@ export {
   type ConfirmPhysicianEmailOutput,
   type ConfirmPhysicianEmailDeps,
 } from "./physician/confirm-physician-email.js";
+export {
+  resendConfirmationEmail,
+  type ResendConfirmationEmailInput,
+  type ResendConfirmationEmailDeps,
+} from "./physician/resend-confirmation-email.js";
 
 export type { ResidentRepository } from "./resident/resident-repository.js";
 export type {
   ResidentCredential,
   ResidentCredentialRepository,
 } from "./resident/resident-credential-repository.js";
-export type { TemporaryPasswordGenerator } from "./resident/temporary-password-generator.js";
+export type {
+  ResidentInvitationToken,
+  ResidentInvitationTokenRepository,
+} from "./resident/resident-invitation-token-repository.js";
 export {
   registerResident,
   type RegisterResidentInput,
   type RegisterResidentOutput,
   type RegisterResidentDeps,
 } from "./resident/register-resident.js";
+export {
+  sendResidentInvitation,
+  type SendResidentInvitationInput,
+  type SendResidentInvitationDeps,
+} from "./resident/send-resident-invitation.js";
+export {
+  acceptResidentInvitation,
+  type AcceptResidentInvitationInput,
+  type AcceptResidentInvitationOutput,
+  type AcceptResidentInvitationDeps,
+} from "./resident/accept-resident-invitation.js";
+export {
+  resendResidentInvitation,
+  type ResendResidentInvitationInput,
+  type ResendResidentInvitationDeps,
+} from "./resident/resend-resident-invitation.js";
 export {
   listResidents,
   type ListResidentsInput,
@@ -198,21 +222,10 @@ export {
   type ChangeResidentPasswordDeps,
 } from "./resident/change-resident-password.js";
 export {
-  resetResidentPassword,
-  type ResetResidentPasswordInput,
-  type ResetResidentPasswordOutput,
-  type ResetResidentPasswordDeps,
-} from "./resident/reset-resident-password.js";
-export {
   setResidentActive,
   type SetResidentActiveInput,
   type SetResidentActiveDeps,
 } from "./resident/set-resident-active.js";
-export {
-  viewResidentTemporaryPassword,
-  type ViewResidentTemporaryPasswordInput,
-  type ViewResidentTemporaryPasswordOutput,
-} from "./resident/view-resident-temporary-password.js";
 
 export type { ResearchStudyRepository } from "./research-study/research-study-repository.js";
 export {

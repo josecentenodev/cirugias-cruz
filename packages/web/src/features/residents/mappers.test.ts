@@ -12,6 +12,9 @@ function buildDto(overrides: Partial<ResidentDto> = {}): ResidentDto {
     email: "laura@example.com",
     dateOfBirth: "1995-02-02T00:00:00.000Z",
     active: true,
+    invitationAccepted: true,
+    invitedAt: "2026-01-01T00:00:00.000Z",
+    acceptedAt: "2026-01-02T00:00:00.000Z",
     ...overrides,
   };
 }

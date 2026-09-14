@@ -2,7 +2,10 @@
 
 ## Status
 
-Established (current iteration). **Amends [0015](0015-physician-self-registration-email-confirmation.md)**
+**Superseded by [0028](0028-physician-email-confirmation-reenabled.md)**
+— the pause recorded here has been lifted; `login` once again enforces
+email confirmation. Kept for history. Established (at the time).
+**Amends [0015](0015-physician-self-registration-email-confirmation.md)**
 — pauses part of it, does not reverse the parts it doesn't mention. Does
 not touch [0012](0012-physician-identified-by-email.md) (`email` remains
 the sole Physician identifier).

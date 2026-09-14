@@ -2,7 +2,11 @@
 
 ## Status
 
-Established (current iteration). Extends [0012](0012-physician-identified-by-email.md)
+Established. Items 2, 4, and 8 (temporary-password generation, viewing
+it in `web`, and "blanqueo") were **replaced by
+[0029](0029-resident-invitation-by-email.md)** with an emailed
+invitation-and-acceptance flow — check 0029 for the current mechanism.
+Items 1, 3, 5, 6, 7, 9, 10 are unamended and current. Extends [0012](0012-physician-identified-by-email.md)
 (the same email+password authentication mechanism, applied to a second
 kind of principal) and [0007](0007-residents-optional-and-immutable-once-participated.md)/
 [0010](0010-resident-participation-scoped-to-surgery.md) (unchanged —

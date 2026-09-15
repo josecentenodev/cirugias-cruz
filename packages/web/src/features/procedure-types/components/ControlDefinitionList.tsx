@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { DangerousConfirm } from "@/components/ui/DangerousConfirm";
+import { PencilIcon, TrashIcon } from "@/components/ui/icons";
 import {
   Table,
   TableBody,
@@ -65,24 +67,30 @@ export function ControlDefinitionList({
                   <span className="text-xs text-muted-foreground">{c.frozenHint}</span>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => setEditingId(definition.id)}
-                      className="text-sm underline"
+                      aria-label={c.edit}
+                      title={c.edit}
                     >
-                      {c.edit}
-                    </button>
+                      <PencilIcon />
+                    </Button>
                     <DangerousConfirm
                       action={removeControlDefinitionAction.bind(
                         null,
                         procedureTypeId,
                         definition.id,
                       )}
-                      triggerLabel={c.remove}
+                      triggerLabel={<TrashIcon />}
+                      triggerAriaLabel={c.remove}
                       confirmationPhrase={definition.name}
                       confirmLabel={messages.common.remove}
                       pendingLabel={messages.common.removing}
                       message={c.removeConfirm(definition.name)}
+                      title={c.remove}
+                      size="icon"
                     />
                   </div>
                 )}

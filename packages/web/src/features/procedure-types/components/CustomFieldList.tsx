@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { PencilIcon } from "@/components/ui/icons";
 import {
   Table,
   TableBody,
@@ -79,13 +81,16 @@ export function CustomFieldList({
                   <span className="text-xs text-muted-foreground">{c.frozenHint}</span>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => setEditingId(field.id)}
-                      className="text-sm underline"
+                      aria-label={c.edit}
+                      title={c.edit}
                     >
-                      {c.edit}
-                    </button>
+                      <PencilIcon />
+                    </Button>
                     <CustomFieldRemoveButton
                       procedureTypeId={procedureTypeId}
                       fieldId={field.id}

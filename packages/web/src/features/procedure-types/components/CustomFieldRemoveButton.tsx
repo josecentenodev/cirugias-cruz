@@ -1,6 +1,7 @@
 "use client";
 
 import { DangerousConfirm } from "@/components/ui/DangerousConfirm";
+import { TrashIcon } from "@/components/ui/icons";
 import { messages } from "@/messages/en";
 import { removeCustomFieldAction } from "../actions";
 
@@ -22,11 +23,14 @@ export function CustomFieldRemoveButton({
   return (
     <DangerousConfirm
       action={removeCustomFieldAction.bind(null, procedureTypeId, fieldId)}
-      triggerLabel={messages.procedureTypes.customFields.remove}
+      triggerLabel={<TrashIcon />}
+      triggerAriaLabel={messages.procedureTypes.customFields.remove}
       confirmationPhrase={fieldName}
       confirmLabel={messages.common.remove}
       pendingLabel={messages.common.removing}
       message={messages.procedureTypes.customFields.removeConfirm(fieldName)}
+      title={messages.procedureTypes.customFields.remove}
+      size="icon"
     />
   );
 }

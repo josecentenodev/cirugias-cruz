@@ -52,6 +52,7 @@ function SubmitButton({
 export function DangerousConfirm({
   action,
   triggerLabel,
+  triggerAriaLabel,
   confirmationPhrase,
   confirmLabel = messages.common.delete,
   pendingLabel = messages.common.deleting,
@@ -61,14 +62,17 @@ export function DangerousConfirm({
   size = "sm",
 }: {
   action: BoundAction;
-  triggerLabel: string;
+  /** Plain text, or an icon when `triggerAriaLabel` is also given. */
+  triggerLabel: React.ReactNode;
+  /** Required when `triggerLabel` isn't readable text (e.g. an icon). */
+  triggerAriaLabel?: string;
   confirmationPhrase: string;
   confirmLabel?: string;
   pendingLabel?: string;
   cancelLabel?: string;
   message: string;
   title?: string;
-  size?: "sm" | "default";
+  size?: "sm" | "default" | "icon";
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const inputId = useId();
@@ -98,6 +102,8 @@ export function DangerousConfirm({
         size={size}
         className="text-danger hover:bg-danger-bg"
         onClick={() => dialogRef.current?.showModal()}
+        aria-label={triggerAriaLabel}
+        title={triggerAriaLabel}
       >
         {triggerLabel}
       </Button>
@@ -109,7 +115,9 @@ export function DangerousConfirm({
       >
         <form action={formAction} className="flex flex-col gap-4 p-4">
           <div className="flex flex-col gap-1">
-            <h2 className="text-base font-semibold">{title ?? triggerLabel}</h2>
+            <h2 className="text-base font-semibold">
+              {title ?? (typeof triggerLabel === "string" ? triggerLabel : triggerAriaLabel)}
+            </h2>
             <p className="text-sm text-muted-foreground">{message}</p>
           </div>
 

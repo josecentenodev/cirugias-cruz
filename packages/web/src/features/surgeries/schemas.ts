@@ -30,14 +30,16 @@ export const recordControlSchema = z.discriminatedUnion("authorType", [
     // datetime + author + CustomField values.
     observations: z.string().trim().optional(),
     recordedAt: z.string().trim().min(1, "Recorded date is required"),
-    definitionId: z.string().trim().optional(),
+    // Required (ADR 0030: no ad-hoc controls) — every ProcedureType has
+    // at least its seeded default definition, so a selection always exists.
+    definitionId: z.string().trim().min(1, "Select a control type"),
   }),
   z.object({
     authorType: z.literal("resident"),
     residentId: z.string().trim().min(1, "Select which resident recorded this"),
     observations: z.string().trim().optional(),
     recordedAt: z.string().trim().min(1, "Recorded date is required"),
-    definitionId: z.string().trim().optional(),
+    definitionId: z.string().trim().min(1, "Select a control type"),
   }),
 ]);
 

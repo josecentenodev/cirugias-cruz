@@ -216,7 +216,7 @@ export const messages = {
       resident: "Resident",
       selectResident: "Select a resident",
       controlType: "Control type",
-      controlTypeNone: "Ad-hoc (no type)",
+      selectControlType: "Select a control type",
       now: "Now",
       atLimit: (name: string) =>
         `"${name}" already has all of its expected recordings on this surgery.`,

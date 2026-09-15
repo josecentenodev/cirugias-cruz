@@ -8,15 +8,18 @@ function buildDeps() {
   return { procedureTypeRepository: new InMemoryProcedureTypeRepository() };
 }
 
+const validInput = {
+  physicianId: PHYSICIAN_ID,
+  id: "procedure-type-1",
+  name: "Pterigión",
+  defaultControlDefinitionId: "control-def-default-1",
+};
+
 describe("registerProcedureType", () => {
   it("registers the procedure type in the acting physician's tenant and persists it", async () => {
     const deps = buildDeps();
 
-    const output = await registerProcedureType(deps)({
-      physicianId: PHYSICIAN_ID,
-      id: "procedure-type-1",
-      name: "Pterigión",
-    });
+    const output = await registerProcedureType(deps)(validInput);
 
     expect(output).toEqual({ procedureTypeId: "procedure-type-1" });
     const persisted = await deps.procedureTypeRepository.findById("procedure-type-1");
@@ -24,13 +27,23 @@ describe("registerProcedureType", () => {
     expect(persisted?.name).toBe("Pterigión");
   });
 
+  it("seeds a default uncapped control definition (ADR 0030) so it's never left without one", async () => {
+    const deps = buildDeps();
+
+    await registerProcedureType(deps)(validInput);
+
+    const persisted = await deps.procedureTypeRepository.findById("procedure-type-1");
+    expect(persisted?.controlDefinitions).toHaveLength(1);
+    const [definition] = persisted?.controlDefinitions ?? [];
+    expect(definition?.id).toBe("control-def-default-1");
+    expect(definition?.occurrenceRule).toEqual({ mode: "uncapped" });
+  });
+
   it("accepts an optional description", async () => {
     const deps = buildDeps();
 
     await registerProcedureType(deps)({
-      physicianId: PHYSICIAN_ID,
-      id: "procedure-type-1",
-      name: "Pterigión",
+      ...validInput,
       description: "Crecimiento fibrovascular conjuntival",
     });
 
@@ -41,8 +54,6 @@ describe("registerProcedureType", () => {
   it("lets the domain reject registration without a name", async () => {
     const deps = buildDeps();
 
-    await expect(
-      registerProcedureType(deps)({ physicianId: PHYSICIAN_ID, id: "procedure-type-1", name: "" }),
-    ).rejects.toThrow();
+    await expect(registerProcedureType(deps)({ ...validInput, name: "" })).rejects.toThrow();
   });
 });

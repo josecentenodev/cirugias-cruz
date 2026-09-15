@@ -346,17 +346,19 @@ model Control {
   authorType        String
   authorPhysicianId String?
   authorResidentId  String?
-  // The control definition (ADR 0026) this recording is an occurrence of,
-  // or NULL for an ad-hoc control. Id-only column (nullable relation),
-  // mirroring the SurgeryParticipant / research_study_surgeries id-only
-  // precedent — the aggregate boundary is Surgery, and ControlDefinition
-  // lives in the ProcedureType aggregate.
-  definitionId      String?
+  // The control definition (ADR 0026) this recording is an occurrence
+  // of — required (ADR 0030: no ad-hoc controls). Id-only column
+  // (relation still nullable at the Prisma-relation level is not
+  // needed since the FK itself is NOT NULL), mirroring the
+  // SurgeryParticipant / research_study_surgeries id-only precedent —
+  // the aggregate boundary is Surgery, and ControlDefinition lives in
+  // the ProcedureType aggregate.
+  definitionId      String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  surgery           Surgery            @relation(fields: [surgeryId], references: [id])
-  definition        ControlDefinition? @relation(fields: [definitionId], references: [id])
+  surgery           Surgery           @relation(fields: [surgeryId], references: [id])
+  definition        ControlDefinition @relation(fields: [definitionId], references: [id])
   customFieldValues CustomFieldValue[]
 
   @@index([surgeryId])

@@ -44,6 +44,25 @@ async function registerAndLogin(app: Awaited<ReturnType<typeof buildApp>>) {
   return { physicianId, sessionId };
 }
 
+/**
+ * Every ProcedureType is seeded with one default, uncapped control
+ * definition (ADR 0030) — tests that don't care about control typing
+ * just need any valid `definitionId` to record a Control at all.
+ */
+async function getDefaultControlDefinitionId(
+  app: Awaited<ReturnType<typeof buildApp>>,
+  cookies: Record<string, string>,
+  procedureTypeId: string,
+): Promise<string> {
+  const response = await app.inject({
+    method: "GET",
+    url: `/procedure-types/${procedureTypeId}`,
+    cookies,
+  });
+  const { controlDefinitions } = response.json<{ controlDefinitions: { id: string }[] }>();
+  return controlDefinitions[0]?.id as string;
+}
+
 describe("Core loop over real HTTP, authenticated, against real Postgres", () => {
   it("registers a patient, a procedure type, a surgery, and records/modifies a control — end to end", async () => {
     const app = await buildApp(buildDeps());
@@ -71,6 +90,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
     });
     expect(procedureTypeResponse.statusCode).toBe(201);
     const { procedureTypeId } = procedureTypeResponse.json<{ procedureTypeId: string }>();
+    const definitionId = await getDefaultControlDefinitionId(app, cookies, procedureTypeId);
 
     const surgeryResponse = await app.inject({
       method: "POST",
@@ -89,6 +109,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
         observations: "Sin signos de infección",
         recordedAt: "2026-01-11",
         author: { type: "physician" },
+        definitionId,
       },
     });
     expect(controlResponse.statusCode).toBe(201);
@@ -127,6 +148,11 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       payload: { name: "Pterigión" },
     });
     const { procedureTypeId } = procedureTypeResponse.json<{ procedureTypeId: string }>();
+    const definitionId = await getDefaultControlDefinitionId(
+      app,
+      { session_id: owner.sessionId },
+      procedureTypeId,
+    );
 
     const surgeryResponse = await app.inject({
       method: "POST",
@@ -144,6 +170,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
         observations: "attempt",
         recordedAt: "2026-01-11",
         author: { type: "physician" },
+        definitionId,
       },
     });
 
@@ -174,6 +201,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       payload: { name: "Pterigión", description: "Extirpación de pterigión" },
     });
     const { procedureTypeId } = procedureTypeResponse.json<{ procedureTypeId: string }>();
+    const definitionId = await getDefaultControlDefinitionId(app, cookies, procedureTypeId);
 
     const surgeryResponse = await app.inject({
       method: "POST",
@@ -191,6 +219,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
         observations: "Sin signos de infección",
         recordedAt: "2026-01-11",
         author: { type: "physician" },
+        definitionId,
       },
     });
 
@@ -285,6 +314,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       },
     });
     const { customFieldId: evaFieldId } = evaFieldResponse.json<{ customFieldId: string }>();
+    const definitionId = await getDefaultControlDefinitionId(app, cookies, procedureTypeId);
 
     const patientResponse = await app.inject({
       method: "POST",
@@ -320,6 +350,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
         observations: "obs",
         recordedAt: "2026-01-11",
         author: { type: "physician" },
+        definitionId,
         customFieldValues: [{ definitionId: evaFieldId, value: 99 }],
       },
     });
@@ -333,6 +364,7 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
         observations: "obs",
         recordedAt: "2026-01-11",
         author: { type: "physician" },
+        definitionId,
         customFieldValues: [{ definitionId: evaFieldId, value: 3 }],
       },
     });

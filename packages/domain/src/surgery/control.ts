@@ -14,8 +14,8 @@ export interface ControlAttributes {
   observations?: string;
   recordedAt: Date;
   author: ControlAuthor;
-  /** The control definition (ADR 0026) this recording is an occurrence of, or none for an ad-hoc control. */
-  definitionId?: string;
+  /** The control definition (ADR 0026) this recording is an occurrence of — required, ADR 0030: every Control has a type, no ad-hoc controls. */
+  definitionId: string;
   /** CONTROL-scoped CustomField values recorded on this Control (ADR 0018). */
   customFieldValues?: CustomFieldValueAttributes[];
 }
@@ -42,7 +42,7 @@ export class Control {
     private observations_: string | undefined,
     private recordedAt_: Date,
     private readonly author_: ControlAuthor,
-    private readonly definitionId_: string | undefined,
+    private readonly definitionId_: string,
   ) {}
 
   static create(attributes: ControlAttributes): Control {
@@ -54,6 +54,9 @@ export class Control {
     }
     if (!attributes.author) {
       throw new DomainError("Control requires an author");
+    }
+    if (!attributes.definitionId?.trim()) {
+      throw new DomainError("Control requires a control definition (ADR 0030)");
     }
 
     const control = new Control(
@@ -87,7 +90,7 @@ export class Control {
     return this.author_;
   }
 
-  get definitionId(): string | undefined {
+  get definitionId(): string {
     return this.definitionId_;
   }
 

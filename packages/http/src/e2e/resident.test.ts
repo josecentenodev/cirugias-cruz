@@ -74,7 +74,19 @@ async function registerPatientProcedureAndSurgery(
     cookies,
     payload: { patientId, procedureTypeId, performedAt: "2026-01-10" },
   });
-  return surgeryResponse.json<{ surgeryId: string }>().surgeryId;
+  const surgeryId = surgeryResponse.json<{ surgeryId: string }>().surgeryId;
+
+  // Every ProcedureType is seeded with one default, uncapped control
+  // definition (ADR 0030).
+  const procedureTypeGet = await app.inject({
+    method: "GET",
+    url: `/procedure-types/${procedureTypeId}`,
+    cookies,
+  });
+  const definitionId = procedureTypeGet.json<{ controlDefinitions: { id: string }[] }>()
+    .controlDefinitions[0]?.id as string;
+
+  return { surgeryId, definitionId };
 }
 
 describe("Resident vertical slice over real HTTP, authenticated, against real Postgres", () => {
@@ -83,7 +95,7 @@ describe("Resident vertical slice over real HTTP, authenticated, against real Po
     const { sessionId } = await registerAndLogin(app);
     const cookies = { session_id: sessionId };
 
-    const surgeryId = await registerPatientProcedureAndSurgery(app, cookies);
+    const { surgeryId, definitionId } = await registerPatientProcedureAndSurgery(app, cookies);
 
     const residentResponse = await app.inject({
       method: "POST",
@@ -138,6 +150,7 @@ describe("Resident vertical slice over real HTTP, authenticated, against real Po
         observations: "Evolución favorable",
         recordedAt: "2026-01-11",
         author: { type: "resident", residentId },
+        definitionId,
       },
     });
     expect(controlResponse.statusCode).toBe(201);
@@ -183,7 +196,7 @@ describe("Resident vertical slice over real HTTP, authenticated, against real Po
     const owner = await registerAndLogin(app);
     const intruder = await registerAndLogin(app);
 
-    const surgeryId = await registerPatientProcedureAndSurgery(app, {
+    const { surgeryId } = await registerPatientProcedureAndSurgery(app, {
       session_id: owner.sessionId,
     });
 

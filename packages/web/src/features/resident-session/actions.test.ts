@@ -76,7 +76,11 @@ describe("recordOwnControlAction", () => {
       recordOwnControlAction(
         "s1",
         {},
-        formData({ observations: "obs", recordedAt: "2026-01-11T10:00" }),
+        formData({
+          observations: "obs",
+          recordedAt: "2026-01-11T10:00",
+          definitionId: "def-general",
+        }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT:/resident/surgeries/s1");
 
@@ -117,6 +121,7 @@ describe("recordOwnControlAction", () => {
         formData({
           observations: "obs",
           recordedAt: "2026-01-11T10:00",
+          definitionId: "def-general",
           "customField:eva": "3",
         }),
       ),
@@ -135,7 +140,7 @@ describe("recordOwnControlAction", () => {
       recordOwnControlAction(
         "s1",
         {},
-        formData({ observations: "", recordedAt: "2026-01-11T10:00" }),
+        formData({ observations: "", recordedAt: "2026-01-11T10:00", definitionId: "def-general" }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT");
 
@@ -151,7 +156,11 @@ describe("recordOwnControlAction", () => {
       recordOwnControlAction(
         "s1",
         {},
-        formData({ observations: "obs", recordedAt: "2026-01-11T10:00" }),
+        formData({
+          observations: "obs",
+          recordedAt: "2026-01-11T10:00",
+          definitionId: "def-general",
+        }),
       ),
     ).rejects.toBeInstanceOf(ApiUnexpectedError);
   });

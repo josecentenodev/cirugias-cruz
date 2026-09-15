@@ -47,6 +47,7 @@ describe("getSurgeryForResident", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "physician", physicianId: PHYSICIAN_ID },
+      definitionId: "def-general",
     });
     deps.surgeryRepository.seed(surgery);
 

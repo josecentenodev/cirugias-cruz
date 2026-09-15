@@ -103,7 +103,7 @@ export async function recordControlAction(
   formData: FormData,
 ): Promise<RecordControlFormState> {
   const authorType = formData.get("authorType");
-  const definitionId = formData.get("definitionId") || undefined;
+  const definitionId = formData.get("definitionId");
   const parsed = recordControlSchema.safeParse(
     authorType === "resident"
       ? {
@@ -144,7 +144,7 @@ export async function recordControlAction(
           parsed.data.authorType === "resident"
             ? { type: "resident", residentId: parsed.data.residentId }
             : { type: "physician" },
-        ...(parsed.data.definitionId ? { definitionId: parsed.data.definitionId } : {}),
+        definitionId: parsed.data.definitionId,
         ...(customFieldValues.length > 0 ? { customFieldValues } : {}),
       },
     });

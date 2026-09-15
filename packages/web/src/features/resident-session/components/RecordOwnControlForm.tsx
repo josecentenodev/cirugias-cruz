@@ -29,7 +29,12 @@ export function RecordOwnControlForm({
 }) {
   const boundAction = recordOwnControlAction.bind(null, surgeryId);
   const [state, formAction] = useActionState(boundAction, initialState);
-  const [definitionId, setDefinitionId] = useState("");
+  // Every ProcedureType has at least its seeded default control
+  // definition (ADR 0030 — no ad-hoc controls), so pre-select it when
+  // it's the only option.
+  const [definitionId, setDefinitionId] = useState(
+    controlTypeOptions.length === 1 ? (controlTypeOptions[0]?.id ?? "") : "",
+  );
   const [recordedAt, setRecordedAt] = useState("");
   const selectedType = controlTypeOptions.find((option) => option.id === definitionId);
   const blockedByCap = Boolean(selectedType?.atLimit);
@@ -47,30 +52,33 @@ export function RecordOwnControlForm({
     <form action={formAction} className="flex flex-col gap-4">
       {state.error ? <Alert>{state.error}</Alert> : null}
 
-      {controlTypeOptions.length > 0 ? (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="definitionId">{messages.surgeries.recordControl.controlType}</Label>
-          <select
-            id="definitionId"
-            name="definitionId"
-            value={definitionId}
-            onChange={(event) => setDefinitionId(event.target.value)}
-            className={fieldClassName}
-          >
-            <option value="">{messages.surgeries.recordControl.controlTypeNone}</option>
-            {controlTypeOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.name}
-              </option>
-            ))}
-          </select>
-          {blockedByCap ? (
-            <p className="text-xs text-danger">
-              {messages.surgeries.recordControl.atLimit(selectedType?.name ?? "")}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="definitionId">{messages.surgeries.recordControl.controlType}</Label>
+        <select
+          id="definitionId"
+          name="definitionId"
+          required
+          value={definitionId}
+          onChange={(event) => setDefinitionId(event.target.value)}
+          className={fieldClassName}
+        >
+          {definitionId ? null : (
+            <option value="" disabled>
+              {messages.surgeries.recordControl.selectControlType}
+            </option>
+          )}
+          {controlTypeOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name}
+            </option>
+          ))}
+        </select>
+        {blockedByCap ? (
+          <p className="text-xs text-danger">
+            {messages.surgeries.recordControl.atLimit(selectedType?.name ?? "")}
+          </p>
+        ) : null}
+      </div>
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="observations">{messages.fields.observations}</Label>

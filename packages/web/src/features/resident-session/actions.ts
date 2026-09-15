@@ -10,7 +10,7 @@ import {
 } from "@/features/procedure-types/custom-field-values";
 import type { RecordControlResponse } from "@/features/surgeries/dtos";
 import { getOwnSurgery } from "./queries";
-import { changePasswordSchema, recordOwnControlSchema } from "./schemas";
+import { changePasswordSchema, modifyOwnControlSchema, recordOwnControlSchema } from "./schemas";
 
 export interface ChangePasswordFormState {
   error?: string;
@@ -66,7 +66,7 @@ export async function recordOwnControlAction(
   const parsed = recordOwnControlSchema.safeParse({
     observations: formData.get("observations") || undefined,
     recordedAt: formData.get("recordedAt"),
-    definitionId: formData.get("definitionId") || undefined,
+    definitionId: formData.get("definitionId"),
   });
   if (!parsed.success) {
     return { error: "Please fill in every required field." };
@@ -94,7 +94,7 @@ export async function recordOwnControlAction(
       body: {
         recordedAt: parsed.data.recordedAt,
         ...(parsed.data.observations ? { observations: parsed.data.observations } : {}),
-        ...(parsed.data.definitionId ? { definitionId: parsed.data.definitionId } : {}),
+        definitionId: parsed.data.definitionId,
         author: { type: "resident", residentId: "self" },
         ...(customFieldValues.length > 0 ? { customFieldValues } : {}),
       },
@@ -126,7 +126,7 @@ export async function modifyOwnControlAction(
   _previousState: ModifyOwnControlFormState,
   formData: FormData,
 ): Promise<ModifyOwnControlFormState> {
-  const parsed = recordOwnControlSchema.safeParse({
+  const parsed = modifyOwnControlSchema.safeParse({
     observations: formData.get("observations"),
     recordedAt: formData.get("recordedAt"),
   });

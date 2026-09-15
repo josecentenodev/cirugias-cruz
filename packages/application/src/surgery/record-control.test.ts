@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CustomField, ProcedureType, Surgery } from "@cirugias-cruz/domain";
+import { ControlDefinition, CustomField, ProcedureType, Surgery } from "@cirugias-cruz/domain";
 import { InMemoryProcedureTypeRepository, InMemorySurgeryRepository } from "../testing/fakes.js";
 import { recordControl } from "./record-control.js";
 
@@ -8,13 +8,20 @@ const OTHER_PHYSICIAN_ID = "physician-2";
 
 function buildDeps() {
   const procedureTypeRepository = new InMemoryProcedureTypeRepository();
-  procedureTypeRepository.seed(
-    ProcedureType.create({
-      id: "procedure-type-1",
-      physicianId: PHYSICIAN_ID,
-      name: "Pterigión",
+  const procedureType = ProcedureType.create({
+    id: "procedure-type-1",
+    physicianId: PHYSICIAN_ID,
+    name: "Pterigión",
+  });
+  procedureType.addControlDefinition(
+    ControlDefinition.create({
+      id: "def-general",
+      name: "General",
+      occurrenceRule: { mode: "uncapped" },
     }),
+    PHYSICIAN_ID,
   );
+  procedureTypeRepository.seed(procedureType);
   return { surgeryRepository: new InMemorySurgeryRepository(), procedureTypeRepository };
 }
 
@@ -42,6 +49,7 @@ describe("recordControl", () => {
       observations: "Sin signos de infección",
       recordedAt: new Date("2026-01-11"),
       author: { type: "physician" },
+      definitionId: "def-general",
     });
 
     expect(output).toEqual({ surgeryId: "surgery-1", controlId: "control-1" });
@@ -62,6 +70,7 @@ describe("recordControl", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "resident", residentId: "resident-1" },
+      definitionId: "def-general",
     });
 
     expect(output.controlId).toBe("control-1");
@@ -80,6 +89,7 @@ describe("recordControl", () => {
         observations: "obs",
         recordedAt: new Date(),
         author: { type: "physician" },
+        definitionId: "def-general",
       }),
     ).rejects.toThrow(/was not found/);
   });
@@ -97,6 +107,7 @@ describe("recordControl", () => {
         observations: "obs",
         recordedAt: new Date(),
         author: { type: "resident", residentId: "resident-1" },
+        definitionId: "def-general",
       }),
     ).rejects.toThrow(/own tenant/);
   });
@@ -113,6 +124,7 @@ describe("recordControl", () => {
         observations: "obs",
         recordedAt: new Date(),
         author: { type: "resident", residentId: "resident-1" },
+        definitionId: "def-general",
       }),
     ).rejects.toThrow();
   });
@@ -138,6 +150,7 @@ describe("recordControl", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "physician" },
+      definitionId: "def-general",
       customFieldValues: [{ definitionId: "cf-eva", value: 3 }],
     });
 
@@ -156,6 +169,7 @@ describe("recordControl", () => {
       id: "control-1",
       recordedAt: new Date("2026-01-11"),
       author: { type: "physician" },
+      definitionId: "def-general",
     });
 
     expect(output.controlId).toBe("control-1");
@@ -204,6 +218,22 @@ describe("recordControl", () => {
     ).rejects.toThrow();
   });
 
+  it("rejects an empty definitionId (ADR 0030: no ad-hoc controls)", async () => {
+    const deps = buildDeps();
+    seedSurgery(deps.surgeryRepository);
+
+    await expect(
+      recordControl(deps)({
+        physicianId: PHYSICIAN_ID,
+        surgeryId: "surgery-1",
+        id: "control-1",
+        recordedAt: new Date("2026-01-11"),
+        author: { type: "physician" },
+        definitionId: "",
+      }),
+    ).rejects.toThrow(/was not found/);
+  });
+
   it("rejects a definitionId that is not on the procedure type", async () => {
     const deps = buildDeps();
     seedSurgery(deps.surgeryRepository);
@@ -242,6 +272,7 @@ describe("recordControl", () => {
         observations: "obs",
         recordedAt: new Date(),
         author: { type: "physician" },
+        definitionId: "def-general",
         customFieldValues: [{ definitionId: "cf-eva", value: 99 }],
       }),
     ).rejects.toThrow(/must be <=/);

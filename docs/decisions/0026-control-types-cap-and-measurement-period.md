@@ -2,7 +2,13 @@
 
 ## Status
 
-Established (current iteration). **New capability.** Builds on
+Established. Its "Ad-hoc controls stay valid" section was **reversed by
+[0030](0030-control-definition-mandatory-no-ad-hoc-controls.md)**: every
+`Control` now requires a `definitionId`, and `registerProcedureType`
+seeds a default `ControlDefinition` so one always exists. Everything
+else in this ADR (the occurrence rule, the `≤ N` cap, the
+completeness/next-due projection) is unamended and current. **New
+capability (at the time).** Builds on
 [0004](0004-controls-not-followup-entity.md) (Control is an internal
 entity of the Surgery aggregate), [0018](0018-customfield-value-representation.md)
 / [0019](0019-customfield-persistence-schema.md) (CustomField definitions

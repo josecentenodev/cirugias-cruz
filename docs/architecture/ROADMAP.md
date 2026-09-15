@@ -114,6 +114,15 @@ gets corrected — it is not meant to be treated as fixed once written.
   live `api` service. Implementation (restore the `confirmedAt` check in
   `login`, add `resendConfirmationEmail` + route + `web` affordance, set
   `RESEND_FROM_EMAIL`/`WEB_BASE_URL`) has not started at any layer.
+- **Control definitions become mandatory, ad-hoc controls removed (ADR 0030) — not scoped to a milestone number yet.** Reopens ADR 0026's
+  "ad-hoc controls stay valid" decision: recording a Control with no
+  type was confusing UX (a hidden "none" branch alongside real,
+  physician-defined types). `Control.definitionId` becomes required;
+  `registerProcedureType` seeds a default `uncapped` `ControlDefinition`
+  so a `ProcedureType` is never left without one. Implementation
+  (Domain/Application/Infrastructure/HTTP/web, plus a migration dropping
+  the pre-existing ad-hoc test-data Control rows) has not started at any
+  layer.
 - **Resident invitation by email (ADR 0029) — not scoped to a milestone
   number yet.** Replaces ADR 0017's visible-temporary-password mechanism
   with an emailed invitation the Resident accepts by setting their own

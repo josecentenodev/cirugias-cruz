@@ -14,6 +14,7 @@ const SURGERY_ID_2 = "infra-test-m4-surgery-2";
 const OTHER_SURGERY_ID = "infra-test-m4-surgery-other";
 const CF_TECHNIQUE_ID = "infra-test-cf-technique";
 const CF_EVA_ID = "infra-test-cf-eva";
+const CONTROL_DEF_GENERAL_ID = "infra-test-control-def-general";
 
 async function seedPatientAndProcedureType(): Promise<void> {
   await Promise.all([
@@ -66,6 +67,16 @@ async function seedPatientAndProcedureType(): Promise<void> {
       update: {},
     }),
   ]);
+  await testPrisma.controlDefinition.upsert({
+    where: { id: CONTROL_DEF_GENERAL_ID },
+    create: {
+      id: CONTROL_DEF_GENERAL_ID,
+      procedureTypeId: PROCEDURE_TYPE_ID,
+      name: "General",
+      occurrenceMode: "uncapped",
+    },
+    update: {},
+  });
 }
 
 describe("PrismaSurgeryRepository", () => {
@@ -106,6 +117,7 @@ describe("PrismaSurgeryRepository", () => {
     await testPrisma.customFieldDefinition.deleteMany({
       where: { id: { in: [CF_TECHNIQUE_ID, CF_EVA_ID] } },
     });
+    await testPrisma.controlDefinition.deleteMany({ where: { id: CONTROL_DEF_GENERAL_ID } });
     await Promise.all([
       testPrisma.patient.deleteMany({ where: { id: PATIENT_ID } }),
       testPrisma.procedureType.deleteMany({ where: { id: PROCEDURE_TYPE_ID } }),
@@ -154,6 +166,7 @@ describe("PrismaSurgeryRepository", () => {
       observations: "Sin signos de infección",
       recordedAt: new Date("2026-01-11"),
       author: { type: "physician", physicianId: PHYSICIAN_ID },
+      definitionId: CONTROL_DEF_GENERAL_ID,
       customFieldValues: [{ definitionId: CF_EVA_ID, value: 3 }],
     });
 
@@ -186,12 +199,14 @@ describe("PrismaSurgeryRepository", () => {
       observations: "Sin signos de infección",
       recordedAt: new Date("2026-01-11"),
       author: { type: "physician", physicianId: PHYSICIAN_ID },
+      definitionId: CONTROL_DEF_GENERAL_ID,
     });
     surgery.recordControl({
       id: "control-2",
       observations: "Evolución favorable",
       recordedAt: new Date("2026-01-18"),
       author: { type: "resident", residentId: "resident-1" },
+      definitionId: CONTROL_DEF_GENERAL_ID,
     });
 
     await repository.save(surgery);
@@ -282,6 +297,7 @@ describe("PrismaSurgeryRepository", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "resident", residentId: "resident-1" },
+      definitionId: CONTROL_DEF_GENERAL_ID,
     });
     expect(() => found?.removeResident("resident-1", PHYSICIAN_ID)).toThrow();
     expect(() => found?.removeResident("resident-2", PHYSICIAN_ID)).not.toThrow();
@@ -300,6 +316,7 @@ describe("PrismaSurgeryRepository", () => {
       observations: "original observations",
       recordedAt: new Date("2026-01-11"),
       author: { type: "physician", physicianId: PHYSICIAN_ID },
+      definitionId: CONTROL_DEF_GENERAL_ID,
     });
     await repository.save(surgery);
 
@@ -353,6 +370,7 @@ describe("PrismaSurgeryRepository", () => {
       observations: "obs",
       recordedAt: new Date("2026-01-11"),
       author: { type: "physician", physicianId: PHYSICIAN_ID },
+      definitionId: CONTROL_DEF_GENERAL_ID,
     });
     await repository.save(surgery1);
 

@@ -24,6 +24,7 @@ describe("Milestone 1 operations against real Prisma repositories", () => {
   const PROCEDURE_TYPE_ID = "infra-test-procedure-type-m1-ops";
   const SURGERY_ID = "infra-test-surgery-m1-ops";
   const CONTROL_ID = "infra-test-control-m1-ops";
+  const DEFAULT_CONTROL_DEFINITION_ID = "infra-test-control-def-default-m1-ops";
 
   const patientRepository = new PrismaPatientRepository(testPrisma);
   const procedureTypeRepository = new PrismaProcedureTypeRepository(testPrisma);
@@ -37,6 +38,9 @@ describe("Milestone 1 operations against real Prisma repositories", () => {
     await testPrisma.control.deleteMany({ where: { surgeryId: SURGERY_ID } });
     await testPrisma.surgery.deleteMany({ where: { id: SURGERY_ID } });
     await testPrisma.patient.deleteMany({ where: { id: PATIENT_ID } });
+    await testPrisma.controlDefinition.deleteMany({
+      where: { procedureTypeId: PROCEDURE_TYPE_ID },
+    });
     await testPrisma.procedureType.deleteMany({ where: { id: PROCEDURE_TYPE_ID } });
     await cleanupPhysician(PHYSICIAN_ID);
   });
@@ -60,6 +64,7 @@ describe("Milestone 1 operations against real Prisma repositories", () => {
       physicianId: PHYSICIAN_ID,
       id: PROCEDURE_TYPE_ID,
       name: "Pterigión",
+      defaultControlDefinitionId: DEFAULT_CONTROL_DEFINITION_ID,
     });
 
     expect(output).toEqual({ procedureTypeId: PROCEDURE_TYPE_ID });
@@ -105,6 +110,7 @@ describe("Milestone 1 operations against real Prisma repositories", () => {
       observations: "Sin signos de infección",
       recordedAt: new Date("2026-01-11"),
       author: { type: "physician" },
+      definitionId: DEFAULT_CONTROL_DEFINITION_ID,
     });
 
     expect(output).toEqual({ surgeryId: SURGERY_ID, controlId: CONTROL_ID });

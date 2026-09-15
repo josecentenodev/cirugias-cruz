@@ -38,7 +38,7 @@ function buildDeps() {
 
 function seedSurgeryWithControl(
   surgeryRepository: InMemorySurgeryRepository,
-  opts: { definitionId?: string; customFieldValues?: { definitionId: string; value: number }[] },
+  opts: { definitionId: string; customFieldValues?: { definitionId: string; value: number }[] },
 ) {
   const surgery = Surgery.reconstitute({
     id: "surgery-1",
@@ -183,6 +183,7 @@ describe("editCustomField / removeCustomField freeze rule", () => {
   it("rejects editing / removing a CustomField once a value references it", async () => {
     const deps = buildDeps();
     seedSurgeryWithControl(deps.surgeryRepository, {
+      definitionId: "def-1",
       customFieldValues: [{ definitionId: "cf-1", value: 3 }],
     });
 

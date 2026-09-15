@@ -20,7 +20,7 @@ export type RecordControlInput = Omit<ControlAttributes, never>;
 /**
  * The resolved capped occurrence rule for the control definition an
  * incoming recording references (ADR 0026). Absent for uncapped
- * definitions and ad-hoc controls.
+ * definitions.
  */
 export interface CappedControlContext {
   definitionId: string;

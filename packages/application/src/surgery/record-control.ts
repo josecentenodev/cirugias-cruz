@@ -15,8 +15,8 @@ export interface RecordControlInput {
   observations?: string;
   recordedAt: Date;
   author: RecordControlAuthorInput;
-  /** The control definition (ADR 0026) this recording is an occurrence of, or none for an ad-hoc control. */
-  definitionId?: string;
+  /** The control definition (ADR 0026) this recording is an occurrence of — required (ADR 0030: no ad-hoc controls). */
+  definitionId: string;
   /** CONTROL-scoped CustomField values (ADR 0018), validated against the Procedure Type's definitions. */
   customFieldValues?: CustomFieldValueInput[];
 }
@@ -65,20 +65,18 @@ export function recordControl(deps: RecordControlDeps) {
     }
     validateCustomFieldValues(procedureType.customFields, input.customFieldValues ?? [], "CONTROL");
 
-    let cappedContext: { definitionId: string; count: number } | undefined;
-    if (input.definitionId !== undefined) {
-      const definition = procedureType.controlDefinitions.find(
-        (candidate) => candidate.id === input.definitionId,
+    const definition = procedureType.controlDefinitions.find(
+      (candidate) => candidate.id === input.definitionId,
+    );
+    if (!definition) {
+      throw new NotFoundError(
+        `Control definition ${input.definitionId} was not found on this Procedure Type`,
       );
-      if (!definition) {
-        throw new NotFoundError(
-          `Control definition ${input.definitionId} was not found on this Procedure Type`,
-        );
-      }
-      if (definition.occurrenceRule.mode === "capped") {
-        cappedContext = { definitionId: definition.id, count: definition.occurrenceRule.count };
-      }
     }
+    const cappedContext: { definitionId: string; count: number } | undefined =
+      definition.occurrenceRule.mode === "capped"
+        ? { definitionId: definition.id, count: definition.occurrenceRule.count }
+        : undefined;
 
     const author =
       input.author.type === "physician"

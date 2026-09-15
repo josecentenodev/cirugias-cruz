@@ -25,12 +25,14 @@ function seedSurgeryWithControl(surgeryRepository: InMemorySurgeryRepository) {
     observations: "obs",
     recordedAt: new Date("2026-01-11"),
     author: { type: "physician", physicianId: PHYSICIAN_ID },
+    definitionId: "def-general",
   });
   surgery.recordControl({
     id: "control-2",
     observations: "obs",
     recordedAt: new Date("2026-01-11"),
     author: { type: "resident", residentId: "resident-1" },
+    definitionId: "def-general",
   });
   surgeryRepository.seed(surgery);
   return surgery;

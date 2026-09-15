@@ -92,13 +92,13 @@ export class PrismaSurgeryRepository implements SurgeryRepository {
             surgeryId: surgery.id,
             observations: control.observations ?? null,
             recordedAt: control.recordedAt,
-            definitionId: control.definitionId ?? null,
+            definitionId: control.definitionId,
             ...authorColumns,
           },
           update: {
             observations: control.observations ?? null,
             recordedAt: control.recordedAt,
-            definitionId: control.definitionId ?? null,
+            definitionId: control.definitionId,
           },
         });
       }),
@@ -198,7 +198,7 @@ function toSurgery(row: {
     authorType: string;
     authorPhysicianId: string | null;
     authorResidentId: string | null;
-    definitionId: string | null;
+    definitionId: string;
     customFieldValues: CustomFieldValueRow[];
   }[];
   participants: { residentId: string }[];
@@ -209,7 +209,7 @@ function toSurgery(row: {
     observations: control.observations ?? undefined,
     recordedAt: control.recordedAt,
     author: toControlAuthor(control),
-    definitionId: control.definitionId ?? undefined,
+    definitionId: control.definitionId,
     customFieldValues: control.customFieldValues.map(fromCustomFieldValueRow),
   }));
 

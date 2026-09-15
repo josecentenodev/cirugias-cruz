@@ -68,6 +68,7 @@ describe("Surgery", () => {
       observations: "Sin signos de infección",
       recordedAt: new Date("2026-01-11"),
       author: { type: "physician", physicianId: PHYSICIAN_ID },
+      definitionId: "def-generic",
       customFieldValues: [{ definitionId: "cf-eva", value: 3 }],
     });
 
@@ -83,6 +84,7 @@ describe("Surgery", () => {
       observations: "Sin signos de infección",
       recordedAt: new Date("2026-01-11"),
       author: { type: "physician", physicianId: PHYSICIAN_ID },
+      definitionId: "def-generic",
     });
 
     expect(surgery.controls).toHaveLength(1);
@@ -98,6 +100,7 @@ describe("Surgery", () => {
         observations: "obs",
         recordedAt: new Date(),
         author: { type: "physician", physicianId: OTHER_PHYSICIAN_ID },
+        definitionId: "def-generic",
       }),
     ).toThrow();
   });
@@ -111,8 +114,23 @@ describe("Surgery", () => {
         observations: "obs",
         recordedAt: undefined as unknown as Date,
         author: { type: "physician", physicianId: PHYSICIAN_ID },
+        definitionId: "def-generic",
       }),
     ).toThrow();
+  });
+
+  it("rejects a control with no control definition (ADR 0030)", () => {
+    const surgery = createSurgery();
+
+    expect(() =>
+      surgery.recordControl({
+        id: "control-2",
+        observations: "obs",
+        recordedAt: new Date(),
+        author: { type: "physician", physicianId: PHYSICIAN_ID },
+        definitionId: "",
+      }),
+    ).toThrow(/control definition/);
   });
 
   it("allows a control with no observations (A4/F-08)", () => {
@@ -122,6 +140,7 @@ describe("Surgery", () => {
       id: "control-1",
       recordedAt: new Date("2026-01-11"),
       author: { type: "physician", physicianId: PHYSICIAN_ID },
+      definitionId: "def-generic",
     });
 
     expect(control.observations).toBeUndefined();
@@ -136,6 +155,7 @@ describe("Surgery", () => {
       observations: "   ",
       recordedAt: new Date("2026-01-11"),
       author: { type: "physician", physicianId: PHYSICIAN_ID },
+      definitionId: "def-generic",
     });
 
     expect(control.observations).toBeUndefined();
@@ -178,7 +198,7 @@ describe("Surgery", () => {
     expect(surgery.controls).toHaveLength(2);
   });
 
-  it("does not cap recordings of an uncapped / ad-hoc control definition", () => {
+  it("does not cap recordings of an uncapped control definition", () => {
     const surgery = createSurgery();
 
     for (let index = 0; index < 5; index += 1) {
@@ -202,6 +222,7 @@ describe("Surgery", () => {
         observations: "obs",
         recordedAt: new Date(),
         author: { type: "resident", residentId: "resident-1" },
+        definitionId: "def-generic",
       }),
     ).toThrow();
   });
@@ -215,6 +236,7 @@ describe("Surgery", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "resident", residentId: "resident-1" },
+      definitionId: "def-generic",
     });
 
     expect(control.author).toEqual({ type: "resident", residentId: "resident-1" });
@@ -255,6 +277,7 @@ describe("Surgery", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "resident", residentId: "resident-1" },
+      definitionId: "def-generic",
     });
 
     expect(surgeryA.hasResidentParticipated("resident-1")).toBe(true);
@@ -265,6 +288,7 @@ describe("Surgery", () => {
         observations: "obs",
         recordedAt: new Date(),
         author: { type: "resident", residentId: "resident-1" },
+        definitionId: "def-generic",
       }),
     ).toThrow();
   });
@@ -277,6 +301,7 @@ describe("Surgery", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "resident", residentId: "resident-1" },
+      definitionId: "def-generic",
     });
 
     expect(() => surgery.removeResident("resident-1", PHYSICIAN_ID)).toThrow();
@@ -317,6 +342,7 @@ describe("Surgery", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "resident", residentId: "resident-1" },
+      definitionId: "def-generic",
     });
 
     expect(() =>
@@ -343,6 +369,7 @@ describe("Surgery", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "resident", residentId: "resident-1" },
+      definitionId: "def-generic",
     });
 
     surgery.modifyControl(
@@ -363,6 +390,7 @@ describe("Surgery", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "resident", residentId: "resident-1" },
+      definitionId: "def-generic",
     });
 
     expect(() =>
@@ -382,6 +410,7 @@ describe("Surgery", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "physician", physicianId: PHYSICIAN_ID },
+      definitionId: "def-generic",
     });
 
     expect(() =>
@@ -402,6 +431,7 @@ describe("Surgery", () => {
           observations: "obs",
           recordedAt: new Date("2026-01-11"),
           author: { type: "resident", residentId: "resident-1" },
+          definitionId: "def-generic",
         },
       ],
       participatingResidentIds: ["resident-1"],
@@ -424,6 +454,7 @@ describe("Surgery", () => {
       observations: "obs",
       recordedAt: new Date(),
       author: { type: "physician", physicianId: PHYSICIAN_ID },
+      definitionId: "def-generic",
     });
 
     expect(() => surgery.deleteControl("control-1", OTHER_PHYSICIAN_ID)).toThrow();

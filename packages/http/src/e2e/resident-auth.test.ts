@@ -113,7 +113,20 @@ async function registerPatientProcedureAndSurgery(
     cookies,
     payload: { patientId, procedureTypeId, performedAt: "2026-01-10" },
   });
-  return surgeryResponse.json<{ surgeryId: string }>().surgeryId;
+  const surgeryId = surgeryResponse.json<{ surgeryId: string }>().surgeryId;
+
+  // Every ProcedureType is seeded with one default, uncapped control
+  // definition (ADR 0030) — used here since these tests don't care
+  // about control typing, just that recording one works at all.
+  const procedureTypeGet = await app.inject({
+    method: "GET",
+    url: `/procedure-types/${procedureTypeId}`,
+    cookies,
+  });
+  const definitionId = procedureTypeGet.json<{ controlDefinitions: { id: string }[] }>()
+    .controlDefinitions[0]?.id as string;
+
+  return { surgeryId, definitionId };
 }
 
 describe("Resident authentication over real HTTP, against real Postgres (ADR 0029)", () => {
@@ -193,8 +206,12 @@ describe("Resident authentication over real HTTP, against real Postgres (ADR 002
     const { residentId, email } = await registerResident(app, physicianCookies);
     await acceptInvitation(app, residentId, "ResidentOwnPass1");
 
-    const surgeryWithResident = await registerPatientProcedureAndSurgery(app, physicianCookies);
-    const surgeryWithoutResident = await registerPatientProcedureAndSurgery(app, physicianCookies);
+    const { surgeryId: surgeryWithResident, definitionId } =
+      await registerPatientProcedureAndSurgery(app, physicianCookies);
+    const { surgeryId: surgeryWithoutResident } = await registerPatientProcedureAndSurgery(
+      app,
+      physicianCookies,
+    );
 
     await app.inject({
       method: "POST",
@@ -211,6 +228,7 @@ describe("Resident authentication over real HTTP, against real Postgres (ADR 002
         observations: "Physician's own note",
         recordedAt: "2026-01-11",
         author: { type: "physician" },
+        definitionId,
       },
     });
     const { controlId: physicianControlId } = physicianControl.json<{ controlId: string }>();
@@ -262,6 +280,7 @@ describe("Resident authentication over real HTTP, against real Postgres (ADR 002
         // Deliberately claims to be the physician — must be ignored and
         // forced to the resident's own identity server-side.
         author: { type: "physician" },
+        definitionId,
       },
     });
     expect(ownControl.statusCode).toBe(201);

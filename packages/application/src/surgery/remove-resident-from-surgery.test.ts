@@ -65,6 +65,7 @@ describe("removeResidentFromSurgery", () => {
       observations: "obs",
       recordedAt: new Date("2026-01-11"),
       author: { type: "resident", residentId: "resident-1" },
+      definitionId: "def-general",
     });
 
     await expect(

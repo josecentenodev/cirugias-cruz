@@ -91,7 +91,8 @@ interface RecordControlBody {
   observations?: string;
   recordedAt: string;
   author: { type: "physician" } | { type: "resident"; residentId: string };
-  definitionId?: string;
+  /** The control definition (ADR 0026) this recording is an occurrence of — required (ADR 0030: no ad-hoc controls). */
+  definitionId: string;
   customFieldValues?: CustomFieldValueBody[];
 }
 
@@ -298,7 +299,7 @@ const controlAuthorSchema = {
 
 const recordControlBodySchema = {
   type: "object",
-  required: ["recordedAt", "author"],
+  required: ["recordedAt", "author", "definitionId"],
   properties: {
     observations: { type: "string" },
     recordedAt: { type: "string" },
@@ -471,6 +472,11 @@ export function registerCoreLoopRoutes(app: FastifyInstance, deps: AppDeps): voi
           id: randomUUID(),
           name: request.body.name,
           description: request.body.description,
+          // ADR 0030: every ProcedureType is seeded with one default,
+          // uncapped control definition — its id is generated here, same
+          // as the ProcedureType's own id, since Application never
+          // generates ids itself.
+          defaultControlDefinitionId: randomUUID(),
         });
         return await reply.code(201).send(output);
       } catch (error) {

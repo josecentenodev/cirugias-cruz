@@ -183,6 +183,7 @@ describe("recordControlAction", () => {
           authorType: "physician",
           observations: "Evolución favorable",
           recordedAt: "2026-01-16T14:30",
+          definitionId: "def-general",
         }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
@@ -194,6 +195,7 @@ describe("recordControlAction", () => {
         observations: "Evolución favorable",
         recordedAt: "2026-01-16T14:30",
         author: { type: "physician" },
+        definitionId: "def-general",
       },
     });
   });
@@ -211,6 +213,7 @@ describe("recordControlAction", () => {
           residentId: "resident-1",
           observations: "Evolución favorable",
           recordedAt: "2026-01-16T14:30",
+          definitionId: "def-general",
         }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
@@ -222,6 +225,7 @@ describe("recordControlAction", () => {
         observations: "Evolución favorable",
         recordedAt: "2026-01-16T14:30",
         author: { type: "resident", residentId: "resident-1" },
+        definitionId: "def-general",
       },
     });
   });
@@ -267,6 +271,7 @@ describe("recordControlAction", () => {
           authorType: "physician",
           observations: "Evolución favorable",
           recordedAt: "2026-01-16T14:30",
+          definitionId: "def-general",
           "customField:eva": "3",
         }),
       ),
@@ -279,6 +284,7 @@ describe("recordControlAction", () => {
         observations: "Evolución favorable",
         recordedAt: "2026-01-16T14:30",
         author: { type: "physician" },
+        definitionId: "def-general",
         customFieldValues: [{ definitionId: "eva", value: 3 }],
       },
     });
@@ -289,7 +295,12 @@ describe("recordControlAction", () => {
       "patient-1",
       "surgery-1",
       {},
-      formData({ authorType: "resident", observations: "x", recordedAt: "2026-01-16T14:30" }),
+      formData({
+        authorType: "resident",
+        observations: "x",
+        recordedAt: "2026-01-16T14:30",
+        definitionId: "def-general",
+      }),
     );
 
     expect(result).toEqual({ error: "Please fill in every required field." });
@@ -302,7 +313,12 @@ describe("recordControlAction", () => {
         "patient-1",
         "surgery-1",
         {},
-        formData({ authorType: "physician", observations: "", recordedAt: "2026-01-16T14:30" }),
+        formData({
+          authorType: "physician",
+          observations: "",
+          recordedAt: "2026-01-16T14:30",
+          definitionId: "def-general",
+        }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT");
 
@@ -346,6 +362,7 @@ describe("recordControlAction", () => {
         residentId: "resident-1",
         observations: "x",
         recordedAt: "2026-01-16T14:30",
+        definitionId: "def-general",
       }),
     );
 
@@ -362,7 +379,12 @@ describe("recordControlAction", () => {
         "patient-1",
         "surgery-1",
         {},
-        formData({ authorType: "physician", observations: "x", recordedAt: "2026-01-16T14:30" }),
+        formData({
+          authorType: "physician",
+          observations: "x",
+          recordedAt: "2026-01-16T14:30",
+          definitionId: "def-general",
+        }),
       ),
     ).rejects.toBeInstanceOf(ApiUnexpectedError);
   });

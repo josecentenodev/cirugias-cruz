@@ -26,7 +26,7 @@ export function CustomFieldRemoveButton({
       confirmationPhrase={fieldName}
       confirmLabel={messages.common.remove}
       pendingLabel={messages.common.removing}
-      message={messages.procedureTypes.customFields.frozenHint}
+      message={messages.procedureTypes.customFields.removeConfirm(fieldName)}
     />
   );
 }

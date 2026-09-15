@@ -332,6 +332,7 @@ export const messages = {
       edit: "Edit",
       remove: "Remove",
       frozenHint: "Recorded data exists — add a new field instead.",
+      removeConfirm: (name: string) => `Remove the "${name}" custom field?`,
     },
     controlDefinitions: {
       cardTitle: "Control types",

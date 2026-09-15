@@ -39,6 +39,21 @@ export interface CustomFieldView {
   rulesSummary: string;
   /** True when a value already references it — frozen (ADR 0027). */
   inUse: boolean;
+  /**
+   * The raw constraint, undecorated (no placeholder substitution, no
+   * display-string summarizing) — needed only to prefill `CustomFieldForm`
+   * in edit mode, mirroring `ControlDefinitionView`'s `mode`/`count`/
+   * `periodEvery`/`periodUnit`. Never rendered directly by `CustomFieldList`.
+   */
+  editable: {
+    description?: string;
+    valueType: CustomFieldDto["constraint"]["valueType"];
+    unit?: string;
+    min?: number;
+    max?: number;
+    options?: string[];
+    maxLength?: number;
+  };
 }
 
 const TYPE_LABELS: Record<CustomFieldDto["constraint"]["valueType"], string> = {
@@ -60,6 +75,15 @@ export function toCustomFieldView(dto: CustomFieldDto, inUse = false): CustomFie
     typeLabel: TYPE_LABELS[dto.constraint.valueType],
     rulesSummary: summarizeRules(dto.constraint),
     inUse,
+    editable: {
+      description: dto.description,
+      valueType: dto.constraint.valueType,
+      unit: dto.constraint.valueType === "NUMBER" ? dto.constraint.unit : undefined,
+      min: dto.constraint.valueType === "NUMBER" ? dto.constraint.min : undefined,
+      max: dto.constraint.valueType === "NUMBER" ? dto.constraint.max : undefined,
+      options: dto.constraint.valueType === "ENUM" ? dto.constraint.options : undefined,
+      maxLength: dto.constraint.valueType === "TEXT" ? dto.constraint.maxLength : undefined,
+    },
   };
 }
 

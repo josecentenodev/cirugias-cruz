@@ -1,6 +1,20 @@
 @import "tailwindcss";
 
 /*
+ * Tailwind's Preflight zeroes `margin` on every element, including the
+ * browser's own `margin: auto` on a `<dialog>` opened via `showModal()`
+ * — that auto margin is what centers it in the top layer. Without this,
+ * every native-`<dialog>` modal in this app (`DangerousConfirm.tsx`,
+ * `ConfirmSubmit.tsx`) renders pinned to the top-left instead of
+ * centered. Restoring just this one rule, rather than adding a
+ * per-component class, keeps every current and future `<dialog>` in
+ * this app centered by default.
+ */
+dialog[open] {
+  margin: auto;
+}
+
+/*
  * Design tokens — see docs/design/design-system.md and ADR 0024.
  * Palette: Midnight Ocean #12304A · Bermuda #1C8087 · Melting Glacier
  * #EAF4F6 · Dr. White #F9FAFB · Silent Night #526575. Light-only for

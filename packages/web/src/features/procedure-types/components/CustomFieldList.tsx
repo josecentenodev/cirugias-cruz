@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -8,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { messages } from "@/messages/en";
 import type { CustomFieldView } from "../mappers";
+import { CustomFieldForm } from "./CustomFieldForm";
 import { CustomFieldRemoveButton } from "./CustomFieldRemoveButton";
 
 /**
@@ -19,7 +23,9 @@ import { CustomFieldRemoveButton } from "./CustomFieldRemoveButton";
  * The "add one" form is a sibling card on the same detail page, not a
  * link to a separate route — see `ProcedureTypeDetail.tsx`, mirroring
  * how `SurgeryDetail.tsx` places `RecordControlForm` inline rather than
- * linking to a `controls/new` page.
+ * linking to a `controls/new` page. Editing an unused field (ADR 0027)
+ * follows `ControlDefinitionList`'s own inline-row-becomes-a-form
+ * pattern exactly.
  */
 export function CustomFieldList({
   procedureTypeId,
@@ -28,13 +34,12 @@ export function CustomFieldList({
   procedureTypeId: string;
   customFields: CustomFieldView[];
 }) {
-  if (customFields.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">{messages.procedureTypes.customFields.empty}</p>
-    );
-  }
-
   const c = messages.procedureTypes.customFields;
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  if (customFields.length === 0) {
+    return <p className="text-sm text-muted-foreground">{c.empty}</p>;
+  }
 
   return (
     <Table>
@@ -49,28 +54,49 @@ export function CustomFieldList({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {customFields.map((field) => (
-          <TableRow key={field.id}>
-            <TableCell className="font-medium">{field.name}</TableCell>
-            <TableCell>
-              {field.scope === "SURGERY" ? c.scopeSurgeryShort : c.scopeControlShort}
-            </TableCell>
-            <TableCell>{field.typeLabel}</TableCell>
-            <TableCell>{field.rulesSummary}</TableCell>
-            <TableCell>{field.unit}</TableCell>
-            <TableCell>
-              {field.inUse ? (
-                <span className="text-xs text-muted-foreground">{c.frozenHint}</span>
-              ) : (
-                <CustomFieldRemoveButton
+        {customFields.map((field) =>
+          editingId === field.id ? (
+            <TableRow key={field.id}>
+              <TableCell colSpan={6}>
+                <CustomFieldForm
                   procedureTypeId={procedureTypeId}
-                  fieldId={field.id}
-                  fieldName={field.name}
+                  field={field}
+                  onDone={() => setEditingId(null)}
                 />
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
+              </TableCell>
+            </TableRow>
+          ) : (
+            <TableRow key={field.id}>
+              <TableCell className="font-medium">{field.name}</TableCell>
+              <TableCell>
+                {field.scope === "SURGERY" ? c.scopeSurgeryShort : c.scopeControlShort}
+              </TableCell>
+              <TableCell>{field.typeLabel}</TableCell>
+              <TableCell>{field.rulesSummary}</TableCell>
+              <TableCell>{field.unit}</TableCell>
+              <TableCell>
+                {field.inUse ? (
+                  <span className="text-xs text-muted-foreground">{c.frozenHint}</span>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(field.id)}
+                      className="text-sm underline"
+                    >
+                      {c.edit}
+                    </button>
+                    <CustomFieldRemoveButton
+                      procedureTypeId={procedureTypeId}
+                      fieldId={field.id}
+                      fieldName={field.name}
+                    />
+                  </div>
+                )}
+              </TableCell>
+            </TableRow>
+          ),
+        )}
       </TableBody>
     </Table>
   );

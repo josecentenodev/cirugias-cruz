@@ -4,6 +4,9 @@
   "packageManager": "pnpm@11.22.0",
   "scripts": {
     "postinstall": "pnpm --filter @cirugias-cruz/infrastructure run prisma:generate || true",
+    "prepare": "git config core.hooksPath .githooks || exit 0",
+    "chasis:check": "node scripts/chasis-check.mjs",
+    "contexto:check": "node scripts/contexto-check.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

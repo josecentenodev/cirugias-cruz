@@ -12,6 +12,16 @@ export default tseslint.config(
       "**/coverage/**",
       "**/node_modules/**",
       ".claude/worktrees/**",
+      // chasis-kit: vendored generic gates — quality guaranteed by their own
+      // spec, not this repo's lint style (chasis-kit README §7).
+      "scripts/chasis-check.mjs",
+      "scripts/chasis-check.spec.mjs",
+      "scripts/contexto-check.mjs",
+      "scripts/contexto-check.spec.mjs",
+      "scripts/docs-linkcheck.mjs",
+      "scripts/docs-linkcheck.spec.mjs",
+      "scripts/docs-ratchet.mjs",
+      "scripts/docs-ratchet.spec.mjs",
     ],
   },
   js.configs.recommended,

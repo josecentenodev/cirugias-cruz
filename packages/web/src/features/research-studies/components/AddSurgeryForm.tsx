@@ -1,12 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
-import { Alert } from "@/components/ui/alert";
+import { ActionForm } from "@/components/ActionForm";
 import { PendingButton } from "@/components/ui/pending-button";
 import { messages } from "@/messages/en";
-import { addSurgeryToStudyAction, type AddSurgeryToStudyFormState } from "../actions";
-
-const initialState: AddSurgeryToStudyFormState = {};
+import { addSurgeryToStudyAction } from "../actions";
 
 /**
  * `surgeries` is already filtered to exclude anyone already in the
@@ -22,20 +19,16 @@ export function AddSurgeryForm({
   researchStudyId: string;
   surgeries: { id: string; label: string }[];
 }) {
-  const boundAction = addSurgeryToStudyAction.bind(null, researchStudyId);
-  const [state, formAction] = useActionState(boundAction, initialState);
-
   if (surgeries.length === 0) {
     return <p className="text-sm text-muted-foreground">{messages.research.surgeries.allAdded}</p>;
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
-      {state.error ? (
-        <div className="sm:order-3 sm:w-full">
-          <Alert>{state.error}</Alert>
-        </div>
-      ) : null}
+    <ActionForm
+      action={addSurgeryToStudyAction.bind(null, researchStudyId)}
+      className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-2"
+      feedbackClassName="sm:order-3 sm:w-full"
+    >
       <select
         name="surgeryId"
         required
@@ -55,6 +48,6 @@ export function AddSurgeryForm({
       <PendingButton size="sm" pendingText={messages.research.surgeries.adding}>
         {messages.research.surgeries.add}
       </PendingButton>
-    </form>
+    </ActionForm>
   );
 }

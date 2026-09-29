@@ -75,6 +75,15 @@ export const messages = {
   errors: {
     requiredFields: "Please fill in every required field.",
     fieldRequired: "This field is required.",
+    everyField: "Please fill in every field.",
+    invalidValues: "Please check the values entered.",
+    loginFields: "Please enter both an email and a password.",
+    loginFailed: "Login failed — please try again.",
+    invalidCredentials: "Invalid email or password.",
+    selectSurgery: "Please select a surgery.",
+    selectResident: "Please select a resident.",
+    surgeryFields: "Please select a patient, a procedure type, and a performed date.",
+    newPasswordRequired: "Please enter a new password.",
     rateLimited: "Too many attempts — please wait a moment and try again.",
     unexpected: "We couldn’t complete that request. Please try again.",
     generic: {
@@ -118,10 +127,12 @@ export const messages = {
     studyStatusChanged: "Study status updated.",
     studyDeleted: "Research study deleted.",
     residentRegistered: "Resident registered.",
-    invitationResent: "Invitation resent.",
-    residentDeactivated: "Login deactivated.",
-    residentReactivated: "Login reactivated.",
+    invitationResent: "Invitation resent — the previous one no longer works.",
+    residentDeactivated: "Resident deactivated.",
+    residentReactivated: "Resident reactivated.",
     passwordChanged: "Password changed.",
+    confirmationResent:
+      "If that email is registered and unconfirmed, we've sent a new confirmation link.",
   },
 
   auth: {
@@ -138,7 +149,6 @@ export const messages = {
       prompt: "Didn't get the email?",
       button: "Resend confirmation email",
       sending: "Sending…",
-      sent: "If that email is registered and unconfirmed, we've sent a new confirmation link.",
     },
     signup: {
       title: "Create your account",
@@ -426,9 +436,6 @@ export const messages = {
       resendingInvitation: "Resending…",
       deactivate: "Deactivate",
       reactivate: "Reactivate",
-      reactivated: "Resident reactivated.",
-      deactivated: "Resident deactivated.",
-      invitationResent: "Invitation resent — the previous one no longer works.",
       invitationPending: "Invitation sent, not yet accepted.",
       invitationAccepted: "Invitation accepted.",
       deactivateConfirm: (name: string) =>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useField } from "@/components/ActionForm";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CustomFieldDto } from "../dtos";
@@ -20,7 +21,9 @@ const selectClassName =
  * `customField:<id>`; `collectCustomFieldValues` reads them back and
  * coerces by `valueType`. All constraint enforcement stays server-side
  * in `api` (`validateCustomFieldValues`); the `min`/`max`/`maxLength`
- * attributes here are only a first-pass hint to the browser.
+ * attributes here are only a first-pass hint to the browser. Each input
+ * is bound to the enclosing `ActionForm` (`useField`), so a rejected
+ * submit redisplays what was entered.
  */
 export function CustomFieldValueInputs({ fields }: { fields: CustomFieldDto[] }) {
   if (fields.length === 0) {
@@ -35,42 +38,54 @@ export function CustomFieldValueInputs({ fields }: { fields: CustomFieldDto[] })
           field.constraint.valueType === "NUMBER" && field.constraint.unit
             ? ` (${field.constraint.unit})`
             : "";
-        return (
-          <div key={field.id} className="flex flex-col gap-1.5">
-            <Label htmlFor={name}>
-              {field.name}
-              {unit}
-            </Label>
-            <FieldControl field={field} name={name} />
-            {field.description ? (
-              <p className="text-xs text-muted-foreground">{field.description}</p>
-            ) : null}
-          </div>
-        );
+        return <CustomFieldInput key={field.id} field={field} name={name} unit={unit} />;
       })}
     </div>
   );
 }
 
-function FieldControl({ field, name }: { field: CustomFieldDto; name: string }) {
+function CustomFieldInput({
+  field,
+  name,
+  unit,
+}: {
+  field: CustomFieldDto;
+  name: string;
+  unit: string;
+}) {
+  const bound = useField(name);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={bound.id}>
+        {field.name}
+        {unit}
+      </Label>
+      <FieldControl field={field} inputProps={bound.inputProps} />
+      {field.description ? (
+        <p className="text-xs text-muted-foreground">{field.description}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function FieldControl({
+  field,
+  inputProps,
+}: {
+  field: CustomFieldDto;
+  inputProps: ReturnType<typeof useField>["inputProps"];
+}) {
   const constraint = field.constraint;
 
   if (constraint.valueType === "NUMBER") {
     return (
-      <Input
-        id={name}
-        name={name}
-        type="number"
-        step="any"
-        min={constraint.min}
-        max={constraint.max}
-      />
+      <Input {...inputProps} type="number" step="any" min={constraint.min} max={constraint.max} />
     );
   }
 
   if (constraint.valueType === "ENUM") {
     return (
-      <select id={name} name={name} defaultValue="" className={selectClassName}>
+      <select {...inputProps} className={selectClassName}>
         <option value="">—</option>
         {constraint.options.map((option) => (
           <option key={option} value={option}>
@@ -81,5 +96,5 @@ function FieldControl({ field, name }: { field: CustomFieldDto; name: string }) 
     );
   }
 
-  return <Input id={name} name={name} type="text" maxLength={constraint.maxLength} />;
+  return <Input {...inputProps} type="text" maxLength={constraint.maxLength} />;
 }

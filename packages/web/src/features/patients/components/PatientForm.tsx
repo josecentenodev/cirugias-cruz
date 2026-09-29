@@ -1,7 +1,6 @@
 "use client";
 
-import { ActionForm, FieldError, FormField, useField } from "@/components/ActionForm";
-import { Label } from "@/components/ui/label";
+import { ActionForm, FormField, FormTextarea } from "@/components/ActionForm";
 import { PendingButton } from "@/components/ui/pending-button";
 import { messages } from "@/messages/en";
 import { registerPatientAction } from "../actions";
@@ -23,7 +22,7 @@ export function PatientForm() {
         <FormField name="dni" label={messages.fields.dniOptional} />
       </div>
 
-      <ObservationsField />
+      <FormTextarea name="observations" label={messages.fields.observationsOptional} />
 
       <div>
         <PendingButton pendingText={messages.patients.registering}>
@@ -31,20 +30,5 @@ export function PatientForm() {
         </PendingButton>
       </div>
     </ActionForm>
-  );
-}
-
-function ObservationsField() {
-  const field = useField("observations");
-  return (
-    <div className="flex flex-col gap-1.5">
-      <Label htmlFor={field.id}>{messages.fields.observationsOptional}</Label>
-      <textarea
-        {...field.inputProps}
-        rows={3}
-        className="rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-danger"
-      />
-      <FieldError id={field.errorId} error={field.error} />
-    </div>
   );
 }

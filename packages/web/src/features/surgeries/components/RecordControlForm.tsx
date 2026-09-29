@@ -1,22 +1,18 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { Alert } from "@/components/ui/alert";
+import { useState } from "react";
+import { ActionForm, FormSelect, FormTextarea } from "@/components/ActionForm";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PendingButton } from "@/components/ui/pending-button";
 import { CustomFieldValueInputs } from "@/features/procedure-types/components/CustomFieldValueInputs";
 import type { CustomFieldDto } from "@/features/procedure-types/dtos";
 import { messages } from "@/messages/en";
-import { recordControlAction, type RecordControlFormState } from "../actions";
+import { recordControlAction } from "../actions";
 import type { ParticipantView } from "../mappers";
-
-const initialState: RecordControlFormState = {};
 
 const fieldClassName =
   "h-9 rounded-md border border-border bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const textareaClassName =
-  "rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
  * `participants` come straight from the Surgery aggregate
@@ -43,8 +39,6 @@ export function RecordControlForm({
   /** The Procedure Type's control definitions (ADR 0026); `atLimit` set when a capped one is already complete on this Surgery. */
   controlTypeOptions?: { id: string; name: string; atLimit: boolean }[];
 }) {
-  const boundAction = recordControlAction.bind(null, patientId, surgeryId);
-  const [state, formAction] = useActionState(boundAction, initialState);
   const [authorType, setAuthorType] = useState<"physician" | "resident">("physician");
   // Every ProcedureType has at least its seeded default control
   // definition (ADR 0030 — no ad-hoc controls), so pre-select it when
@@ -68,9 +62,10 @@ export function RecordControlForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      {state.error ? <Alert>{state.error}</Alert> : null}
-
+    <ActionForm
+      action={recordControlAction.bind(null, patientId, surgeryId)}
+      className="flex flex-col gap-4"
+    >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="definitionId">{messages.surgeries.recordControl.controlType}</Label>
         <select
@@ -134,31 +129,24 @@ export function RecordControlForm({
       </fieldset>
 
       {authorType === "resident" && hasParticipants ? (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="residentId">{messages.surgeries.recordControl.resident}</Label>
-          <select
-            id="residentId"
-            name="residentId"
-            required
-            defaultValue=""
-            className={fieldClassName}
-          >
-            <option value="" disabled>
-              {messages.surgeries.recordControl.selectResident}
+        <FormSelect
+          name="residentId"
+          label={messages.surgeries.recordControl.resident}
+          required
+          defaultValue=""
+        >
+          <option value="" disabled>
+            {messages.surgeries.recordControl.selectResident}
+          </option>
+          {participants.map((participant) => (
+            <option key={participant.id} value={participant.id}>
+              {participant.name}
             </option>
-            {participants.map((participant) => (
-              <option key={participant.id} value={participant.id}>
-                {participant.name}
-              </option>
-            ))}
-          </select>
-        </div>
+          ))}
+        </FormSelect>
       ) : null}
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="observations">{messages.fields.observations}</Label>
-        <textarea id="observations" name="observations" rows={3} className={textareaClassName} />
-      </div>
+      <FormTextarea name="observations" label={messages.fields.observations} />
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="recordedAt">{messages.fields.dateAndTime}</Label>
@@ -195,6 +183,6 @@ export function RecordControlForm({
           </PendingButton>
         )}
       </div>
-    </form>
+    </ActionForm>
   );
 }

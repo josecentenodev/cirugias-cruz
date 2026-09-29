@@ -1,226 +1,150 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import type { ActionResult } from "@/lib/action-result";
 import { apiRequest, apiRequestRaw } from "@/lib/api-client";
-import { ApiDomainError } from "@/lib/api-errors";
+import { toApiError } from "@/lib/api-errors";
 import { getForwardedClientIp } from "@/lib/client-ip";
-import { valuesFromFormData } from "@/lib/form-values";
+import { FormError, runFormAction } from "@/lib/form-action";
 import { clearSessionCookie, getSessionId, setSessionCookie } from "@/lib/session";
+import { messages } from "@/messages/en";
 import { parseSessionCookie } from "./parse-session-cookie";
 import { acceptInvitationSchema, loginSchema, registerSchema } from "./schemas";
 
-const REGISTER_ECHO_FIELDS = ["firstName", "lastName", "phone", "email", "dateOfBirth"] as const;
-const LOGIN_ECHO_FIELDS = ["email"] as const;
-
-export interface RegisterFormState {
-  error?: string;
-  values?: Record<string, string>;
-}
+/**
+ * Unauthenticated-by-definition actions — they call `api-client`
+ * directly rather than `authedApiRequest` (there is no session yet).
+ * Feedback goes through `runFormAction`
+ * (docs/architecture/milestone-12-form-feedback-design.md) like every
+ * other form; passwords are never echoed back.
+ */
 
 /**
- * `POST /physicians` is unauthenticated by definition — same reasoning
- * as `loginAction` below. Unlike login, a successful registration does
- * **not** set a session cookie or redirect into the product: the
- * account exists but isn't usable until the physician confirms the
- * email that was just sent to them (ADR 0015) — `login` itself would
- * reject it. Redirects to a static "check your email" page instead.
+ * `POST /physicians`. A successful registration does **not** set a
+ * session cookie or redirect into the product: the account isn't usable
+ * until the physician confirms the email just sent (ADR 0015) — the
+ * "check your email" page itself is the success feedback.
  */
 export async function registerAction(
-  _previousState: RegisterFormState,
+  _previous: ActionResult,
   formData: FormData,
-): Promise<RegisterFormState> {
-  const parsed = registerSchema.safeParse({
-    firstName: formData.get("firstName"),
-    lastName: formData.get("lastName"),
-    phone: formData.get("phone"),
-    email: formData.get("email"),
-    dateOfBirth: formData.get("dateOfBirth"),
-    password: formData.get("password"),
+): Promise<ActionResult> {
+  return runFormAction(formData, {
+    schema: registerSchema,
+    input: (fd) => ({
+      firstName: fd.get("firstName"),
+      lastName: fd.get("lastName"),
+      phone: fd.get("phone"),
+      email: fd.get("email"),
+      dateOfBirth: fd.get("dateOfBirth"),
+      password: fd.get("password"),
+    }),
+    invalidMessage: messages.errors.everyField,
+    run: (body) => apiRequest({ method: "POST", path: "/physicians", body }),
+    success: { redirectTo: "/signup/check-email" },
   });
-  const values = valuesFromFormData(formData, REGISTER_ECHO_FIELDS);
-  if (!parsed.success) {
-    return { error: "Please fill in every field.", values };
-  }
-
-  try {
-    await apiRequest({ method: "POST", path: "/physicians", body: parsed.data });
-  } catch (error) {
-    if (error instanceof ApiDomainError) {
-      return { error: error.message, values };
-    }
-    throw error;
-  }
-
-  redirect("/signup/check-email");
-}
-
-export interface ResendConfirmationFormState {
-  sent?: boolean;
 }
 
 /**
  * Fired from the login screen's "resend confirmation email" prompt
- * (ADR 0028, closing ADR 0015's own open item). Deliberately always
- * reports success in the UI regardless of what actually happened
- * server-side — `resendConfirmationEmail` (Application) is silent for
- * "no such email"/"already confirmed" on purpose, and this action must
- * not leak that distinction back out through a different response
- * shape.
+ * (ADR 0028). Deliberately always reports success regardless of what
+ * happened server-side — `resendConfirmationEmail` (Application) is
+ * silent for "no such email"/"already confirmed" on purpose, and this
+ * action must not leak that distinction through a different response.
+ * The swallowed failure is that non-leaking posture, not error handling.
  */
 export async function resendConfirmationAction(
-  _previousState: ResendConfirmationFormState,
+  _previous: ActionResult,
   formData: FormData,
-): Promise<ResendConfirmationFormState> {
+): Promise<ActionResult> {
   const email = formData.get("email");
-  if (typeof email === "string" && email.trim()) {
-    try {
-      await apiRequest({ method: "POST", path: "/email-confirmations/resend", body: { email } });
-    } catch {
-      // Rate-limited or otherwise unavailable — still reported as "sent"
-      // in the UI, per this action's own non-leaking posture above.
-    }
-  }
-  return { sent: true };
-}
-
-export interface AcceptInvitationFormState {
-  error?: string;
-  token?: string;
+  return runFormAction(formData, {
+    run: async () => {
+      if (typeof email === "string" && email.trim()) {
+        await apiRequest({
+          method: "POST",
+          path: "/email-confirmations/resend",
+          body: { email },
+        }).catch(() => undefined);
+      }
+    },
+    success: { message: "confirmationResent" },
+  });
 }
 
 /**
- * `POST /resident-invitations/accept` (ADR 0029) — unauthenticated by
- * definition, same reasoning as `registerAction`/`loginAction`: the
- * Resident has no session yet, that's the whole point. On success,
- * redirects to `/login` rather than logging them in directly — same
- * "accepting isn't the same as authenticating" posture `registerAction`
- * already uses for the Physician's own confirmation flow.
+ * `POST /resident-invitations/accept` (ADR 0029). On success, redirects
+ * to `/login` rather than logging them in directly — "accepting isn't
+ * authenticating", same posture as `registerAction`. The token rides in
+ * a hidden field the page re-renders from the URL, so it is never echoed.
  */
 export async function acceptInvitationAction(
-  _previousState: AcceptInvitationFormState,
+  _previous: ActionResult,
   formData: FormData,
-): Promise<AcceptInvitationFormState> {
-  const parsed = acceptInvitationSchema.safeParse({
-    token: formData.get("token"),
-    password: formData.get("password"),
+): Promise<ActionResult> {
+  return runFormAction(formData, {
+    schema: acceptInvitationSchema,
+    input: (fd) => ({ token: fd.get("token"), password: fd.get("password") }),
+    sensitiveFields: ["token"],
+    // A missing token has no visible input to attach its error to.
+    invalidMessage: (fieldErrors) => fieldErrors.token ?? messages.errors.everyField,
+    run: (body) => apiRequest({ method: "POST", path: "/resident-invitations/accept", body }),
+    success: { redirectTo: "/login?reason=invitation-accepted" },
   });
-  const token = typeof formData.get("token") === "string" ? (formData.get("token") as string) : "";
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Please fill in every field.", token };
-  }
-
-  try {
-    await apiRequest({
-      method: "POST",
-      path: "/resident-invitations/accept",
-      body: parsed.data,
-    });
-  } catch (error) {
-    if (error instanceof ApiDomainError) {
-      return { error: error.message, token };
-    }
-    throw error;
-  }
-
-  redirect("/login?reason=invitation-accepted");
-}
-
-export interface LoginFormState {
-  error?: string;
-  values?: Record<string, string>;
 }
 
 /**
- * `POST /sessions` is unauthenticated by definition, so this calls
- * `apiRequestRaw` directly rather than `authedApiRequest` — there is no
- * session yet to attach, and a rejected login surfaces as `api`'s own
- * `DomainError` (400), never a 401, so there's no ambiguity with the
- * "session expired" case `authedApiRequest` exists to handle. See
- * docs/architecture/milestone-8-design.md §3 and
- * docs/architecture/m4-m7-conformance-review.md §2.5 (there is no 403
- * in this API either).
+ * `POST /sessions`, through `apiRequestRaw` — the one caller that needs a
+ * response header (`Set-Cookie`). A rejected login is `api`'s own
+ * `DomainError` (400), shown exactly as `api` phrased it: the
+ * unconfirmed-account message (ADR 0015) must stay distinct from the
+ * generic "invalid email or password". See
+ * docs/architecture/milestone-8-design.md §3.
  */
 export async function loginAction(
-  _previousState: LoginFormState,
+  _previous: ActionResult,
   formData: FormData,
-): Promise<LoginFormState> {
-  const parsed = loginSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
-  const values = valuesFromFormData(formData, LOGIN_ECHO_FIELDS);
-  if (!parsed.success) {
-    return { error: "Please enter both an email and a password.", values };
-  }
-
-  const clientIp = await getForwardedClientIp();
-  const response = await apiRequestRaw({
-    method: "POST",
-    path: "/sessions",
-    body: parsed.data,
-    clientIp,
-  });
-
-  if (!response.ok) {
-    if (response.status === 429) {
-      return { error: "Too many attempts — please wait a moment and try again.", values };
-    }
-    // 400 (DomainError) is the only other case `api` returns for this
-    // route — shown exactly as `api` phrased it, not reworded here.
-    // `login` itself returns the same "Invalid email or password" text
-    // for a wrong password/unknown email either way (deliberately not
-    // distinguishing which), but a *different*, genuinely more useful
-    // message for an unconfirmed account (ADR 0015) — hardcoding a
-    // single generic string here, as this used to, would silently
-    // discard that distinction and leave a physician who hasn't
-    // confirmed yet with no idea why login keeps failing. Anything else
-    // here is unexpected and best surfaced by error.tsx rather than
-    // swallowed as a form message.
-    if (response.status === 400) {
-      let message = "Invalid email or password.";
-      try {
-        const body = (await response.json()) as { error?: string };
-        if (body.error) {
-          message = body.error;
-        }
-      } catch {
-        // Malformed/empty body — fall back to the generic message above.
+): Promise<ActionResult> {
+  return runFormAction(formData, {
+    schema: loginSchema,
+    input: (fd) => ({ email: fd.get("email"), password: fd.get("password") }),
+    invalidMessage: messages.errors.loginFields,
+    run: async (body) => {
+      const response = await apiRequestRaw({
+        method: "POST",
+        path: "/sessions",
+        body,
+        clientIp: await getForwardedClientIp(),
+      });
+      if (!response.ok) {
+        throw await toApiError(response, messages.errors.invalidCredentials);
       }
-      return { error: message, values };
-    }
-    throw new Error(`Unexpected response from the API: ${response.status}`);
-  }
 
-  // Required: fail closed if no valid session id can be extracted from
-  // api's response — see
-  // docs/architecture/milestone-8-session-security-review.md §3.4. Never
-  // call setSessionCookie with an empty/undefined value.
-  const parsedCookie = parseSessionCookie(response.headers.get("set-cookie"));
-  if (!parsedCookie) {
-    return { error: "Login failed — please try again.", values };
-  }
+      // Required: fail closed if no valid session id can be extracted from
+      // api's response — see
+      // docs/architecture/milestone-8-session-security-review.md §3.4. Never
+      // call setSessionCookie with an empty/undefined value.
+      const parsedCookie = parseSessionCookie(response.headers.get("set-cookie"));
+      if (!parsedCookie) {
+        throw new FormError(messages.errors.loginFailed);
+      }
+      await setSessionCookie(parsedCookie.sessionId, parsedCookie.expiresAt);
 
-  await setSessionCookie(parsedCookie.sessionId, parsedCookie.expiresAt);
-
-  // ADR 0017: `api` now authenticates two kinds of principal through
-  // this one route — the response body says which. A malformed/missing
-  // body is treated as the physician case (this route's original,
-  // still-default shape) rather than thrown — the session cookie is
-  // already set either way.
-  let userType: "physician" | "resident" = "physician";
-  try {
-    const body = (await response.json()) as { userType?: "physician" | "resident" };
-    if (body.userType === "resident") {
-      userType = "resident";
-    }
-  } catch {
-    // Fall back to the physician case above.
-  }
-
-  if (userType === "resident") {
-    redirect("/resident/surgeries");
-  }
-  redirect("/patients");
+      // ADR 0017: `api` authenticates two kinds of principal through this
+      // one route — the body says which. A malformed/missing body is the
+      // physician case (this route's original, still-default shape); the
+      // session cookie is already set either way.
+      try {
+        const payload = (await response.json()) as { userType?: "physician" | "resident" };
+        return payload.userType === "resident" ? "resident" : "physician";
+      } catch {
+        return "physician";
+      }
+    },
+    success: (userType) => ({
+      redirectTo: userType === "resident" ? "/resident/surgeries" : "/patients",
+    }),
+  });
 }
 
 /**
@@ -228,7 +152,8 @@ export async function loginAction(
  * invalidating the underlying `api` session fails — see
  * docs/architecture/milestone-8-session-security-review.md §3.3. Logout
  * must always visibly succeed from the physician's side; a failure here
- * is logged, not surfaced.
+ * is logged, not surfaced. Not a form with feedback, so not a
+ * `runFormAction` caller.
  */
 export async function logoutAction(): Promise<void> {
   const sessionId = await getSessionId();

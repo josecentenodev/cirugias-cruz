@@ -8,7 +8,9 @@ import {
   useId,
   useRef,
   type FormHTMLAttributes,
+  type InputHTMLAttributes,
   type ReactNode,
+  type SelectHTMLAttributes,
 } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
@@ -93,7 +95,7 @@ export function useField(name: string, fallbackValue?: string) {
 }
 
 /** The inline, focus-receiving form-level error. Renders nothing unless the last result is an error. */
-export function FormFeedback({ result }: { result: ActionResult }) {
+export function FormFeedback({ result, className }: { result: ActionResult; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const errorId = result.status === "error" ? result.id : undefined;
   useEffect(() => {
@@ -102,7 +104,7 @@ export function FormFeedback({ result }: { result: ActionResult }) {
 
   if (result.status !== "error") return null;
   return (
-    <Alert ref={ref} tabIndex={-1} className="outline-none">
+    <Alert ref={ref} tabIndex={-1} className={cn("outline-none", className)}>
       {result.message}
     </Alert>
   );
@@ -111,19 +113,25 @@ export function FormFeedback({ result }: { result: ActionResult }) {
 export function ActionForm({
   action,
   children,
+  feedbackClassName,
+  afterForm,
   ...formProps
-}: { action: FormActionFn; children: ReactNode } & Omit<
-  FormHTMLAttributes<HTMLFormElement>,
-  "action" | "children"
->) {
+}: {
+  action: FormActionFn;
+  children: ReactNode;
+  feedbackClassName?: string;
+  /** Rendered after the `<form>` but inside its result context — e.g. a follow-up form that must not nest. */
+  afterForm?: ReactNode;
+} & Omit<FormHTMLAttributes<HTMLFormElement>, "action" | "children">) {
   const [result, formAction] = useFormAction(action);
   const idPrefix = useId();
   return (
     <FormContext.Provider value={{ result, idPrefix }}>
       <form action={formAction} {...formProps}>
-        <FormFeedback result={result} />
+        <FormFeedback result={result} className={feedbackClassName} />
         {children}
       </form>
+      {afterForm}
     </FormContext.Provider>
   );
 }
@@ -137,32 +145,121 @@ export function FieldError({ id, error }: { id: string; error?: string }) {
   );
 }
 
-/** Label + input + field error, bound to the enclosing `<ActionForm>`. */
-export function FormField({
+const textareaClass =
+  "rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-danger";
+
+/** Label + textarea + field error, bound to the enclosing `<ActionForm>`. */
+export function FormTextarea({
   name,
   label,
-  type = "text",
+  rows = 3,
   required,
   defaultValue,
-  autoComplete,
-  hint,
+  placeholder,
   className,
 }: {
   name: string;
   label: string;
-  type?: string;
+  rows?: number;
   required?: boolean;
   defaultValue?: string;
-  autoComplete?: string;
-  hint?: ReactNode;
+  placeholder?: string;
   className?: string;
 }) {
   const field = useField(name, defaultValue);
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <Label htmlFor={field.id}>{label}</Label>
-      <Input {...field.inputProps} type={type} required={required} autoComplete={autoComplete} />
+      <textarea
+        {...field.inputProps}
+        rows={rows}
+        required={required}
+        placeholder={placeholder}
+        className={textareaClass}
+      />
+      <FieldError id={field.errorId} error={field.error} />
+    </div>
+  );
+}
+
+type InputAttrs = Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  "name" | "id" | "defaultValue" | "className" | "children"
+>;
+
+/**
+ * Label + input + field error, bound to the enclosing `<ActionForm>`.
+ * Any other `<input>` attribute (`type`, `step`, `min`, `placeholder`…)
+ * passes straight through.
+ */
+export function FormField({
+  name,
+  label,
+  defaultValue,
+  hint,
+  className,
+  ...inputAttrs
+}: {
+  name: string;
+  label: string;
+  defaultValue?: string | number;
+  hint?: ReactNode;
+  className?: string;
+} & InputAttrs) {
+  const field = useField(name, defaultValue === undefined ? undefined : String(defaultValue));
+  return (
+    <div className={cn("flex flex-col gap-1.5", className)}>
+      <Label htmlFor={field.id}>{label}</Label>
+      <Input {...inputAttrs} {...field.inputProps} />
       {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+      <FieldError id={field.errorId} error={field.error} />
+    </div>
+  );
+}
+
+const selectClass =
+  "h-9 rounded-md border border-border bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-danger";
+
+/**
+ * Label + select + field error. Uncontrolled by default (echoed value
+ * after a rejected submit); pass `value` + `onChange` for a select whose
+ * choice drives other fields — its own state already survives a submit.
+ */
+export function FormSelect({
+  name,
+  label,
+  defaultValue,
+  value,
+  onChange,
+  required,
+  disabled,
+  className,
+  children,
+}: {
+  name: string;
+  label: string;
+  defaultValue?: string;
+  value?: string;
+  onChange?: SelectHTMLAttributes<HTMLSelectElement>["onChange"];
+  required?: boolean;
+  disabled?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  const field = useField(name, defaultValue);
+  const { defaultValue: uncontrolledDefault, ...bindings } = field.inputProps;
+  return (
+    <div className={cn("flex flex-col gap-1.5", className)}>
+      <Label htmlFor={field.id}>{label}</Label>
+      <select
+        {...bindings}
+        {...(value === undefined ? { defaultValue: uncontrolledDefault } : { value, onChange })}
+        required={required}
+        disabled={disabled}
+        className={selectClass}
+      >
+        {children}
+      </select>
       <FieldError id={field.errorId} error={field.error} />
     </div>
   );

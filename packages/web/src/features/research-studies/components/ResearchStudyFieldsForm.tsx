@@ -1,18 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { Alert } from "@/components/ui/alert";
+import { useState } from "react";
+import { ActionForm, FormTextarea } from "@/components/ActionForm";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { PendingButton } from "@/components/ui/pending-button";
 import { messages } from "@/messages/en";
-import { updateResearchStudyAction, type UpdateResearchStudyFormState } from "../actions";
+import { updateResearchStudyAction } from "../actions";
 import type { ResearchStudyDetailView } from "../mappers";
-
-const initialState: UpdateResearchStudyFormState = {};
-
-const textareaClassName =
-  "rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -36,8 +30,6 @@ function Field({ label, value }: { label: string; value: string }) {
  */
 export function ResearchStudyFieldsForm({ study }: { study: ResearchStudyDetailView }) {
   const [isEditing, setIsEditing] = useState(false);
-  const boundAction = updateResearchStudyAction.bind(null, study.id);
-  const [state, formAction] = useActionState(boundAction, initialState);
 
   if (!isEditing) {
     return (
@@ -59,54 +51,27 @@ export function ResearchStudyFieldsForm({ study }: { study: ResearchStudyDetailV
     );
   }
 
+  const f = messages.research.fields;
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      {state.error ? <Alert>{state.error}</Alert> : null}
-
+    <ActionForm
+      action={updateResearchStudyAction.bind(null, study.id)}
+      className="flex flex-col gap-4"
+    >
       <div className="grid gap-x-8 gap-y-4 lg:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="hypothesis">{messages.research.fields.hypothesis}</Label>
-          <textarea
-            id="hypothesis"
-            name="hypothesis"
-            rows={4}
-            defaultValue={study.hypothesis}
-            className={textareaClassName}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="results">{messages.research.fields.results}</Label>
-          <textarea
-            id="results"
-            name="results"
-            rows={4}
-            defaultValue={study.results}
-            className={textareaClassName}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="analysis">{messages.research.fields.analysis}</Label>
-          <textarea
-            id="analysis"
-            name="analysis"
-            rows={4}
-            defaultValue={study.analysis}
-            className={textareaClassName}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="conclusion">{messages.research.fields.conclusion}</Label>
-          <textarea
-            id="conclusion"
-            name="conclusion"
-            rows={4}
-            defaultValue={study.conclusion}
-            className={textareaClassName}
-          />
-        </div>
+        <FormTextarea
+          name="hypothesis"
+          label={f.hypothesis}
+          rows={4}
+          defaultValue={study.hypothesis}
+        />
+        <FormTextarea name="results" label={f.results} rows={4} defaultValue={study.results} />
+        <FormTextarea name="analysis" label={f.analysis} rows={4} defaultValue={study.analysis} />
+        <FormTextarea
+          name="conclusion"
+          label={f.conclusion}
+          rows={4}
+          defaultValue={study.conclusion}
+        />
       </div>
 
       <div className="flex gap-2">
@@ -117,6 +82,6 @@ export function ResearchStudyFieldsForm({ study }: { study: ResearchStudyDetailV
           {messages.common.cancel}
         </Button>
       </div>
-    </form>
+    </ActionForm>
   );
 }

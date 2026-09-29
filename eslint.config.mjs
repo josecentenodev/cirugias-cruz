@@ -4,6 +4,25 @@ import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
 import eslintConfigPrettier from "eslint-config-prettier";
 
+const NO_USE_ACTION_STATE = {
+  name: "react",
+  importNames: ["useActionState"],
+  message:
+    "Use <ActionForm> or useFormAction (components/ActionForm.tsx) — form feedback is centralized there.",
+};
+const NO_API_ERROR_CLASSES = {
+  name: "@/lib/api-errors",
+  importNames: [
+    "ApiAuthError",
+    "ApiDomainError",
+    "ApiNotFoundError",
+    "ApiRateLimitedError",
+    "ApiUnexpectedError",
+  ],
+  message:
+    "Server Actions don't handle API errors themselves — runFormAction (lib/form-action.ts) does.",
+};
+
 export default tseslint.config(
   {
     ignores: [
@@ -57,6 +76,35 @@ export default tseslint.config(
     plugins: { "react-hooks": reactHooks },
     rules: {
       ...reactHooks.configs.recommended.rules,
+    },
+  },
+  {
+    // Milestone 12 (docs/architecture/milestone-12-form-feedback-design.md):
+    // form feedback is centralized. A form never reads an action's result
+    // itself — `useActionState` lives only inside `components/ActionForm.tsx`
+    // (useFormAction).
+    files: ["packages/web/src/**/*.ts", "packages/web/src/**/*.tsx"],
+    ignores: ["packages/web/src/components/ActionForm.tsx"],
+    rules: {
+      "no-restricted-imports": ["error", { paths: [NO_USE_ACTION_STATE] }],
+    },
+  },
+  {
+    // ...and a Server Action never classifies an `api` error itself —
+    // `lib/form-action.ts` (runFormAction) maps them centrally. Declared
+    // AFTER the block above and repeating its path: in flat config the
+    // later `no-restricted-imports` replaces the earlier one for a file.
+    files: ["packages/web/src/features/**/actions.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "BinaryExpression[operator='instanceof'][right.name=/^Api[A-Za-z]*Error$/]",
+          message:
+            "Don't classify API errors in a Server Action — call runFormAction (lib/form-action.ts), which maps them centrally.",
+        },
+      ],
+      "no-restricted-imports": ["error", { paths: [NO_USE_ACTION_STATE, NO_API_ERROR_CLASSES] }],
     },
   },
   eslintConfigPrettier,

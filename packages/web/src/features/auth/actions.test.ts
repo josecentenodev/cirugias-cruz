@@ -1,8 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { idleResult } from "@/lib/action-result";
+import { messages } from "@/messages/en";
+import { formData, redirectMock, resetNextActionMocks } from "@/test/next-action-mocks";
 import { ApiDomainError, ApiUnexpectedError } from "@/lib/api-errors";
 
-const { redirectMock } = vi.hoisted(() => ({ redirectMock: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: redirectMock }));
+vi.mock("next/navigation", async () => (await import("@/test/next-action-mocks")).navigationModule);
+vi.mock("next/headers", async () => (await import("@/test/next-action-mocks")).headersModule);
 
 const { apiRequestRawMock, apiRequestMock } = vi.hoisted(() => ({
   apiRequestRawMock: vi.fn(),
@@ -28,31 +31,12 @@ vi.mock("@/lib/session.js", () => ({
   getSessionId: getSessionIdMock,
 }));
 
-class FakeRedirectSignal extends Error {
-  constructor(public readonly path: string) {
-    super(`NEXT_REDIRECT:${path}`);
-  }
-}
-redirectMock.mockImplementation((path: string) => {
-  throw new FakeRedirectSignal(path);
-});
-
 const { loginAction, logoutAction, registerAction } = await import("./actions.js");
 
-function formData(fields: Record<string, string>): FormData {
-  const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) {
-    data.set(key, value);
-  }
-  return data;
-}
-
 describe("loginAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("succeeds: sets the session cookie from api's Set-Cookie header and redirects to /patients", async () => {
@@ -67,7 +51,7 @@ describe("loginAction", () => {
     );
 
     await expect(
-      loginAction({}, formData({ email: "doc@example.com", password: "s3cret" })),
+      loginAction(idleResult, formData({ email: "doc@example.com", password: "s3cret" })),
     ).rejects.toThrow("NEXT_REDIRECT:/patients");
 
     expect(setSessionCookieMock).toHaveBeenCalledWith("abc-123", expect.any(Date));
@@ -85,7 +69,7 @@ describe("loginAction", () => {
     );
 
     await expect(
-      loginAction({}, formData({ email: "doc@example.com", password: "s3cret" })),
+      loginAction(idleResult, formData({ email: "doc@example.com", password: "s3cret" })),
     ).rejects.toThrow("NEXT_REDIRECT:/patients");
   });
 
@@ -101,17 +85,21 @@ describe("loginAction", () => {
     );
 
     await expect(
-      loginAction({}, formData({ email: "resident@example.com", password: "my-own-pass" })),
+      loginAction(idleResult, formData({ email: "resident@example.com", password: "my-own-pass" })),
     ).rejects.toThrow("NEXT_REDIRECT:/resident/surgeries");
   });
 
   it("rejects invalid credentials (api's 400, no parseable body) with a generic fallback, no redirect", async () => {
     apiRequestRawMock.mockResolvedValue(new Response(null, { status: 400 }));
 
-    const result = await loginAction({}, formData({ email: "doc@example.com", password: "wrong" }));
+    const result = await loginAction(
+      idleResult,
+      formData({ email: "doc@example.com", password: "wrong" }),
+    );
 
-    expect(result).toEqual({
-      error: "Invalid email or password.",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Invalid email or password.",
       values: { email: "doc@example.com" },
     });
     expect(setSessionCookieMock).not.toHaveBeenCalled();
@@ -126,12 +114,13 @@ describe("loginAction", () => {
     );
 
     const result = await loginAction(
-      {},
+      idleResult,
       formData({ email: "doc@example.com", password: "s3cret" }),
     );
 
-    expect(result).toEqual({
-      error: "Please confirm your email before logging in",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Please confirm your email before logging in",
       values: { email: "doc@example.com" },
     });
   });
@@ -139,16 +128,20 @@ describe("loginAction", () => {
   it("rejects a rate-limited attempt (429) with its own inline message", async () => {
     apiRequestRawMock.mockResolvedValue(new Response(null, { status: 429 }));
 
-    const result = await loginAction({}, formData({ email: "doc@example.com", password: "wrong" }));
+    const result = await loginAction(
+      idleResult,
+      formData({ email: "doc@example.com", password: "wrong" }),
+    );
 
-    expect(result.error).toMatch(/too many attempts/i);
+    expect(result).toMatchObject({ status: "error", message: messages.errors.rateLimited });
   });
 
   it("rejects a blank field before ever calling api", async () => {
-    const result = await loginAction({}, formData({ email: "", password: "" }));
+    const result = await loginAction(idleResult, formData({ email: "", password: "" }));
 
-    expect(result).toEqual({
-      error: "Please enter both an email and a password.",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Please enter both an email and a password.",
       values: { email: "" },
     });
     expect(apiRequestRawMock).not.toHaveBeenCalled();
@@ -158,12 +151,13 @@ describe("loginAction", () => {
     apiRequestRawMock.mockResolvedValue(new Response(null, { status: 204 })); // no Set-Cookie header at all
 
     const result = await loginAction(
-      {},
+      idleResult,
       formData({ email: "doc@example.com", password: "s3cret" }),
     );
 
-    expect(result).toEqual({
-      error: "Login failed — please try again.",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Login failed — please try again.",
       values: { email: "doc@example.com" },
     });
     expect(setSessionCookieMock).not.toHaveBeenCalled();
@@ -172,11 +166,9 @@ describe("loginAction", () => {
 });
 
 describe("logoutAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("invalidates the session on api and clears the cookie, then redirects to /login", async () => {
@@ -230,17 +222,15 @@ function registerFormData(overrides: Record<string, string> = {}) {
 }
 
 describe("registerAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("succeeds: calls POST /physicians and redirects to /signup/check-email, never sets a session cookie", async () => {
     apiRequestMock.mockResolvedValue({ physicianId: "physician-1" });
 
-    await expect(registerAction({}, registerFormData())).rejects.toThrow(
+    await expect(registerAction(idleResult, registerFormData())).rejects.toThrow(
       "NEXT_REDIRECT:/signup/check-email",
     );
 
@@ -260,10 +250,11 @@ describe("registerAction", () => {
   });
 
   it("rejects a blank field before ever calling api", async () => {
-    const result = await registerAction({}, registerFormData({ firstName: "" }));
+    const result = await registerAction(idleResult, registerFormData({ firstName: "" }));
 
-    expect(result).toEqual({
-      error: "Please fill in every field.",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Please fill in every field.",
       values: {
         firstName: "",
         lastName: "García",
@@ -280,10 +271,11 @@ describe("registerAction", () => {
       new ApiDomainError("A physician with this email is already registered"),
     );
 
-    const result = await registerAction({}, registerFormData());
+    const result = await registerAction(idleResult, registerFormData());
 
-    expect(result).toEqual({
-      error: "A physician with this email is already registered",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "A physician with this email is already registered",
       values: {
         firstName: "Ana",
         lastName: "García",
@@ -295,9 +287,33 @@ describe("registerAction", () => {
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
+  it("unexpected error: is shown inline as the generic message — the form survives", async () => {
     apiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
-    await expect(registerAction({}, registerFormData())).rejects.toBeInstanceOf(ApiUnexpectedError);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await registerAction(idleResult, registerFormData())).toMatchObject({
+      status: "error",
+      message: messages.errors.unexpected,
+    });
+  });
+});
+
+describe("password fields are never echoed back", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetNextActionMocks();
+  });
+
+  it("a rejected login repopulates the email only", async () => {
+    apiRequestRawMock.mockResolvedValue(new Response(null, { status: 400 }));
+
+    const result = await loginAction(
+      idleResult,
+      formData({ email: "doc@example.com", password: "hunter2" }),
+    );
+
+    expect(result.status === "error" ? result.values : undefined).toEqual({
+      email: "doc@example.com",
+    });
   });
 });

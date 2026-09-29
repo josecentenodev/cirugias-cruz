@@ -29,6 +29,19 @@ import { FLASH_COOKIE, type FeedbackKey } from "./flash";
  * fields.
  */
 
+/**
+ * An error whose message is already written for the person using the
+ * form — thrown by an action for a failure that isn't an `api` rejection
+ * (e.g. login's fail-closed "no session id in the response"). Shown
+ * inline verbatim, like a Domain message.
+ */
+export class FormError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "FormError";
+  }
+}
+
 type SuccessSpec = { message?: FeedbackKey; redirectTo?: string };
 
 interface FormActionBase<Out> {
@@ -42,8 +55,12 @@ interface WithSchema<Input, Out> extends FormActionBase<Out> {
   schema: ZodType<Input>;
   /** Builds the raw object `schema` parses, from the submitted form. */
   input: (formData: FormData) => unknown;
-  /** Form-level message on a validation failure; defaults to the shared required-fields copy. */
-  invalidMessage?: string;
+  /**
+   * Form-level message on a validation failure; defaults to the shared
+   * required-fields copy. A function receives the field errors, for a
+   * form whose failing field has no visible input (e.g. a hidden token).
+   */
+  invalidMessage?: string | ((fieldErrors: Record<string, string>) => string);
   run: (input: Input) => Promise<Out>;
 }
 
@@ -91,7 +108,11 @@ function fieldErrorsFrom(
 }
 
 function messageFor(error: unknown): string {
-  if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
+  if (
+    error instanceof ApiDomainError ||
+    error instanceof ApiNotFoundError ||
+    error instanceof FormError
+  ) {
     return error.message;
   }
   if (error instanceof ApiRateLimitedError) {
@@ -117,10 +138,15 @@ export async function runFormAction<Input, Out>(
     if (config.schema) {
       const parsed = config.schema.safeParse(config.input(formData ?? new FormData()));
       if (!parsed.success) {
+        const fieldErrors = fieldErrorsFrom(parsed.error.issues);
+        const message =
+          typeof config.invalidMessage === "function"
+            ? config.invalidMessage(fieldErrors)
+            : (config.invalidMessage ?? messages.errors.requiredFields);
         return {
           status: "error",
-          message: config.invalidMessage ?? messages.errors.requiredFields,
-          fieldErrors: fieldErrorsFrom(parsed.error.issues),
+          message,
+          fieldErrors,
           values: echo(),
           id: nextId(),
         };

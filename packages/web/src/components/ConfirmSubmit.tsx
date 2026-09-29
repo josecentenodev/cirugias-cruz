@@ -1,14 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
-import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { FormFeedback, useFormAction } from "@/components/ActionForm";
+import type { FormActionFn } from "@/lib/action-result";
 import { messages } from "@/messages/en";
-
-type ConfirmState = { error?: string };
-type BoundAction = (previousState: ConfirmState, formData: FormData) => Promise<ConfirmState>;
 
 function ConfirmButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
@@ -32,9 +30,8 @@ function ConfirmButton({ label, pendingLabel }: { label: string; pendingLabel: s
  * the modal spells out the consequence and offers Cancel / Confirm.
  * Replaces one-click destructive submits — see
  * docs/design/ux-principles.md (§4 Forgiving). `action` is the
- * already-`.bind()`-ed Server Action; its returned `{ error }` renders
- * inline next to the trigger. For destructive actions that also return a
- * value to display (e.g. a reissued password) keep a plain form instead.
+ * already-`.bind()`-ed Server Action; feedback is centralized — an error
+ * renders inline next to the trigger (`FormFeedback`), a success toasts.
  */
 export function ConfirmSubmit({
   action,
@@ -46,7 +43,7 @@ export function ConfirmSubmit({
   title,
   size = "sm",
 }: {
-  action: BoundAction;
+  action: FormActionFn;
   triggerLabel: string;
   confirmLabel?: string;
   pendingLabel?: string;
@@ -56,17 +53,19 @@ export function ConfirmSubmit({
   size?: "sm" | "default";
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [state, formAction] = useActionState(action, {});
+  const [result, formAction] = useFormAction(action);
+  const settledId = result.status === "idle" ? undefined : result.id;
 
-  // Close the dialog once the action resolves with an error to show
-  // (success paths redirect away and unmount this entirely).
+  // Close once the action settles in place — an error to show next to the
+  // trigger, or an in-place success (its toast is `useFormAction`'s job).
+  // A redirecting success unmounts this entirely.
   useEffect(() => {
-    if (state.error) dialogRef.current?.close();
-  }, [state.error]);
+    if (settledId !== undefined) dialogRef.current?.close();
+  }, [settledId]);
 
   return (
     <div className="flex flex-col items-start gap-2">
-      {state.error ? <Alert>{state.error}</Alert> : null}
+      <FormFeedback result={result} />
 
       <Button
         type="button"

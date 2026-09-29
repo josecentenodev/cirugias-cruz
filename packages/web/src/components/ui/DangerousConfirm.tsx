@@ -1,17 +1,15 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { matchesConfirmationPhrase } from "@/components/ui/dangerous-confirm";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { FormFeedback, useFormAction } from "@/components/ActionForm";
+import type { FormActionFn } from "@/lib/action-result";
 import { messages } from "@/messages/en";
-
-type ConfirmState = { error?: string };
-type BoundAction = (previousState: ConfirmState, formData: FormData) => Promise<ConfirmState>;
 
 function SubmitButton({
   label,
@@ -46,8 +44,9 @@ function SubmitButton({
  * word `DELETE` when it has no obvious name. Use only for actions that
  * destroy data with no undo; keep `ConfirmSubmit` for reversible ones.
  *
- * `action` is the already-`.bind()`-ed Server Action; its returned
- * `{ error }` renders inline next to the trigger.
+ * `action` is the already-`.bind()`-ed Server Action; feedback is
+ * centralized — an error renders inline next to the trigger
+ * (`FormFeedback`), a success toasts.
  */
 export function DangerousConfirm({
   action,
@@ -61,7 +60,7 @@ export function DangerousConfirm({
   title,
   size = "sm",
 }: {
-  action: BoundAction;
+  action: FormActionFn;
   /** Plain text, or an icon when `triggerAriaLabel` is also given. */
   triggerLabel: React.ReactNode;
   /** Required when `triggerLabel` isn't readable text (e.g. an icon). */
@@ -77,15 +76,16 @@ export function DangerousConfirm({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const inputId = useId();
   const [typed, setTyped] = useState("");
-  const [state, formAction] = useActionState(action, {});
+  const [result, formAction] = useFormAction(action);
+  const settledId = result.status === "idle" ? undefined : result.id;
   const matches = matchesConfirmationPhrase(typed, confirmationPhrase);
 
-  // Close once the action resolves with an error to show (success paths
-  // redirect away and unmount this entirely). Closing fires the dialog's
-  // `close` event, which resets the typed phrase.
+  // Close once the action settles in place (an error to show, or an
+  // in-place success); a redirecting success unmounts this entirely.
+  // Closing fires the dialog's `close` event, which resets the typed phrase.
   useEffect(() => {
-    if (state.error) dialogRef.current?.close();
-  }, [state.error]);
+    if (settledId !== undefined) dialogRef.current?.close();
+  }, [settledId]);
 
   function close() {
     dialogRef.current?.close();
@@ -94,7 +94,7 @@ export function DangerousConfirm({
 
   return (
     <div className="flex flex-col items-start gap-2">
-      {state.error ? <Alert>{state.error}</Alert> : null}
+      <FormFeedback result={result} />
 
       <Button
         type="button"

@@ -1,45 +1,29 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { idleResult } from "@/lib/action-result";
+import { messages } from "@/messages/en";
+import { formData, redirectMock, resetNextActionMocks } from "@/test/next-action-mocks";
 import { ApiDomainError, ApiUnexpectedError } from "@/lib/api-errors";
 
-const { redirectMock } = vi.hoisted(() => ({ redirectMock: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: redirectMock }));
+vi.mock("next/navigation", async () => (await import("@/test/next-action-mocks")).navigationModule);
+vi.mock("next/headers", async () => (await import("@/test/next-action-mocks")).headersModule);
 
 const { authedApiRequestMock } = vi.hoisted(() => ({ authedApiRequestMock: vi.fn() }));
 vi.mock("@/lib/authed-api-request", () => ({ authedApiRequest: authedApiRequestMock }));
 
-class FakeRedirectSignal extends Error {
-  constructor(public readonly path: string) {
-    super(`NEXT_REDIRECT:${path}`);
-  }
-}
-redirectMock.mockImplementation((path: string) => {
-  throw new FakeRedirectSignal(path);
-});
-
 const { changeOwnPasswordAction, recordOwnControlAction, modifyOwnControlAction } =
   await import("./actions.js");
 
-function formData(fields: Record<string, string>): FormData {
-  const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) {
-    data.set(key, value);
-  }
-  return data;
-}
-
 describe("changeOwnPasswordAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("succeeds: PATCHes /me/password and redirects to the surgery panel", async () => {
     authedApiRequestMock.mockResolvedValue(undefined);
 
     await expect(
-      changeOwnPasswordAction({}, formData({ newPassword: "MyNewPassword1" })),
+      changeOwnPasswordAction(idleResult, formData({ newPassword: "MyNewPassword1" })),
     ).rejects.toThrow("NEXT_REDIRECT:/resident/surgeries");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
@@ -50,24 +34,27 @@ describe("changeOwnPasswordAction", () => {
   });
 
   it("rejects a blank password before ever calling api", async () => {
-    const result = await changeOwnPasswordAction({}, formData({ newPassword: "" }));
+    const result = await changeOwnPasswordAction(idleResult, formData({ newPassword: "" }));
 
-    expect(result).toEqual({ error: "Please enter a new password." });
+    expect(result).toMatchObject({ status: "error", message: "Please enter a new password." });
     expect(authedApiRequestMock).not.toHaveBeenCalled();
   });
 
   it("expectable error: surfaces api's message inline", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiDomainError("Password is required"));
 
-    const result = await changeOwnPasswordAction({}, formData({ newPassword: "x" }));
+    const result = await changeOwnPasswordAction(idleResult, formData({ newPassword: "x" }));
 
-    expect(result).toEqual({ error: "Password is required" });
+    expect(result).toMatchObject({ status: "error", message: "Password is required" });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 });
 
 describe("recordOwnControlAction", () => {
-  afterEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetNextActionMocks();
+  });
 
   it("never sends an authorType field — the server forces the resident's own identity", async () => {
     authedApiRequestMock.mockResolvedValue({ surgeryId: "s1", controlId: "c1" });
@@ -75,7 +62,7 @@ describe("recordOwnControlAction", () => {
     await expect(
       recordOwnControlAction(
         "s1",
-        {},
+        idleResult,
         formData({
           observations: "obs",
           recordedAt: "2026-01-11T10:00",
@@ -117,7 +104,7 @@ describe("recordOwnControlAction", () => {
     await expect(
       recordOwnControlAction(
         "s1",
-        {},
+        idleResult,
         formData({
           observations: "obs",
           recordedAt: "2026-01-11T10:00",
@@ -139,7 +126,7 @@ describe("recordOwnControlAction", () => {
     await expect(
       recordOwnControlAction(
         "s1",
-        {},
+        idleResult,
         formData({ observations: "", recordedAt: "2026-01-11T10:00", definitionId: "def-general" }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT");
@@ -149,25 +136,32 @@ describe("recordOwnControlAction", () => {
     expect(body).not.toHaveProperty("observations");
   });
 
-  it("unexpected error: propagates uncaught", async () => {
+  it("unexpected error: is shown inline as the generic message — the form survives", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
-    await expect(
-      recordOwnControlAction(
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      await recordOwnControlAction(
         "s1",
-        {},
+        idleResult,
         formData({
           observations: "obs",
           recordedAt: "2026-01-11T10:00",
           definitionId: "def-general",
         }),
       ),
-    ).rejects.toBeInstanceOf(ApiUnexpectedError);
+    ).toMatchObject({
+      status: "error",
+      message: messages.errors.unexpected,
+    });
   });
 });
 
 describe("modifyOwnControlAction", () => {
-  afterEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetNextActionMocks();
+  });
 
   it("succeeds: PATCHes the control and redirects to the resident's own surgery page", async () => {
     authedApiRequestMock.mockResolvedValue({ surgeryId: "s1", controlId: "c1" });
@@ -176,7 +170,7 @@ describe("modifyOwnControlAction", () => {
       modifyOwnControlAction(
         "s1",
         "c1",
-        {},
+        idleResult,
         formData({ observations: "updated", recordedAt: "2026-01-11T10:00" }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT:/resident/surgeries/s1");
@@ -190,12 +184,13 @@ describe("modifyOwnControlAction", () => {
     const result = await modifyOwnControlAction(
       "s1",
       "c1",
-      {},
+      idleResult,
       formData({ observations: "updated", recordedAt: "2026-01-11T10:00" }),
     );
 
-    expect(result).toEqual({
-      error: "A resident may only modify a Control they themselves authored",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "A resident may only modify a Control they themselves authored",
     });
   });
 });

@@ -9,36 +9,40 @@ No genera contenido nuevo: **transcribe** el protocolo ya acordado sobre los dat
 ficha, para que abrir una sesión en frío no dependa de que el usuario recuerde el molde.
 
 ## Cuándo usar / Cuándo NO
+
 - ✅ Al arrancar una sesión sobre una tarea existente y necesitar el prompt de apertura armado.
 - ❌ NO inventa Steps/Criterios que la ficha no tiene — si está incompleta, el prompt sale
   incompleto y se lo advierte.
 - ❌ NO ejecuta nada del prompt generado: no abre rama, no corre tests, no toca el backlog.
 
 ## Pre-flight (checklist bloqueante)
+
 - [ ] **Normalizar `$ARGUMENTS` ANTES de rechazarlo** (§4.2 de authoring-skills): un ID a medias
-  se completa y se busca en TODAS las series/convenciones del repo. Una sola coincidencia →
-  resolver y **declarar cuál se tomó**; cero o varias → recién ahí pedir el ID completo.
-  ❌ NEVER elegir por criterio propio ante ambigüedad real.
+      se completa y se busca en TODAS las series/convenciones del repo. Una sola coincidencia →
+      resolver y **declarar cuál se tomó**; cero o varias → recién ahí pedir el ID completo.
+      ❌ NEVER elegir por criterio propio ante ambigüedad real.
 - [ ] La ficha existe en `docs/architecture/ROADMAP.md` (MVP Definition / Planning Decisions) o en
-  un ADR de `docs/decisions/`. Si no está, decirlo y detenerse — sin degradar en silencio a otro
-  doc (si está cerrada/superseded, decirlo explícito con el `Status` real del ADR).
+      un ADR de `docs/decisions/`. Si no está, decirlo y detenerse — sin degradar en silencio a otro
+      doc (si está cerrada/superseded, decirlo explícito con el `Status` real del ADR).
 - [ ] **Clasificar el TIPO de la ficha** (§4.1): ¿implementa código, o es un spike/sugerencia que
-  NO implementa? El tipo decide el template: `task-prompt.md` o `task-prompt-spike.md`. El
-  template elegido existe; si falta, detenerse — no fabricar uno ad-hoc.
+      NO implementa? El tipo decide el template: `task-prompt.md` o `task-prompt-spike.md`. El
+      template elegido existe; si falta, detenerse — no fabricar uno ad-hoc.
 - [ ] **¿La ficha espera a un TERCERO?** (⛔) → NO generar el prompt en
-  silencio: decir qué la bloquea, con el estado real si es verificable (o declarando que no lo
-  es — nunca inventado), y **qué parte SÍ se puede trabajar igual** (muchas fichas están
-  bloqueadas en un solo paso). ❌ NEVER generar como si estuviera libre; ❌ NEVER negarse si el
-  usuario igual lo pide.
+      silencio: decir qué la bloquea, con el estado real si es verificable (o declarando que no lo
+      es — nunca inventado), y **qué parte SÍ se puede trabajar igual** (muchas fichas están
+      bloqueadas en un solo paso). ❌ NEVER generar como si estuviera libre; ❌ NEVER negarse si el
+      usuario igual lo pide.
 
 ## Workflow
+
 1. Localizar el bloque de la ficha. 2. Extraer resumen ("por qué", una o dos líneas) + archivos
-clave + modelo/config declarado — si falta un campo, se marca `SIN DECLARAR` y se advierte, nunca
-se completa a criterio propio. 3. Leer el template del TIPO **tal cual está versionado** (no
-parafrasear de memoria). 4. Rellenar los placeholders. 5. Imprimir el prompt en un bloque de
-código, listo para copiar.
+   clave + modelo/config declarado — si falta un campo, se marca `SIN DECLARAR` y se advierte, nunca
+   se completa a criterio propio. 3. Leer el template del TIPO **tal cual está versionado** (no
+   parafrasear de memoria). 4. Rellenar los placeholders. 5. Imprimir el prompt en un bloque de
+   código, listo para copiar.
 
 ## Gate de salida (obligatorio)
+
 ```
 - [ ] ID normalizado: si vino a medias, se declaró qué se resolvió — o se pidió el completo
 - [ ] bloqueo por tercero ADVERTIDO antes del prompt, con estado real o "no verificado"

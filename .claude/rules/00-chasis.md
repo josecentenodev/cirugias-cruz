@@ -15,6 +15,7 @@ No hace falta para ninguna otra tarea.
 ## 3. Los 4 bucles de valor
 
 ### 3.1 `verification-loop` — nada se cierra sin verificar
+
 Toda tarea termina ejecutando el **gate de CI real**, no una simulación:
 `pnpm run lint` → `pnpm run format:check` → `pnpm run typecheck` → `pnpm run test`
 (equivalente a `pnpm run check`; no hay CI en `.github/workflows` — este es el gate que el repo
@@ -23,16 +24,19 @@ declara en su propio `package.json`).
 ✅ ALWAYS si el gate no corrió (falta infra, etc.), decirlo explícito — no fingir verde.
 
 ### 3.2 `eval-harness` — el fail-path es el entregable
+
 Por cada camino feliz nuevo, enumerar y probar sus modos de falla: concurrencia, timeouts,
 shapes de error inesperados, límites. Happy-path solo no cuenta como cobertura.
 
 ### 3.3 `strategic-compact` — comprimir sin perder el hilo
+
 En tareas largas, consolidar el estado en un punto de control legible ANTES de que el contexto se
 sature. La fuente de verdad del estado es `docs/architecture/ROADMAP.md` (MVP Definition, Planning
 Decisions, Risks and Unknowns) más los ADRs en `docs/decisions/`, no la memoria de la sesión (regla
 anti-drift). Compactar es seguro exactamente cuando nada de valor vive solo en la conversación.
 
 ### 3.4 `continuous-learning` — lo aprendido se persiste
+
 Un gotcha no trivial no muere con la sesión. El motor es **`/x-learn`**: clasifica el hallazgo y lo
 persiste en el nivel correcto — ficha accionable / memoria local / gotcha versionado / ADR — con la
 regla de maduración: NO todo se guarda, y la barrera para un ADR es extremadamente alta.

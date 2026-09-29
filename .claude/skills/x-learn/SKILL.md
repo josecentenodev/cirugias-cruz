@@ -11,6 +11,7 @@ persistido en el nivel adecuado, sin sobre-documentar. Es la **primera skill que
 repo nuevo — sin ella el chasis no crece con el repo.
 
 ## Cuándo usar / Cuándo NO
+
 - ✅ Al cerrar una tarea que dejó un aprendizaje no trivial: gotcha de dominio, regla recién
   descubierta, modo de falla del CI/tooling, trampa de plataforma.
 - ❌ NO para lo que el repo **ya registra** solo (estructura, git log, historial de fixes, docs
@@ -20,41 +21,45 @@ repo nuevo — sin ella el chasis no crece con el repo.
 - ❌ NO fuerza un ADR: casi nada califica para Nivel 3.
 
 ## Pre-flight (checklist bloqueante)
+
 - [ ] Formulá el hallazgo en **una oración** con su impacto observable o su regla accionable.
-  Si no podés, no hay nada que persistir — detenete y decilo.
+      Si no podés, no hay nada que persistir — detenete y decilo.
 - [ ] Dedup: `grep` el término en los destinos (docs del repo + índice de memoria). Si ya existe
-  un nodo, **se actualiza ese**, no se crea un duplicado.
+      un nodo, **se actualiza ese**, no se crea un duplicado.
 
 ## Clasificación — decidí ANTES de escribir
 
-Primer corte: **¿es accionable o es un saber?** Si hay algo que *hacer* (código a arreglar,
+Primer corte: **¿es accionable o es un saber?** Si hay algo que _hacer_ (código a arreglar,
 cobertura a sumar) → **ficha en `docs/architecture/ROADMAP.md`** (o issue del repo si el usuario
 usa uno), clasificada Bug o Sugerencia con `.claude/proof-of-bug.md` — NO va a memoria. Si es un
-*saber*, elegí nivel por durabilidad:
+_saber_, elegí nivel por durabilidad:
 
-| Nivel | Destino | Para qué | Editable |
-| :---: | :--- | :--- | :--- |
-| 1 | memoria local del agente | atajos, config de máquina, reglas **aún en discusión** | sí, libre |
-| 2 | `docs/architecture/GOTCHAS.md` (crear si no existe) | trampa técnica estable que **hay** que conocer | sí |
-| 3 | `docs/decisions/NNNN-*.md` (nuevo ADR numerado) | SOLO decisiones **cerradas e inmutables** | ❌ nunca |
+| Nivel | Destino                                             | Para qué                                               | Editable  |
+| :---: | :-------------------------------------------------- | :----------------------------------------------------- | :-------- |
+|   1   | memoria local del agente                            | atajos, config de máquina, reglas **aún en discusión** | sí, libre |
+|   2   | `docs/architecture/GOTCHAS.md` (crear si no existe) | trampa técnica estable que **hay** que conocer         | sí        |
+|   3   | `docs/decisions/NNNN-*.md` (nuevo ADR numerado)     | SOLO decisiones **cerradas e inmutables**              | ❌ nunca  |
 
-> Heurística: *¿esto puede cambiar la semana que viene?* → Nivel 1. *¿Es una trampa técnica
-> estable?* → Nivel 2. *¿Decisión tomada, discutida y cerrada?* → Nivel 3 — y aun así, proponer y
+> Heurística: _¿esto puede cambiar la semana que viene?_ → Nivel 1. _¿Es una trampa técnica
+> estable?_ → Nivel 2. _¿Decisión tomada, discutida y cerrada?_ → Nivel 3 — y aun así, proponer y
 > confirmar con el usuario antes de escribirla.
 
 ## Procedencia — comportamiento de terceros
+
 Un claim sobre una API/servicio externo NO se persiste como hecho sin procedencia citable:
 `oficial` (doc/SDK: URL + fecha, o `símbolo@versión`) / `empírico` (reproducción propia in-repo) /
 `hipótesis` (etiquetada + `TODO: validar` **+ su fila en `docs/architecture/ROADMAP.md` § Risks
 and Unknowns en el mismo commit**). La procedencia se guarda junto al hecho.
 
 ## Workflow
+
 1. Formular (pre-flight). 2. Clasificar con la tabla. 3. Dedup. 4. Escribir en el destino,
-enlazado a sus nodos relacionados — nunca un nodo huérfano, y nunca un link desde un doc
-versionado hacia la memoria local de una máquina. 5. Reportar en una línea qué nivel se eligió y
-por qué — o "nada que persistir", que es un resultado válido y mejor que un registro de más.
+   enlazado a sus nodos relacionados — nunca un nodo huérfano, y nunca un link desde un doc
+   versionado hacia la memoria local de una máquina. 5. Reportar en una línea qué nivel se eligió y
+   por qué — o "nada que persistir", que es un resultado válido y mejor que un registro de más.
 
 ## Gate de salida (obligatorio)
+
 ```
 - [ ] hallazgo en 1 oración (o reportado "nada que persistir")
 - [ ] clasificado con justificación de 1 línea; accionable → ficha, no memoria

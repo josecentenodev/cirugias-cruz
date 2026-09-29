@@ -1,4 +1,5 @@
 <!-- chasis-kit v4 -->
+
 # Proof-of-Bug — clasificar Bug vs Sugerencia y respaldarlo con evidencia
 
 > Lo referencian las skills que **reportan hallazgos** (qa/sec) y la que los **reproduce** en el
@@ -29,7 +30,7 @@ Ante un hallazgo, clasificar **antes** de redactar la ficha:
 - ❌ NEVER degradar un bug de correctness/seguridad a "Sugerencia" **porque ningún doc lo
   mencione**. Los docs capturan decisiones e intenciones, **no enumeran cada comportamiento
   incorrecto posible**: ningún ADR dice "no cobres un producto a $0" ni "este endpoint admin
-  necesita guard" (en motor-ventas, el modelo de amenazas se escribió *después* del RBAC crítico
+  necesita guard" (en motor-ventas, el modelo de amenazas se escribió _después_ del RBAC crítico
   explotado en vivo). **La ausencia de un doc NO es evidencia de que el comportamiento sea
   aceptable.** El default de una auditoría adversarial es exhibir, no minimizar.
 

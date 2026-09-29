@@ -23,3 +23,14 @@ pnpm-lock.yaml
 
 # Agent worktrees (each has its own working state, not part of main's tree)
 .claude/worktrees
+
+# chasis-kit: vendored generic gates — quality guaranteed by their own spec, not this repo's
+# format style. Same list as the `ignores` in eslint.config.mjs; keep them in sync.
+scripts/chasis-check.mjs
+scripts/chasis-check.spec.mjs
+scripts/contexto-check.mjs
+scripts/contexto-check.spec.mjs
+scripts/docs-linkcheck.mjs
+scripts/docs-linkcheck.spec.mjs
+scripts/docs-ratchet.mjs
+scripts/docs-ratchet.spec.mjs

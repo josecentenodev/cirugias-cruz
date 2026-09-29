@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// chasis-kit v13
+// forkeado de chasis-kit v13 (cirugias-cruz): raíz normalizada en Windows + `.claude/` fuera de alcance
 /**
  * docs-linkcheck — ¿la bóveda tiene enlaces rotos o documentos huérfanos?
  *
@@ -37,7 +37,10 @@ import path from 'node:path';
 
 let ROOT;
 try {
-  ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  // path.resolve: en Windows git devuelve `C:/…` (barras) y path.resolve/join devuelven `C:\…`.
+  // Sin normalizar, el guard `abs.startsWith(ROOT)` descartaba TODO enlace relativo en silencio:
+  // ningún enlace roto se reportaba y todo doc salía huérfano.
+  ROOT = path.resolve(execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim());
 } catch {
   console.error('docs-linkcheck: no estás dentro de un repo git. Nada que medir.');
   process.exit(2);
@@ -51,6 +54,11 @@ const archivos = [...new Set(
   }).split('\0').filter(Boolean),
 )]
   .filter((f) => !/\.local\./.test(path.basename(f)))
+  // `.claude/` NO es bóveda: sus skills/commands/rules los carga Claude Code por convención de
+  // ruta, no por enlace, así que "huérfano" no significa nada ahí. Lo custodia chasis-check
+  // (huérfanos contra git + punteros `.claude/…md`). Sus enlaces SALIENTES hacia `docs/` tampoco
+  // cuentan como entrantes: un doc que sólo lo cita una skill sigue sin índice en la bóveda.
+  .filter((f) => !f.startsWith('.claude/'))
   .filter((f) => existsSync(path.join(ROOT, f))); // en el índice pero borrado del árbol: no explota, se saltea
 
 // Índices para wikilinks: basename (sin .md) → rutas candidatas.

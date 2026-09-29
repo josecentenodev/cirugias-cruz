@@ -1,4 +1,4 @@
-// chasis-kit v13
+// forkeado de chasis-kit v13 (cirugias-cruz): casos 14–15 propios
 /**
  * Tests de `docs-linkcheck.mjs` — con `node:test`, contra repos Git efímeros.
  *
@@ -211,6 +211,37 @@ describe('docs-linkcheck', () => {
     const { code, salida } = correr(dir);
     assert.doesNotMatch(salida, /Wikilinks sin archivo destino/, `el pipe escapado es un alias, no parte del nombre:\n${salida}`);
     assert.equal(code, 0, salida);
+  });
+
+  test('14 · `.claude/` queda fuera: ni huérfano ni fuente de entrantes (lo custodia chasis-check)', () => {
+    // cirugias-cruz: skills/commands/rules se cargan por convención de ruta, no por enlace — la
+    // primera corrida real (tras el fix de Windows) daba 14 "huérfanos" ahí, todos falsos.
+    // Pero una skill que enlaza un doc NO le da índice en la bóveda: sigue huérfano.
+    const dir = crearFixture({
+      'README.md': 'Índice: [a](docs/a.md).\n',
+      'docs/a.md': '# a\n',
+      'docs/solo-skill.md': '# sin índice\n',
+      '.claude/skills/x/SKILL.md': 'Ver [doc](../../../docs/solo-skill.md) y [roto](./no-existe.md).\n',
+    });
+    const { code, salida } = correr(dir);
+    assert.equal(code, 1, salida);
+    assert.doesNotMatch(salida, /\.claude\//, `nada bajo .claude/ se reporta:\n${salida}`);
+    assert.match(salida, /Huérfanos[^:]*: 1\b/);
+    assert.match(salida, /docs\/solo-skill\.md/);
+  });
+
+  test('15 · regresión Windows: un enlace relativo cuenta como entrante (raíz de git con `/` vs path con `\\`)', () => {
+    // En Windows `git rev-parse --show-toplevel` da `C:/…` y path.resolve da `C:\…`: sin normalizar,
+    // `abs.startsWith(ROOT)` era falso para TODO enlace y cada doc salía huérfano (59 en
+    // cirugias-cruz). En POSIX este caso pasa siempre; en Windows es el que da rojo.
+    const dir = crearFixture({
+      'README.md': 'Índice: [a](docs/sub/a.md).\n',
+      'docs/sub/a.md': 'Ver [b](../b.md).\n',
+      'docs/b.md': '# b\n',
+    });
+    const { code, salida } = correr(dir);
+    assert.equal(code, 0, salida);
+    assert.doesNotMatch(salida, /Huérfanos/);
   });
 
 });

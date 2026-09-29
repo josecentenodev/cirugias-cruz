@@ -1,4 +1,5 @@
 <!-- chasis-kit v4 -->
+
 # Ingeniería de contexto del agente
 
 > Se lee **solo** al auditar, escribir o reestructurar capas de contexto (rules, skills, memoria,
@@ -43,8 +44,8 @@ longitud descritos aunque "parezcan obvios" — nunca lo son).
 
 - ❌ NEVER una restricción sin caso real nombrable donde el modelo falló sin ella — sin caso es
   corazonada, y cada regla rígida apuesta a que conocés todos los casos límite. ✅ ALWAYS regla
-  nacida de falla con fecha. *(Converge con la tesis del chasis por vía independiente —
-  refuerzo, no novedad; anotado 2026-08-29.)*
+  nacida de falla con fecha. _(Converge con la tesis del chasis por vía independiente —
+  refuerzo, no novedad; anotado 2026-08-29.)_
 - ❌ NEVER dos instrucciones activas peleando ("nunca comentes" vs "documentá según haga falta"):
   el modelo gasta capacidad resolviendo el conflicto en vez de trabajar. ✅ ALWAYS al agregar una
   regla, buscar con cuál choca; el conflicto se resuelve BORRANDO una, no matizando ambas.

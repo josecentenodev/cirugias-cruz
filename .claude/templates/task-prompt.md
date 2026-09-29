@@ -9,11 +9,13 @@ cambio ANTES de tocar código — lo eligió el análisis que vio el problema, n
 implementa. Si no declara, asignalo con las convenciones del repo y dejalo escrito en la ficha.
 
 INVARIANTES DE LA SESIÓN:
+
 1. Una tarea = una sesión.
 2. Protocolo Proof-of-Bug: test en rojo obligatorio antes de cualquier fix.
 3. Las invariantes del chasis (§4) no se negocian; ante conflicto con la ficha, frenar y reportar.
 
 PASOS DE EJECUCIÓN OBLIGATORIOS:
+
 1. ANALIZAR: abrí la ficha y confirmá Steps + archivos clave.
 2. REPRODUCIR: test que falla (en rojo) por la causa real, antes de tocar el código.
 3. FIX (/x-dev): el fix mínimo que respeta la arquitectura del repo.

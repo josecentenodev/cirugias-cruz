@@ -5,6 +5,7 @@ Resumen: {{TASK_SUMMARY}}
 Config declarada por la ficha (modelo/esfuerzo): {{TASK_MODEL}}
 
 INVARIANTES DE LA SESIÓN:
+
 1. Una tarea = una sesión.
 2. **Esta ficha NO implementa.** El entregable es documental: el spike documenta, la ficha decide.
    Si algo exige cambiar código, se ficha aparte — no se toca acá.
@@ -14,6 +15,7 @@ INVARIANTES DE LA SESIÓN:
    MISMO commit.
 
 PASOS DE EJECUCIÓN OBLIGATORIOS:
+
 1. ANALIZAR: abrí la ficha; si un Step depende de un tercero, decilo ANTES de arrancar y acordá
    qué parte SÍ se puede cerrar hoy.
 2. INVESTIGAR: cada punto contra doc oficial o reproducción propia in-repo. Lo que no cierre queda

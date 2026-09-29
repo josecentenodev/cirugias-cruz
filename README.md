@@ -563,6 +563,9 @@ docs/
                      #    deployment-railway, revisiones de conformidad)
 ```
 
+El índice de ADRs (con el `Status` de cada uno) está en
+[`docs/decisions/README.md`](docs/decisions/README.md).
+
 `docs/architecture/ROADMAP.md` es el artefacto de planificación vivo: se
 consulta antes de empezar cualquier trabajo y se actualiza a medida que
 los milestones avanzan.

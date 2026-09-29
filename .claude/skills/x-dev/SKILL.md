@@ -6,22 +6,25 @@ description: Asistente de implementación del repo. Dispara al implementar una f
 # /x-dev — implementar con pre-flight y gate real
 
 ## Cuándo usar / Cuándo NO
+
 - ✅ Al implementar una ficha o feature con alcance definido.
 - ❌ NO para spikes/sugerencias que declaran que no implementan — esos usan su propio template y
   su entregable es documental.
 - ❌ NO arranca sin ficha o alcance escrito: "hacé que ande" no es un alcance.
 
 ## Pre-flight (checklist bloqueante)
+
 - [ ] Leer la ficha/ADR completo en `docs/architecture/ROADMAP.md` o `docs/decisions/`: alcance,
-  criterios, archivos clave.
+      criterios, archivos clave.
 - [ ] Ubicar la zona afectada en la arquitectura real (`packages/domain` → `packages/application`
-  → `packages/infrastructure`/`packages/http`/`packages/web`, dirección estricta de dependencia) —
-  leyendo el código, no suponiendo.
+      → `packages/infrastructure`/`packages/http`/`packages/web`, dirección estricta de dependencia) —
+      leyendo el código, no suponiendo.
 - [ ] Si la ficha es un BUG: el test en rojo va PRIMERO (protocolo de `.claude/proof-of-bug.md`
-  §2) — reproducir la falla por su causa real antes de tocar el fix.
+      §2) — reproducir la falla por su causa real antes de tocar el fix.
 - [ ] Verificar el estado del árbol (`git status`, rama correcta) antes de afirmar nada sobre él.
 
 ## Workflow
+
 1. Test en rojo (si es bug) o spec del comportamiento nuevo.
 2. Implementación mínima que respeta las invariantes del chasis §4 — ante conflicto entre la
    ficha y una invariante, se FRENA y se reporta; no se improvisa una excepción.
@@ -34,8 +37,10 @@ description: Asistente de implementación del repo. Dispara al implementar una f
 6. Cierre: ficha movida a su estado terminal + ritual `/x-learn`.
 
 ## Invariantes del repo (❌ NEVER / ✅ ALWAYS)
+
 - Las del §4 de la capa siempre-cargada (`rules/`), sin re-explicarlas acá.
 - ❌ NEVER declarar "listo" sin que el gate haya corrido. ✅ ALWAYS el gate es la prueba.
 
 ## Gate de salida (obligatorio)
+
 Copiar el gate del chasis §5 y sumarle lo específico de la tarea.

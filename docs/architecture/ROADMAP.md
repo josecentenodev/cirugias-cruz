@@ -30,7 +30,7 @@ gets corrected — it is not meant to be treated as fixed once written.
   (tenant ownership, Surgery/Control participation rules, ResearchStudy
   lifecycle, ProcedureType's no-deletion rule, etc.).
 - **Application Layer architecture** — discovered and approved; recorded
-  in `docs/architecture/application-layer-discovery.md`. A prior review
+  in [`application-layer-discovery.md`](application-layer-discovery.md). A prior review
   found no unresolved CRITICAL/HIGH/MEDIUM issues against it. §7 of that
   document records why `Surgery.reconstitute` (added in Milestone 2) is
   hydration, not a change to the Surgery/Control aggregate boundary.
@@ -2245,7 +2245,7 @@ done as post-MVP polish (ADR 0023/0024).
   mappers, testing strategy), validated against the real M1–M7 routes
   rather than assumed.
 - **The M4–M7 conformance review's two actionable findings are fixed.**
-  `docs/architecture/m4-m7-conformance-review.md` checked M4–M7's actual
+  [`m4-m7-conformance-review.md`](m4-m7-conformance-review.md) checked M4–M7's actual
   implementation against their own documented Scope/DoD and found two
   gaps, both now corrected in a dedicated fix pass before Milestone 8's
   implementation began: (1) `resident.ts`/`research-study.ts` now
@@ -2272,7 +2272,7 @@ done as post-MVP polish (ADR 0023/0024).
   API (not the documented gaps that existed before the fix pass); two
   small staleness notes in its §8 navigable-flow section were corrected
   (cosmetic — the endpoints didn't change). Separately,
-  `milestone-8-session-security-review.md` gives a dedicated review of
+  [`milestone-8-session-security-review.md`](milestone-8-session-security-review.md) gives a dedicated review of
   §3's `web_session` design (relaying `api`'s own session id in a
   `web`-owned cookie), requested explicitly given this product handles
   clinical data. **Verdict: architecturally approved** — the mechanism
@@ -2288,6 +2288,20 @@ done as post-MVP polish (ADR 0023/0024).
   not authorize Milestone 8 implementation** — that remains a separate,
   explicit go-ahead from the product owner, still pending as of this
   entry.
+- **DB-backed tests are latency-bound against the remote Railway
+  Postgres, so `pnpm run test` is non-deterministically red from a
+  developer machine** (empírico, measured 2026-09-29): `DATABASE_URL`
+  goes through Railway's public TCP proxy — ~2.1 s to connect, ~245 ms
+  per `SELECT 1` round trip. Every failure seen was a timeout, never an
+  assertion, and the victim moves between runs: `packages/infrastructure`
+  runs on vitest's 5 s default `testTimeout` (it sets none;
+  `packages/http` sets 60 s) and failed 1/77 in one run, 0/77 in the
+  next; in `packages/http` the passing e2e tests take 10–47 s each,
+  `research-study.test.ts`'s own `{ timeout: 40000 }` override is
+  _lower_ than the package's 60 s, and a `beforeEach` hit the 10 s
+  default `hookTimeout` in another run. Not yet decided: whether to point
+  tests at a local/near Postgres, or raise `testTimeout`/`hookTimeout`
+  uniformly — raising timeouts hides the latency rather than removing it.
 
 ---
 

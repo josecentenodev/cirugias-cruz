@@ -254,10 +254,15 @@ One-time local setup (PostgreSQL on this machine):
    (gitignored; see each `.env.example`).
 3. `pnpm run test` — the first run migrates the empty database.
 
-Also stop pointing the local `DATABASE_URL` at production: local
-`pnpm dev` of `api` should use a dev database too (the test one is fine).
+The local `DATABASE_URL` (what `api` uses when run on your machine)
+points at a **separate** local dev database, e.g. `cirugias_dev` on the
+same Postgres — never production, and not the test database either: the
+guard refuses `DATABASE_URL_TEST === DATABASE_URL`, so dev data and test
+fixtures never share a database. Migrate it once with
+`DATABASE_URL=… pnpm --filter @cirugias-cruz/infrastructure exec prisma migrate deploy`.
 The Playwright suite (`packages/web/e2e`) runs against whatever `api` you
-start, so start it with the test database for e2e runs.
+start, so for e2e runs start `api` with `DATABASE_URL` set to the test
+database.
 
 ## Staging environment (proposed, not provisioned)
 

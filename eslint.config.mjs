@@ -26,6 +26,15 @@ export default tseslint.config(
   },
   js.configs.recommended,
   {
+    // Plain-Node ESM scripts (the test-database guard and its Vitest
+    // setup files) — no `globals` package in this workspace, so the few
+    // Node globals they use are declared here.
+    files: ["scripts/**/*.mjs", "packages/*/vitest.config.mjs"],
+    languageOptions: {
+      globals: { process: "readonly", URL: "readonly", console: "readonly" },
+    },
+  },
+  {
     files: ["**/*.ts", "**/*.tsx"],
     extends: [...tseslint.configs.recommendedTypeChecked],
     languageOptions: {

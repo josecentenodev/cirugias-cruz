@@ -229,6 +229,58 @@ For a pre-production / staging environment, create a separate Railway
 
 ---
 
+## Test database
+
+The DB-backed suites (`packages/infrastructure`, `packages/http`) run
+only against `DATABASE_URL_TEST` — enforced by
+[`scripts/test-database.mjs`](../../scripts/test-database.mjs), wired
+through each package's `vitest.config.mjs`. There is no fallback to
+`DATABASE_URL`; a missing, remote (without `TEST_DATABASE_ALLOW_REMOTE=1`)
+or production-equal URL aborts the run before any connection. The global
+setup runs `prisma migrate deploy` against it first.
+
+Why: until 2026-09-29 those suites used the package `.env`'s
+`DATABASE_URL` — the production Postgres through Railway's public proxy —
+so every test run wrote and deleted real rows (ROADMAP § Risks and
+Unknowns). It was also why they timed out: ~245 ms per round trip.
+
+One-time local setup (PostgreSQL on this machine):
+
+1. As a Postgres superuser, create a disposable role + database:
+   `CREATE ROLE cirugias_test LOGIN PASSWORD '…';`
+   `CREATE DATABASE cirugias_test OWNER cirugias_test;`
+2. Add `DATABASE_URL_TEST=postgresql://cirugias_test:…@localhost:5432/cirugias_test`
+   to both `packages/infrastructure/.env` and `packages/http/.env`
+   (gitignored; see each `.env.example`).
+3. `pnpm run test` — the first run migrates the empty database.
+
+Also stop pointing the local `DATABASE_URL` at production: local
+`pnpm dev` of `api` should use a dev database too (the test one is fine).
+The Playwright suite (`packages/web/e2e`) runs against whatever `api` you
+start, so start it with the test database for e2e runs.
+
+## Staging environment (proposed, not provisioned)
+
+Supported by the current Railway + Cloudflare setup (`oficial` —
+docs.railway.com/environments and
+docs.railway.com/networking/domains/working-with-domains, read 2026-09-29):
+
+- A `staging` Railway **environment** in this same project (see
+  § Per-environment configuration above) with its own `Postgres`, `api`
+  and `web`; Railway documents the pattern of a staging environment that
+  auto-deploys from a `staging` branch. Duplicated environments stage
+  their changes for review before anything deploys.
+- `web` (staging) gets a custom domain, e.g.
+  `staging.seguimientocirugias.com`: Railway gives a CNAME target and a
+  TXT verification record — **both** go in Cloudflare's DNS for
+  `seguimientocirugias.com`. With Cloudflare's proxy on, SSL/TLS mode
+  must be **Full**, not Full (Strict).
+- Staging variables set on purpose, never inherited from production:
+  `WEB_BASE_URL=https://staging.seguimientocirugias.com` (email links),
+  its own `RESEND_*` (or the same sending domain), `NODE_ENV=production`.
+- Staging data is disposable and never a copy of production (clinical
+  data — no PII in staging).
+
 ## Open items (tracked in `ROADMAP.md`, not decided here)
 
 - `RESEND_API_KEY` is set and `seguimientocirugias.com` is verified in

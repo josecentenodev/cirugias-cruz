@@ -2360,7 +2360,13 @@ done as post-MVP polish (ADR 0023/0024).
   `deleteMany`s fixture rows in the real clinical database. Fix: a
   separate test database (local Postgres or its own Railway service) and
   `.env.example` guidance that never suggests the production URL. This
-  also resolves the latency entry below.
+  also resolves the latency entry below. **Fix in progress
+  (2026-09-29, `fix/test-database-isolation`)**: the suites now read only
+  `DATABASE_URL_TEST`, guarded by `scripts/test-database.mjs` (local host
+  only, never equal to `DATABASE_URL`, no fallback) and migrated by a
+  Vitest global setup — see `deployment-railway.md` § Test database.
+  Remaining: create the local `cirugias_test` role/database and set
+  `DATABASE_URL_TEST` in both package `.env` files.
 - **Who/what emptied `_prisma_migrations` in production — `hipótesis`,
   TODO: validar.** Between the last successful `api` deploy and
   2026-09-15 19:55 UTC the history table lost all 13 applied rows while

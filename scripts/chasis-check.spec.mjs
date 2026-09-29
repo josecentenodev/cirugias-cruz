@@ -159,6 +159,26 @@ describe('chasis-check', () => {
     assert.doesNotMatch(salida, /at ModuleJob|Command failed/, 'sin stack trace');
   });
 
+  test('16 · .claude/worktrees/ son checkouts de git de Claude Code, no chasis: nunca son huérfanos (2026-09-29)', () => {
+    // Un worktree de sesión trae su PROPIA copia de .claude/, docs/, node_modules… — 2138
+    // "huérfanos" que bloquearon un commit ajeno. Un huérfano real al lado sigue siendo ROJO.
+    const dir = crearFixture({
+      versionados: { '.claude/rules/00-chasis.md': '# Chasis\n' },
+      sinVersionar: {
+        '.claude/worktrees/sesion-x/.claude/rules/00-chasis.md': '# copia del worktree\n',
+        '.claude/worktrees/sesion-x/docs/README.md': '# copia\n',
+      },
+    });
+    const limpio = correr(dir);
+    assert.equal(limpio.code, 0, limpio.salida);
+
+    escribir(dir, '.claude/nota-suelta.md', '# fuera de git\n');
+    const conHuerfano = correr(dir);
+    assert.equal(conHuerfano.code, 1, conHuerfano.salida);
+    assert.match(conHuerfano.salida, /nota-suelta\.md/);
+    assert.doesNotMatch(conHuerfano.salida, /worktrees/);
+  });
+
   test('9 · un .mjs huérfano bajo .claude/ también es huérfano — el modo de falla 4.6 no es exclusivo de .md', () => {
     const dir = crearFixture({
       versionados: { '.claude/rules/00-chasis.md': '# Chasis\n' },

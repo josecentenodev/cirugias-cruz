@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// chasis-kit v13
+// forkeado de chasis-kit v13 (cirugias-cruz): caso 16 propio — .claude/worktrees/ excluido
 /**
  * chasis-check — el gate que le faltaba a `.claude/`.
  *
@@ -36,7 +36,7 @@ import path from 'node:path';
 // en vez de medir. Que ande porque el find de Git gana en el PATH es un accidente de la máquina, y
 // un gate no se apoya en un accidente. (Fix de Andrés Pacheco en motor-ventas, 2026-08-30.)
 // Devuelve rutas relativas a `dir`, con `/`, para comparar directo contra `git ls-files`.
-function listarArchivos(dir, filtro = () => true, base = '', out = []) {
+function listarArchivos(dir, filtro = () => true, base = '', out = [], entrarA = () => true) {
   let entradas;
   try {
     entradas = readdirSync(path.join(dir, base), { withFileTypes: true });
@@ -45,7 +45,9 @@ function listarArchivos(dir, filtro = () => true, base = '', out = []) {
   }
   for (const e of entradas) {
     const rel = base ? `${base}/${e.name}` : e.name;
-    if (e.isDirectory()) listarArchivos(dir, filtro, rel, out);
+    if (e.isDirectory()) {
+      if (entrarA(rel)) listarArchivos(dir, filtro, rel, out, entrarA);
+    }
     else if (e.isFile() && filtro(rel)) out.push(rel);
   }
   return out;
@@ -77,13 +79,27 @@ if (!hayClaude && !hayCursor && !hayHooks) {
 
 const tracked = new Set(git('ls-files'));
 
+// `.claude/worktrees/` es donde Claude Code crea los git worktrees de sus sesiones: cada uno
+// es un checkout COMPLETO del repo (su propio .claude/, docs/, node_modules…), no parte del
+// chasis. Contarlo como huérfano bloqueó un commit ajeno con 2138 falsos positivos
+// (2026-09-29). Se excluye al recorrer, no sólo al filtrar: un worktree trae node_modules.
+const WORKTREES = '.claude/worktrees/';
+const fueraDeWorktrees = (f) => !f.startsWith(WORKTREES);
+
 // ── A · huérfanos: .md bajo .claude/ presentes en disco pero fuera de git ──────────────
 const onDisk = !hayClaude ? [] : git('ls-files --cached --others --exclude-standard -- .claude')
   .concat(
     // `--others` respeta .gitignore, así que los ignorados no aparecen: los buscamos aparte.
     // También .mjs: el modo de falla 4.6 aplica igual a un hook o un script tragado por el ignore.
-    listarArchivos(path.join(ROOT, '.claude'), (rel) => rel.endsWith('.md') || rel.endsWith('.mjs')).map((rel) => `.claude/${rel}`),
+    listarArchivos(
+      path.join(ROOT, '.claude'),
+      (rel) => rel.endsWith('.md') || rel.endsWith('.mjs'),
+      '',
+      [],
+      (rel) => rel !== 'worktrees',
+    ).map((rel) => `.claude/${rel}`),
   )
+  .filter(fueraDeWorktrees)
   .filter((f) => (f.endsWith('.md') || f.endsWith('.mjs')) && !/\.local\./.test(path.basename(f)));
 
 // `.cursor/` sólo aporta sus `.mdc`: una regla fuera de git no existe para el equipo. El resto

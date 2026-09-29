@@ -1989,7 +1989,15 @@ planning session that analyzed the problem).
 **Dependencies**: none blocking. Not in the MVP line (post-MVP polish,
 like Milestone 10's visual half); does not displace Milestone 11 WP4.
 
-**Status**: `NOT_STARTED` — design approved 2026-09-29.
+**Status**: `IN_PROGRESS` — implemented 2026-09-29 on `feat/milestone-12-form-feedback`
+(phases 0–3 + docs): every Server Action goes through `runFormAction`,
+every form through `ActionForm`, ESLint guard live and mutation-tested;
+`packages/web` lint/format/typecheck/tests and `next build` green. **Only
+remaining DoD item**: the Playwright `full-workflow` run — its new
+assertions are written but not run, because the DB-backed stack points
+at the production database (Risks and Unknowns, Bug above) and the spec
+itself is stale since Milestone 10 (it still visits the removed
+`/surgeries/new` and `/surgeries` routes). Deviations: design doc §9.
 
 ---
 
@@ -2169,12 +2177,19 @@ done as post-MVP polish (ADR 0023/0024).
 ## Risks and Unknowns
 
 - **Flash-cookie success toast across a Server Action `redirect()`
-  (Milestone 12) — `hipótesis`, TODO: validar.** Assumes a cookie set
-  inside a Server Action before `redirect()` is readable by a client
-  component on the destination route in Next 16 App Router. Unverified;
-  Phase 0 of `milestone-12-form-feedback-design.md` spikes it on one real
-  redirect before any slice migrates. Fallback: a `?flash=<key>` query
-  param stripped with `router.replace`.
+  (Milestone 12) — resolved, `empírico` (2026-09-29).** A cookie set in a
+  Server Action before `redirect()` is readable client-side on the
+  destination route in Next 16.3.4 App Router — validated in the browser
+  on a throwaway route for a same-page redirect, a cross-page redirect,
+  back navigation (no replay), an in-place success and an unexpected
+  error. Gotcha found: on a same-page redirect the pathname doesn't
+  change, so the reader also runs when a form (re)mounts or settles —
+  see `milestone-12-form-feedback-design.md` §9. The query-param
+  fallback was not needed.
+- **`e2e/full-workflow.spec.ts` is stale since Milestone 10** — it still
+  visits `/surgeries/new` and `/surgeries`, removed when Surgery moved
+  under its Patient. Found while adding Milestone 12's assertions; not
+  runnable anyway until the test-database Bug above is fixed.
 - **Gaps left open by Milestone 8.5 — all five resolved** in commit
   `c7d7a30` ("Resolve UX gaps before mvp"), kept here for the record:
   (1) the Resident's own Surgery panel now shows Patient/ProcedureType by

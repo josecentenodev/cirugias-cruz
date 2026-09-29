@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Roboto } from "next/font/google";
+import { Toaster } from "@/components/Toaster";
 import { messages } from "@/messages/en";
 import "./globals.css";
 
@@ -19,7 +20,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={roboto.variable}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

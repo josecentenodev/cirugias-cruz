@@ -1,20 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { Alert } from "@/components/ui/alert";
+import { useState } from "react";
+import { ActionForm, FormField, FormTextarea } from "@/components/ActionForm";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { PendingButton } from "@/components/ui/pending-button";
 import { messages } from "@/messages/en";
-import { modifyControlAction, type ModifyControlFormState } from "../actions";
+import { modifyControlAction } from "../actions";
 import type { ControlView } from "../mappers";
-
-const initialState: ModifyControlFormState = {};
-
-const fieldClassName =
-  "h-9 rounded-md border border-border bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const textareaClassName =
-  "rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
  * One Control's row on the Surgery detail view, with an inline
@@ -36,8 +28,6 @@ export function ControlRow({
   control: ControlView;
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const boundAction = modifyControlAction.bind(null, patientId, surgeryId, control.id);
-  const [state, formAction] = useActionState(boundAction, initialState);
 
   if (!isEditing) {
     return (
@@ -67,30 +57,21 @@ export function ControlRow({
 
   return (
     <li className="rounded-md border border-border p-3">
-      <form action={formAction} className="flex flex-col gap-3">
-        {state.error ? <Alert>{state.error}</Alert> : null}
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`observations-${control.id}`}>{messages.fields.observations}</Label>
-          <textarea
-            id={`observations-${control.id}`}
-            name="observations"
-            rows={3}
-            defaultValue={control.observations}
-            className={textareaClassName}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`recordedAt-${control.id}`}>{messages.fields.dateAndTime}</Label>
-          <input
-            id={`recordedAt-${control.id}`}
-            name="recordedAt"
-            type="datetime-local"
-            defaultValue={control.recordedAtInputValue}
-            className={fieldClassName}
-          />
-        </div>
+      <ActionForm
+        action={modifyControlAction.bind(null, patientId, surgeryId, control.id)}
+        className="flex flex-col gap-3"
+      >
+        <FormTextarea
+          name="observations"
+          label={messages.fields.observations}
+          defaultValue={control.observations}
+        />
+        <FormField
+          name="recordedAt"
+          label={messages.fields.dateAndTime}
+          type="datetime-local"
+          defaultValue={control.recordedAtInputValue}
+        />
 
         <div className="flex gap-2">
           <PendingButton size="sm" pendingText={messages.common.saving}>
@@ -100,7 +81,7 @@ export function ControlRow({
             {messages.common.cancel}
           </Button>
         </div>
-      </form>
+      </ActionForm>
     </li>
   );
 }

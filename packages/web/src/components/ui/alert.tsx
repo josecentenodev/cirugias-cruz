@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from "react";
+import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
 
 type AlertVariant = "danger" | "warning" | "success" | "muted";
@@ -15,7 +15,7 @@ export function Alert({
   className,
   variant = "danger",
   ...props
-}: HTMLAttributes<HTMLDivElement> & { variant?: AlertVariant }) {
+}: ComponentProps<"div"> & { variant?: AlertVariant }) {
   return (
     <div
       role={variant === "danger" || variant === "warning" ? "alert" : undefined}

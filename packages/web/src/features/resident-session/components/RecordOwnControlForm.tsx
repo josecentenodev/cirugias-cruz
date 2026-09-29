@@ -1,16 +1,14 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { Alert } from "@/components/ui/alert";
+import { useState } from "react";
+import { ActionForm, FormTextarea } from "@/components/ActionForm";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PendingButton } from "@/components/ui/pending-button";
 import { CustomFieldValueInputs } from "@/features/procedure-types/components/CustomFieldValueInputs";
 import type { CustomFieldDto } from "@/features/procedure-types/dtos";
 import { messages } from "@/messages/en";
-import { recordOwnControlAction, type RecordOwnControlFormState } from "../actions";
-
-const initialState: RecordOwnControlFormState = {};
+import { recordOwnControlAction } from "../actions";
 
 const fieldClassName =
   "h-9 rounded-md border border-border bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -27,8 +25,6 @@ export function RecordOwnControlForm({
   /** The Procedure Type's control definitions (ADR 0026); `atLimit` set when a capped one is already complete on this Surgery. */
   controlTypeOptions?: { id: string; name: string; atLimit: boolean }[];
 }) {
-  const boundAction = recordOwnControlAction.bind(null, surgeryId);
-  const [state, formAction] = useActionState(boundAction, initialState);
   // Every ProcedureType has at least its seeded default control
   // definition (ADR 0030 — no ad-hoc controls), so pre-select it when
   // it's the only option.
@@ -49,9 +45,10 @@ export function RecordOwnControlForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      {state.error ? <Alert>{state.error}</Alert> : null}
-
+    <ActionForm
+      action={recordOwnControlAction.bind(null, surgeryId)}
+      className="flex flex-col gap-4"
+    >
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="definitionId">{messages.surgeries.recordControl.controlType}</Label>
         <select
@@ -80,15 +77,7 @@ export function RecordOwnControlForm({
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="observations">{messages.fields.observations}</Label>
-        <textarea
-          id="observations"
-          name="observations"
-          rows={3}
-          className="rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        />
-      </div>
+      <FormTextarea name="observations" label={messages.fields.observations} />
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="recordedAt">{messages.fields.dateAndTime}</Label>
@@ -125,6 +114,6 @@ export function RecordOwnControlForm({
           </PendingButton>
         )}
       </div>
-    </form>
+    </ActionForm>
   );
 }

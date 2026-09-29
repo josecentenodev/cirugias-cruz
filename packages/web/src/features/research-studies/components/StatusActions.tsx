@@ -1,16 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
-import { Alert } from "@/components/ui/alert";
+import { ActionForm } from "@/components/ActionForm";
 import { PendingButton } from "@/components/ui/pending-button";
 import { messages } from "@/messages/en";
-import {
-  changeResearchStudyStatusAction,
-  type ChangeResearchStudyStatusFormState,
-} from "../actions";
+import { changeResearchStudyStatusAction } from "../actions";
 import type { ResearchStudyStatus } from "../dtos";
-
-const initialState: ChangeResearchStudyStatusFormState = {};
 
 const TRANSITIONS: Record<
   ResearchStudyStatus,
@@ -50,15 +44,14 @@ export function StatusActions({
   status: ResearchStudyStatus;
 }) {
   const { target, label, pendingLabel } = TRANSITIONS[status];
-  const boundAction = changeResearchStudyStatusAction.bind(null, researchStudyId, target);
-  const [state, formAction] = useActionState(boundAction, initialState);
-
   return (
-    <form action={formAction} className="flex flex-col items-start gap-2">
-      {state.error ? <Alert>{state.error}</Alert> : null}
+    <ActionForm
+      action={changeResearchStudyStatusAction.bind(null, researchStudyId, target)}
+      className="flex flex-col items-start gap-2"
+    >
       <PendingButton size="sm" pendingText={pendingLabel}>
         {label}
       </PendingButton>
-    </form>
+    </ActionForm>
   );
 }

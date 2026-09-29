@@ -1,8 +1,9 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import type { ActionResult } from "@/lib/action-result";
 import { authedApiRequest } from "@/lib/authed-api-request";
-import { ApiDomainError, ApiNotFoundError } from "@/lib/api-errors";
+import { runFormAction } from "@/lib/form-action";
+import { messages } from "@/messages/en";
 import type {
   CreateResearchStudyResponse,
   ResearchStudyStatus,
@@ -11,204 +12,144 @@ import type {
 } from "./dtos";
 import { addSurgeryToStudySchema, researchStudyTextFieldsSchema } from "./schemas";
 
-function readTextFields(formData: FormData) {
-  return researchStudyTextFieldsSchema.parse({
-    hypothesis: formData.get("hypothesis") ?? "",
-    results: formData.get("results") ?? "",
-    analysis: formData.get("analysis") ?? "",
-    conclusion: formData.get("conclusion") ?? "",
+/**
+ * Every action here goes through `runFormAction`
+ * (docs/architecture/milestone-12-form-feedback-design.md) — feedback is
+ * centralized there. `api`'s own `ResearchStudy` stays the sole authority
+ * on the lifecycle (`assertModifiable`, `assertCanBeDeletedBy`, legal
+ * status transitions); its rejections are shown inline verbatim.
+ */
+
+const detailPath = (researchStudyId: string) => `/research-studies/${researchStudyId}`;
+
+function textFieldsInput(fd: FormData) {
+  return {
+    hypothesis: fd.get("hypothesis") ?? "",
+    results: fd.get("results") ?? "",
+    analysis: fd.get("analysis") ?? "",
+    conclusion: fd.get("conclusion") ?? "",
+  };
+}
+
+/** `POST /research-studies`. Every field is optional at the Domain level — a study can start blank. */
+export async function createResearchStudyAction(
+  _previous: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  return runFormAction(formData, {
+    schema: researchStudyTextFieldsSchema,
+    input: textFieldsInput,
+    run: (body) =>
+      authedApiRequest<CreateResearchStudyResponse>({
+        method: "POST",
+        path: "/research-studies",
+        body,
+      }),
+    success: (response) => ({
+      message: "studyCreated",
+      redirectTo: detailPath(response.researchStudyId),
+    }),
   });
 }
 
-export interface CreateResearchStudyFormState {
-  error?: string;
-}
-
-/** `POST /research-studies`, through `authedApiRequest` — 401 handling is centralized there. */
-export async function createResearchStudyAction(
-  _previousState: CreateResearchStudyFormState,
-  formData: FormData,
-): Promise<CreateResearchStudyFormState> {
-  const fields = readTextFields(formData);
-
-  let response: CreateResearchStudyResponse;
-  try {
-    response = await authedApiRequest<CreateResearchStudyResponse>({
-      method: "POST",
-      path: "/research-studies",
-      body: fields,
-    });
-  } catch (error) {
-    if (error instanceof ApiDomainError) {
-      return { error: error.message };
-    }
-    throw error;
-  }
-
-  redirect(`/research-studies/${response.researchStudyId}`);
-}
-
-export interface UpdateResearchStudyFormState {
-  error?: string;
-}
-
 /**
- * Bound to a specific `researchStudyId` — same pattern as
- * `modifyControlAction`. `api`'s own `PATCH /research-studies/:id`
- * rejects this once the study is `COMPLETED`
- * (`ResearchStudy.assertModifiable`); that rejection surfaces here as an
- * `ApiDomainError`, shown inline unchanged — this form has no
+ * `PATCH /research-studies/:id`. `api` rejects this once the study is
+ * `COMPLETED` (`ResearchStudy.assertModifiable`) — this form has no
  * client-side awareness of the study's status.
  */
 export async function updateResearchStudyAction(
   researchStudyId: string,
-  _previousState: UpdateResearchStudyFormState,
+  _previous: ActionResult,
   formData: FormData,
-): Promise<UpdateResearchStudyFormState> {
-  const fields = readTextFields(formData);
-
-  try {
-    await authedApiRequest({
-      method: "PATCH",
-      path: `/research-studies/${researchStudyId}`,
-      body: fields,
-    });
-  } catch (error) {
-    if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
-      return { error: error.message };
-    }
-    throw error;
-  }
-
-  redirect(`/research-studies/${researchStudyId}`);
-}
-
-export interface AddSurgeryToStudyFormState {
-  error?: string;
+): Promise<ActionResult> {
+  return runFormAction(formData, {
+    schema: researchStudyTextFieldsSchema,
+    input: textFieldsInput,
+    run: (body) =>
+      authedApiRequest({ method: "PATCH", path: `/research-studies/${researchStudyId}`, body }),
+    success: { message: "studyUpdated", redirectTo: detailPath(researchStudyId) },
+  });
 }
 
 /**
- * `POST /research-studies/:id/surgeries` — bound to `researchStudyId`.
- * Lives here, not in `features/surgeries/actions.ts`, mirroring `api`
- * itself: `addSurgeryToResearchStudy` is defined in
- * `packages/application/src/research-study/`, on ResearchStudy's own
- * aggregate — the study owns its surgery universe, a Surgery has no
- * knowledge of which studies reference it.
+ * `POST /research-studies/:id/surgeries`. Lives here, not in
+ * `features/surgeries/actions.ts`, mirroring `api` itself: the study
+ * owns its surgery universe, a Surgery has no knowledge of which studies
+ * reference it.
  */
 export async function addSurgeryToStudyAction(
   researchStudyId: string,
-  _previousState: AddSurgeryToStudyFormState,
+  _previous: ActionResult,
   formData: FormData,
-): Promise<AddSurgeryToStudyFormState> {
-  const parsed = addSurgeryToStudySchema.safeParse({ surgeryId: formData.get("surgeryId") });
-  if (!parsed.success) {
-    return { error: "Please select a surgery." };
-  }
-
-  try {
-    await authedApiRequest<SurgeryMutationResponse>({
-      method: "POST",
-      path: `/research-studies/${researchStudyId}/surgeries`,
-      body: parsed.data,
-    });
-  } catch (error) {
-    if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
-      return { error: error.message };
-    }
-    throw error;
-  }
-
-  redirect(`/research-studies/${researchStudyId}`);
+): Promise<ActionResult> {
+  return runFormAction(formData, {
+    schema: addSurgeryToStudySchema,
+    input: (fd) => ({ surgeryId: fd.get("surgeryId") }),
+    invalidMessage: messages.errors.selectSurgery,
+    run: (body) =>
+      authedApiRequest<SurgeryMutationResponse>({
+        method: "POST",
+        path: `/research-studies/${researchStudyId}/surgeries`,
+        body,
+      }),
+    success: { message: "studySurgeryAdded", redirectTo: detailPath(researchStudyId) },
+  });
 }
 
-export interface RemoveSurgeryFromStudyFormState {
-  error?: string;
-}
-
-/** `DELETE /research-studies/:id/surgeries/:surgeryId` — bound to both ids, mirrors `removeResidentAction`. */
+/** `DELETE /research-studies/:id/surgeries/:surgeryId`. */
 export async function removeSurgeryFromStudyAction(
   researchStudyId: string,
   surgeryId: string,
-  _previousState: RemoveSurgeryFromStudyFormState,
-): Promise<RemoveSurgeryFromStudyFormState> {
-  try {
-    await authedApiRequest({
-      method: "DELETE",
-      path: `/research-studies/${researchStudyId}/surgeries/${surgeryId}`,
-    });
-  } catch (error) {
-    if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
-      return { error: error.message };
-    }
-    throw error;
-  }
-
-  redirect(`/research-studies/${researchStudyId}`);
-}
-
-export interface ChangeResearchStudyStatusFormState {
-  error?: string;
+  _previous: ActionResult,
+  formData?: FormData,
+): Promise<ActionResult> {
+  return runFormAction(formData, {
+    run: () =>
+      authedApiRequest({
+        method: "DELETE",
+        path: `/research-studies/${researchStudyId}/surgeries/${surgeryId}`,
+      }),
+    success: { message: "studySurgeryRemoved", redirectTo: detailPath(researchStudyId) },
+  });
 }
 
 /**
  * Bound to both `researchStudyId` and the single `to` status the calling
  * button represents (`StatusActions.tsx` renders exactly one button per
- * current status, never a free-form choice) — `api`'s own
- * `POST /research-studies/:id/status` route is the sole authority on
- * which `{ current, to }` combination is legal (it re-derives `current`
- * server-side and maps it onto exactly one of
- * `moveToInProgress`/`complete`/`reopen`; see
- * `packages/http/src/routes/research-study.ts`), so this action never
- * guesses a Domain method name — it only asks to reach a target status.
+ * current status). `api`'s `POST /research-studies/:id/status` re-derives
+ * `current` server-side and is the sole authority on which transition is
+ * legal — this action never guesses a Domain method name.
  */
 export async function changeResearchStudyStatusAction(
   researchStudyId: string,
   to: ResearchStudyStatus,
-  _previousState: ChangeResearchStudyStatusFormState,
-): Promise<ChangeResearchStudyStatusFormState> {
-  try {
-    await authedApiRequest<StatusChangeResponse>({
-      method: "POST",
-      path: `/research-studies/${researchStudyId}/status`,
-      body: { to },
-    });
-  } catch (error) {
-    if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
-      return { error: error.message };
-    }
-    throw error;
-  }
-
-  redirect(`/research-studies/${researchStudyId}`);
-}
-
-export interface DeleteResearchStudyFormState {
-  error?: string;
+  _previous: ActionResult,
+  formData?: FormData,
+): Promise<ActionResult> {
+  return runFormAction(formData, {
+    run: () =>
+      authedApiRequest<StatusChangeResponse>({
+        method: "POST",
+        path: `/research-studies/${researchStudyId}/status`,
+        body: { to },
+      }),
+    success: { message: "studyStatusChanged", redirectTo: detailPath(researchStudyId) },
+  });
 }
 
 /**
- * `DELETE /research-studies/:id`. `api`'s own
- * `ResearchStudy.assertCanBeDeletedBy` rejects this once the study has
- * left `DRAFT` — that rejection surfaces as `state.error`; the delete
- * button is only rendered while `status === "DRAFT"`
- * (`ResearchStudyDetail.tsx`), a presentation convenience, not the
+ * `DELETE /research-studies/:id`. `api`'s `assertCanBeDeletedBy` rejects
+ * this once the study has left `DRAFT`; the delete button is only
+ * rendered while `DRAFT` — a presentation convenience, not the
  * enforcement itself.
  */
 export async function deleteResearchStudyAction(
   researchStudyId: string,
-  _previousState: DeleteResearchStudyFormState,
-): Promise<DeleteResearchStudyFormState> {
-  try {
-    await authedApiRequest({
-      method: "DELETE",
-      path: `/research-studies/${researchStudyId}`,
-    });
-  } catch (error) {
-    if (error instanceof ApiDomainError || error instanceof ApiNotFoundError) {
-      return { error: error.message };
-    }
-    throw error;
-  }
-
-  redirect("/research-studies");
+  _previous: ActionResult,
+  formData?: FormData,
+): Promise<ActionResult> {
+  return runFormAction(formData, {
+    run: () => authedApiRequest({ method: "DELETE", path: `/research-studies/${researchStudyId}` }),
+    success: { message: "studyDeleted", redirectTo: "/research-studies" },
+  });
 }

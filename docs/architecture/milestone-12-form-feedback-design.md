@@ -1,7 +1,9 @@
 # Milestone 12 — Centralized form feedback (success + error) — design
 
 > Status: **approved 2026-09-29** by the product owner (all three
-> recommended options in §6 accepted). Implementation not started.
+> recommended options in §6 accepted). **Implemented 2026-09-29** —
+> everything but the Playwright run (see ROADMAP § Milestone 12 Status);
+> what changed against this plan is §9.
 > Tracked in [`ROADMAP.md`](ROADMAP.md) § Milestone 12.
 
 ## 0. Completion criteria
@@ -172,3 +174,43 @@ isolated state; JS disabled → inline error `Alert` still server-rendered
 message rule; Server Components by default; no new dependency; no
 domain, Application or `api` change; page-level `error.tsx` /
 `not-found.tsx` behavior for Server Component failures.
+
+## 9. As built — deviations and findings (2026-09-29)
+
+- **Action shape (the §3 open question).** Each Server Action stays a
+  plain `export async function` that returns `runFormAction(formData,
+{…})`, rather than `export const x = formAction({…})`. Bound ids keep
+  the standard `.bind(null, …)`. Reason: a `"use server"` file must export
+  async functions, and a higher-order export leans on how Next validates
+  that at runtime — not worth depending on for zero gain.
+- **`runFormAction` is one signature over a config union, not overloads.**
+  With overloads, TS fixed a contextually-typed `success: (out) => …`
+  parameter against the first candidate and `out` became `unknown`.
+  `success` takes `NoInfer<Out>` so `Out` comes from `run` alone.
+- **Additions not in the plan:** `FormError` (a thrown error whose message
+  is user copy — login's fail-closed cookie parse); `invalidMessage` may be
+  a function of the field errors (accept-invitation's hidden token);
+  `toApiError` takes a 400 fallback (login's "Invalid email or password.");
+  `ActionForm` gained `feedbackClassName` (row layouts) and `afterForm`
+  (login's resend prompt, which used to be a `<form>` nested inside the
+  login `<form>` — invalid HTML, now a sibling); `FormTextarea` /
+  `FormSelect` beside `FormField`; `CustomFieldValueInputs` bound via
+  `useField` so CustomField values are restored too.
+- **Flash reader has three triggers**, not one (`empírico`, browser spike):
+  route change, a form settling (pending → idle), and a form (re)mounting.
+  A redirect back to the same URL doesn't change the pathname, and the
+  redirect re-creates the form, so the settle edge alone never fired.
+- **Phase 2 landed as one commit**, not one per slice: `ConfirmSubmit` /
+  `DangerousConfirm` change type for every slice that uses them at once.
+- **ESLint guard ordering** (mutation-tested): in flat config a later
+  `no-restricted-imports` replaces an earlier one for the same file, so
+  the `actions.ts` block comes last and repeats the `useActionState` path.
+- **Behavior changes worth knowing:** resending a resident invitation now
+  revalidates the list (the row's pending/accepted text refreshes); the
+  resend-confirmation prompt stays visible after sending (the toast is the
+  confirmation); login fields are marked `aria-invalid` only for a
+  field-level error, not for a wrong-credentials rejection.
+- **Out of scope, still per-call:** `features/*/queries.ts` catch
+  `ApiNotFoundError` → `notFound()` for Server Component reads (§8), and
+  `logoutAction` keeps its own log-and-continue (logout must always
+  succeed; it is not a form with feedback).

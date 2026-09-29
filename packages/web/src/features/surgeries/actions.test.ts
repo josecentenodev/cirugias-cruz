@@ -1,20 +1,14 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { idleResult } from "@/lib/action-result";
+import { messages } from "@/messages/en";
+import { formData, redirectMock, resetNextActionMocks } from "@/test/next-action-mocks";
 import { ApiDomainError, ApiNotFoundError, ApiUnexpectedError } from "@/lib/api-errors";
 
-const { redirectMock } = vi.hoisted(() => ({ redirectMock: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: redirectMock }));
+vi.mock("next/navigation", async () => (await import("@/test/next-action-mocks")).navigationModule);
+vi.mock("next/headers", async () => (await import("@/test/next-action-mocks")).headersModule);
 
 const { authedApiRequestMock } = vi.hoisted(() => ({ authedApiRequestMock: vi.fn() }));
 vi.mock("@/lib/authed-api-request", () => ({ authedApiRequest: authedApiRequestMock }));
-
-class FakeRedirectSignal extends Error {
-  constructor(public readonly path: string) {
-    super(`NEXT_REDIRECT:${path}`);
-  }
-}
-redirectMock.mockImplementation((path: string) => {
-  throw new FakeRedirectSignal(path);
-});
 
 const {
   assignResidentAction,
@@ -24,20 +18,10 @@ const {
   removeResidentAction,
 } = await import("./actions.js");
 
-function formData(fields: Record<string, string>): FormData {
-  const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) {
-    data.set(key, value);
-  }
-  return data;
-}
-
 describe("registerSurgeryAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("succeeds: calls POST /surgeries and redirects to the new surgery's detail page", async () => {
@@ -45,7 +29,7 @@ describe("registerSurgeryAction", () => {
 
     await expect(
       registerSurgeryAction(
-        {},
+        idleResult,
         formData({ patientId: "patient-1", procedureTypeId: "pt-1", performedAt: "2026-01-15" }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
@@ -89,7 +73,7 @@ describe("registerSurgeryAction", () => {
 
     await expect(
       registerSurgeryAction(
-        {},
+        idleResult,
         formData({
           patientId: "patient-1",
           procedureTypeId: "pt-1",
@@ -115,12 +99,13 @@ describe("registerSurgeryAction", () => {
 
   it("rejects an incomplete selection before ever calling api", async () => {
     const result = await registerSurgeryAction(
-      {},
+      idleResult,
       formData({ patientId: "", procedureTypeId: "pt-1", performedAt: "2026-01-15" }),
     );
 
-    expect(result).toEqual({
-      error: "Please select a patient, a procedure type, and a performed date.",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Please select a patient, a procedure type, and a performed date.",
     });
     expect(authedApiRequestMock).not.toHaveBeenCalled();
   });
@@ -131,12 +116,13 @@ describe("registerSurgeryAction", () => {
     );
 
     const result = await registerSurgeryAction(
-      {},
+      idleResult,
       formData({ patientId: "patient-1", procedureTypeId: "pt-1", performedAt: "2026-01-15" }),
     );
 
-    expect(result).toEqual({
-      error: "A surgery may only reference a patient within the same tenant",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "A surgery may only reference a patient within the same tenant",
     });
   });
 
@@ -144,31 +130,33 @@ describe("registerSurgeryAction", () => {
     authedApiRequestMock.mockRejectedValue(new ApiNotFoundError("Patient patient-1 was not found"));
 
     const result = await registerSurgeryAction(
-      {},
+      idleResult,
       formData({ patientId: "patient-1", procedureTypeId: "pt-1", performedAt: "2026-01-15" }),
     );
 
-    expect(result).toEqual({ error: "Patient patient-1 was not found" });
+    expect(result).toMatchObject({ status: "error", message: "Patient patient-1 was not found" });
   });
 
-  it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
+  it("unexpected error: is shown inline as the generic message — the form survives", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
-    await expect(
-      registerSurgeryAction(
-        {},
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      await registerSurgeryAction(
+        idleResult,
         formData({ patientId: "patient-1", procedureTypeId: "pt-1", performedAt: "2026-01-15" }),
       ),
-    ).rejects.toBeInstanceOf(ApiUnexpectedError);
+    ).toMatchObject({
+      status: "error",
+      message: messages.errors.unexpected,
+    });
   });
 });
 
 describe("recordControlAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("succeeds recording as the physician: posts the physician-authored shape and redirects back to the surgery", async () => {
@@ -178,7 +166,7 @@ describe("recordControlAction", () => {
       recordControlAction(
         "patient-1",
         "surgery-1",
-        {},
+        idleResult,
         formData({
           authorType: "physician",
           observations: "Evolución favorable",
@@ -207,7 +195,7 @@ describe("recordControlAction", () => {
       recordControlAction(
         "patient-1",
         "surgery-1",
-        {},
+        idleResult,
         formData({
           authorType: "resident",
           residentId: "resident-1",
@@ -266,7 +254,7 @@ describe("recordControlAction", () => {
       recordControlAction(
         "patient-1",
         "surgery-1",
-        {},
+        idleResult,
         formData({
           authorType: "physician",
           observations: "Evolución favorable",
@@ -294,7 +282,7 @@ describe("recordControlAction", () => {
     const result = await recordControlAction(
       "patient-1",
       "surgery-1",
-      {},
+      idleResult,
       formData({
         authorType: "resident",
         observations: "x",
@@ -303,7 +291,10 @@ describe("recordControlAction", () => {
       }),
     );
 
-    expect(result).toEqual({ error: "Please fill in every required field." });
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Please fill in every required field.",
+    });
     expect(authedApiRequestMock).not.toHaveBeenCalled();
   });
 
@@ -312,7 +303,7 @@ describe("recordControlAction", () => {
       recordControlAction(
         "patient-1",
         "surgery-1",
-        {},
+        idleResult,
         formData({
           authorType: "physician",
           observations: "",
@@ -333,7 +324,7 @@ describe("recordControlAction", () => {
       recordControlAction(
         "patient-1",
         "surgery-1",
-        {},
+        idleResult,
         formData({
           authorType: "physician",
           observations: "x",
@@ -356,7 +347,7 @@ describe("recordControlAction", () => {
     const result = await recordControlAction(
       "patient-1",
       "surgery-1",
-      {},
+      idleResult,
       formData({
         authorType: "resident",
         residentId: "resident-1",
@@ -366,19 +357,21 @@ describe("recordControlAction", () => {
       }),
     );
 
-    expect(result).toEqual({
-      error: "Only a currently participating resident may author a control",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Only a currently participating resident may author a control",
     });
   });
 
-  it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
+  it("unexpected error: is shown inline as the generic message — the form survives", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
-    await expect(
-      recordControlAction(
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      await recordControlAction(
         "patient-1",
         "surgery-1",
-        {},
+        idleResult,
         formData({
           authorType: "physician",
           observations: "x",
@@ -386,16 +379,17 @@ describe("recordControlAction", () => {
           definitionId: "def-general",
         }),
       ),
-    ).rejects.toBeInstanceOf(ApiUnexpectedError);
+    ).toMatchObject({
+      status: "error",
+      message: messages.errors.unexpected,
+    });
   });
 });
 
 describe("modifyControlAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("succeeds: PATCHes only the provided fields and redirects back to the surgery", async () => {
@@ -406,7 +400,7 @@ describe("modifyControlAction", () => {
         "patient-1",
         "surgery-1",
         "control-1",
-        {},
+        idleResult,
         formData({ observations: "Updated observations" }),
       ),
     ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
@@ -425,35 +419,37 @@ describe("modifyControlAction", () => {
       "patient-1",
       "surgery-1",
       "control-1",
-      {},
+      idleResult,
       formData({ observations: "x" }),
     );
 
-    expect(result).toEqual({ error: "Control control-1 was not found" });
+    expect(result).toMatchObject({ status: "error", message: "Control control-1 was not found" });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
+  it("unexpected error: is shown inline as the generic message — the form survives", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
-    await expect(
-      modifyControlAction(
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      await modifyControlAction(
         "patient-1",
         "surgery-1",
         "control-1",
-        {},
+        idleResult,
         formData({ observations: "x" }),
       ),
-    ).rejects.toBeInstanceOf(ApiUnexpectedError);
+    ).toMatchObject({
+      status: "error",
+      message: messages.errors.unexpected,
+    });
   });
 });
 
 describe("assignResidentAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("succeeds: calls POST /surgeries/:id/residents and redirects back to the surgery", async () => {
@@ -463,7 +459,12 @@ describe("assignResidentAction", () => {
     });
 
     await expect(
-      assignResidentAction("patient-1", "surgery-1", {}, formData({ residentId: "resident-1" })),
+      assignResidentAction(
+        "patient-1",
+        "surgery-1",
+        idleResult,
+        formData({ residentId: "resident-1" }),
+      ),
     ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
@@ -477,11 +478,11 @@ describe("assignResidentAction", () => {
     const result = await assignResidentAction(
       "patient-1",
       "surgery-1",
-      {},
+      idleResult,
       formData({ residentId: "" }),
     );
 
-    expect(result).toEqual({ error: "Please select a resident." });
+    expect(result).toMatchObject({ status: "error", message: "Please select a resident." });
     expect(authedApiRequestMock).not.toHaveBeenCalled();
   });
 
@@ -495,30 +496,38 @@ describe("assignResidentAction", () => {
     const result = await assignResidentAction(
       "patient-1",
       "surgery-1",
-      {},
+      idleResult,
       formData({ residentId: "resident-1" }),
     );
 
-    expect(result).toEqual({
-      error: "A resident may only be assigned to a surgery within their own physician's tenant",
+    expect(result).toMatchObject({
+      status: "error",
+      message: "A resident may only be assigned to a surgery within their own physician's tenant",
     });
   });
 
-  it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
+  it("unexpected error: is shown inline as the generic message — the form survives", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
-    await expect(
-      assignResidentAction("patient-1", "surgery-1", {}, formData({ residentId: "resident-1" })),
-    ).rejects.toBeInstanceOf(ApiUnexpectedError);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      await assignResidentAction(
+        "patient-1",
+        "surgery-1",
+        idleResult,
+        formData({ residentId: "resident-1" }),
+      ),
+    ).toMatchObject({
+      status: "error",
+      message: messages.errors.unexpected,
+    });
   });
 });
 
 describe("removeResidentAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("succeeds: calls DELETE /surgeries/:id/residents/:residentId and redirects back to the surgery", async () => {
@@ -527,9 +536,9 @@ describe("removeResidentAction", () => {
       participatingResidentIds: [],
     });
 
-    await expect(removeResidentAction("patient-1", "surgery-1", "resident-1", {})).rejects.toThrow(
-      "NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1",
-    );
+    await expect(
+      removeResidentAction("patient-1", "surgery-1", "resident-1", idleResult),
+    ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1/surgeries/surgery-1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
       method: "DELETE",
@@ -542,17 +551,24 @@ describe("removeResidentAction", () => {
       new ApiDomainError("A resident who has recorded a control cannot be removed"),
     );
 
-    const result = await removeResidentAction("patient-1", "surgery-1", "resident-1", {});
+    const result = await removeResidentAction("patient-1", "surgery-1", "resident-1", idleResult);
 
-    expect(result).toEqual({ error: "A resident who has recorded a control cannot be removed" });
+    expect(result).toMatchObject({
+      status: "error",
+      message: "A resident who has recorded a control cannot be removed",
+    });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
+  it("unexpected error: is shown inline as the generic message — the form survives", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
-    await expect(
-      removeResidentAction("patient-1", "surgery-1", "resident-1", {}),
-    ).rejects.toBeInstanceOf(ApiUnexpectedError);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      await removeResidentAction("patient-1", "surgery-1", "resident-1", idleResult),
+    ).toMatchObject({
+      status: "error",
+      message: messages.errors.unexpected,
+    });
   });
 });

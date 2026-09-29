@@ -1,52 +1,36 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import type { ActionResult } from "@/lib/action-result";
 import { authedApiRequest } from "@/lib/authed-api-request";
-import { ApiDomainError } from "@/lib/api-errors";
+import { runFormAction } from "@/lib/form-action";
 import type { RegisterPatientResponse } from "./dtos";
 import { registerPatientSchema } from "./schemas";
 
-export interface RegisterPatientFormState {
-  error?: string;
-}
-
 /**
- * `POST /patients`, through `authedApiRequest` (§2 of
- * docs/architecture/milestone-8-design.md — 401 handling is centralized
- * there, not repeated here). An `ApiDomainError` (a real Domain
- * rejection — e.g. a required field Domain itself considers blank after
- * trimming) is returned as a typed form error, exactly as documented in
- * §7: displayed as-is, never reworded. Anything else (network failure,
- * 500) is left to propagate uncaught into the nearest `error.tsx`.
+ * `POST /patients`, through `authedApiRequest` (401 → `/login` is
+ * centralized there). Error/success feedback is `runFormAction`'s job
+ * (docs/architecture/milestone-12-form-feedback-design.md) — a Domain
+ * rejection (e.g. a duplicate DNI) is shown inline verbatim, anything
+ * unexpected as the generic inline message.
  */
 export async function registerPatientAction(
-  _previousState: RegisterPatientFormState,
+  _previous: ActionResult,
   formData: FormData,
-): Promise<RegisterPatientFormState> {
-  const parsed = registerPatientSchema.safeParse({
-    firstName: formData.get("firstName"),
-    lastName: formData.get("lastName"),
-    dateOfBirth: formData.get("dateOfBirth"),
-    dni: formData.get("dni") || undefined,
-    observations: formData.get("observations") || undefined,
+): Promise<ActionResult> {
+  return runFormAction(formData, {
+    schema: registerPatientSchema,
+    input: (fd) => ({
+      firstName: fd.get("firstName"),
+      lastName: fd.get("lastName"),
+      dateOfBirth: fd.get("dateOfBirth"),
+      dni: fd.get("dni") || undefined,
+      observations: fd.get("observations") || undefined,
+    }),
+    run: (body) =>
+      authedApiRequest<RegisterPatientResponse>({ method: "POST", path: "/patients", body }),
+    success: (response) => ({
+      message: "patientRegistered",
+      redirectTo: `/patients/${response.patientId}`,
+    }),
   });
-  if (!parsed.success) {
-    return { error: "Please fill in every required field." };
-  }
-
-  let response: RegisterPatientResponse;
-  try {
-    response = await authedApiRequest<RegisterPatientResponse>({
-      method: "POST",
-      path: "/patients",
-      body: parsed.data,
-    });
-  } catch (error) {
-    if (error instanceof ApiDomainError) {
-      return { error: error.message };
-    }
-    throw error;
-  }
-
-  redirect(`/patients/${response.patientId}`);
 }

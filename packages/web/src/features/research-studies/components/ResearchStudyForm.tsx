@@ -1,16 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
-import { Alert } from "@/components/ui/alert";
-import { Label } from "@/components/ui/label";
+import { ActionForm, FormTextarea } from "@/components/ActionForm";
 import { PendingButton } from "@/components/ui/pending-button";
 import { messages } from "@/messages/en";
-import { createResearchStudyAction, type CreateResearchStudyFormState } from "../actions";
-
-const initialState: CreateResearchStudyFormState = {};
-
-const textareaClassName =
-  "rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+import { createResearchStudyAction } from "../actions";
 
 /**
  * Every field is optional at the Domain level — a study can be created
@@ -18,37 +11,19 @@ const textareaClassName =
  * form imposes nothing stricter than that.
  */
 export function ResearchStudyForm() {
-  const [state, formAction] = useActionState(createResearchStudyAction, initialState);
-
+  const f = messages.research.fields;
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      {state.error ? <Alert>{state.error}</Alert> : null}
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="hypothesis">{messages.research.fields.hypothesis}</Label>
-        <textarea id="hypothesis" name="hypothesis" rows={3} className={textareaClassName} />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="results">{messages.research.fields.results}</Label>
-        <textarea id="results" name="results" rows={3} className={textareaClassName} />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="analysis">{messages.research.fields.analysis}</Label>
-        <textarea id="analysis" name="analysis" rows={3} className={textareaClassName} />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="conclusion">{messages.research.fields.conclusion}</Label>
-        <textarea id="conclusion" name="conclusion" rows={3} className={textareaClassName} />
-      </div>
+    <ActionForm action={createResearchStudyAction} className="flex flex-col gap-4">
+      <FormTextarea name="hypothesis" label={f.hypothesis} />
+      <FormTextarea name="results" label={f.results} />
+      <FormTextarea name="analysis" label={f.analysis} />
+      <FormTextarea name="conclusion" label={f.conclusion} />
 
       <div>
         <PendingButton pendingText={messages.research.registering}>
           {messages.research.register}
         </PendingButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

@@ -1,46 +1,30 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { idleResult } from "@/lib/action-result";
+import { messages } from "@/messages/en";
+import { formData, redirectMock, resetNextActionMocks } from "@/test/next-action-mocks";
 import { ApiDomainError, ApiNotFoundError, ApiUnexpectedError } from "@/lib/api-errors";
 
-const { redirectMock } = vi.hoisted(() => ({ redirectMock: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: redirectMock }));
+vi.mock("next/navigation", async () => (await import("@/test/next-action-mocks")).navigationModule);
+vi.mock("next/headers", async () => (await import("@/test/next-action-mocks")).headersModule);
 
 const { authedApiRequestMock } = vi.hoisted(() => ({ authedApiRequestMock: vi.fn() }));
 vi.mock("@/lib/authed-api-request", () => ({ authedApiRequest: authedApiRequestMock }));
 
-class FakeRedirectSignal extends Error {
-  constructor(public readonly path: string) {
-    super(`NEXT_REDIRECT:${path}`);
-  }
-}
-redirectMock.mockImplementation((path: string) => {
-  throw new FakeRedirectSignal(path);
-});
-
 const { addCustomFieldAction, modifyProcedureTypeAction, registerProcedureTypeAction } =
   await import("./actions.js");
 
-function formData(fields: Record<string, string>): FormData {
-  const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) {
-    data.set(key, value);
-  }
-  return data;
-}
-
 describe("registerProcedureTypeAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("succeeds: calls POST /procedure-types through authedApiRequest and redirects to the list", async () => {
     authedApiRequestMock.mockResolvedValue({ procedureTypeId: "pt-1" });
 
-    await expect(registerProcedureTypeAction({}, formData({ name: "Pterigión" }))).rejects.toThrow(
-      "NEXT_REDIRECT:/settings/procedure-types",
-    );
+    await expect(
+      registerProcedureTypeAction(idleResult, formData({ name: "Pterigión" })),
+    ).rejects.toThrow("NEXT_REDIRECT:/settings/procedure-types");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
       method: "POST",
@@ -53,7 +37,7 @@ describe("registerProcedureTypeAction", () => {
     authedApiRequestMock.mockResolvedValue({ procedureTypeId: "pt-1" });
 
     await expect(
-      registerProcedureTypeAction({}, formData({ name: "Pterigión", description: "" })),
+      registerProcedureTypeAction(idleResult, formData({ name: "Pterigión", description: "" })),
     ).rejects.toThrow("NEXT_REDIRECT:/settings/procedure-types");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
@@ -64,43 +48,52 @@ describe("registerProcedureTypeAction", () => {
   });
 
   it("rejects a missing name before ever calling api", async () => {
-    const result = await registerProcedureTypeAction({}, formData({ name: "" }));
+    const result = await registerProcedureTypeAction(idleResult, formData({ name: "" }));
 
-    expect(result).toEqual({ error: "Please fill in every required field." });
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Please fill in every required field.",
+    });
     expect(authedApiRequestMock).not.toHaveBeenCalled();
   });
 
   it("expectable error: surfaces api's DomainError message inline, unchanged", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiDomainError("ProcedureType requires a name"));
 
-    const result = await registerProcedureTypeAction({}, formData({ name: "Pterigión" }));
+    const result = await registerProcedureTypeAction(idleResult, formData({ name: "Pterigión" }));
 
-    expect(result).toEqual({ error: "ProcedureType requires a name" });
+    expect(result).toMatchObject({ status: "error", message: "ProcedureType requires a name" });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
+  it("unexpected error: is shown inline as the generic message — the form survives", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
-    await expect(
-      registerProcedureTypeAction({}, formData({ name: "Pterigión" })),
-    ).rejects.toBeInstanceOf(ApiUnexpectedError);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      await registerProcedureTypeAction(idleResult, formData({ name: "Pterigión" })),
+    ).toMatchObject({
+      status: "error",
+      message: messages.errors.unexpected,
+    });
   });
 });
 
 describe("modifyProcedureTypeAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("succeeds: calls PATCH /procedure-types/:id and redirects back to the detail page", async () => {
     authedApiRequestMock.mockResolvedValue({ procedureTypeId: "pt-1" });
 
     await expect(
-      modifyProcedureTypeAction("pt-1", {}, formData({ description: "vía subconjuntival" })),
+      modifyProcedureTypeAction(
+        "pt-1",
+        idleResult,
+        formData({ description: "vía subconjuntival" }),
+      ),
     ).rejects.toThrow("NEXT_REDIRECT:/settings/procedure-types/pt-1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
@@ -113,9 +106,9 @@ describe("modifyProcedureTypeAction", () => {
   it("expectable error: surfaces api's DomainError message inline, unchanged", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiDomainError("ProcedureType requires a name"));
 
-    const result = await modifyProcedureTypeAction("pt-1", {}, formData({ name: "" }));
+    const result = await modifyProcedureTypeAction("pt-1", idleResult, formData({ name: "" }));
 
-    expect(result).toEqual({ error: "ProcedureType requires a name" });
+    expect(result).toMatchObject({ status: "error", message: "ProcedureType requires a name" });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
@@ -124,18 +117,20 @@ describe("modifyProcedureTypeAction", () => {
       new ApiNotFoundError("Procedure type pt-1 was not found"),
     );
 
-    const result = await modifyProcedureTypeAction("pt-1", {}, formData({ name: "Renamed" }));
+    const result = await modifyProcedureTypeAction(
+      "pt-1",
+      idleResult,
+      formData({ name: "Renamed" }),
+    );
 
-    expect(result).toEqual({ error: "Procedure type pt-1 was not found" });
+    expect(result).toMatchObject({ status: "error", message: "Procedure type pt-1 was not found" });
   });
 });
 
 describe("addCustomFieldAction", () => {
-  afterEach(() => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+    resetNextActionMocks();
   });
 
   it("succeeds: adds a NUMBER-constrained field and redirects back to the detail page", async () => {
@@ -144,7 +139,7 @@ describe("addCustomFieldAction", () => {
     await expect(
       addCustomFieldAction(
         "pt-1",
-        {},
+        idleResult,
         formData({
           valueType: "NUMBER",
           name: "Pain (EVA)",
@@ -174,7 +169,7 @@ describe("addCustomFieldAction", () => {
     await expect(
       addCustomFieldAction(
         "pt-1",
-        {},
+        idleResult,
         formData({
           valueType: "ENUM",
           name: "Surgical technique",
@@ -199,7 +194,7 @@ describe("addCustomFieldAction", () => {
   it("rejects a missing required field before ever calling api", async () => {
     const result = await addCustomFieldAction(
       "pt-1",
-      {},
+      idleResult,
       formData({
         valueType: "NUMBER",
         name: "",
@@ -208,14 +203,17 @@ describe("addCustomFieldAction", () => {
       }),
     );
 
-    expect(result).toEqual({ error: "Please fill in every required field." });
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Please fill in every required field.",
+    });
     expect(authedApiRequestMock).not.toHaveBeenCalled();
   });
 
   it("rejects an ENUM field with zero options before ever calling api", async () => {
     const result = await addCustomFieldAction(
       "pt-1",
-      {},
+      idleResult,
       formData({
         valueType: "ENUM",
         name: "Technique",
@@ -224,7 +222,10 @@ describe("addCustomFieldAction", () => {
       }),
     );
 
-    expect(result).toEqual({ error: "Please fill in every required field." });
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Please fill in every required field.",
+    });
     expect(authedApiRequestMock).not.toHaveBeenCalled();
   });
 
@@ -235,7 +236,7 @@ describe("addCustomFieldAction", () => {
 
     const result = await addCustomFieldAction(
       "pt-1",
-      {},
+      idleResult,
       formData({
         valueType: "NUMBER",
         name: "Pain (EVA)",
@@ -244,7 +245,10 @@ describe("addCustomFieldAction", () => {
       }),
     );
 
-    expect(result).toEqual({ error: 'ProcedureType already has a CustomField named "Pain (EVA)"' });
+    expect(result).toMatchObject({
+      status: "error",
+      message: 'ProcedureType already has a CustomField named "Pain (EVA)"',
+    });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 });

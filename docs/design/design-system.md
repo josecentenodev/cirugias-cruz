@@ -70,7 +70,7 @@ external stylesheet, CSP unaffected). Weights 400 / 500 / 700. Exposed as
 | `pending-button.tsx`      | `"use client"` submit button; shows `Spinner` + optional `pendingText` while the form is pending. Prefer over per-form bespoke submit buttons.                                                                                                                                                                       |
 | `input.tsx` / `label.tsx` | token borders/rings; `aria-invalid` → danger border+ring.                                                                                                                                                                                                                                                            |
 | `card.tsx`                | `--surface` bg, `shadow-sm`.                                                                                                                                                                                                                                                                                         |
-| `alert.tsx`               | variants `danger` \| `warning` \| `success` \| `muted`. `role="alert"` on danger/warning only. Inline, expected messages — unexpected errors go through `app/error.tsx`.                                                                                                                                             |
+| `alert.tsx`               | variants `danger` \| `warning` \| `success` \| `muted`. `role="alert"` on danger/warning only. Inline messages; a form's error `Alert` is rendered by `ActionForm` (§ Form feedback), never by the form.                                                                                                             |
 | `badge.tsx`               | status pills; variants `neutral` \| `accent` \| `success` \| `warning` \| `danger`.                                                                                                                                                                                                                                  |
 | `empty-state.tsx`         | title + hint + optional action; use for every zero-row list.                                                                                                                                                                                                                                                         |
 | `spinner.tsx`             | indeterminate indicator, inherits `currentColor`.                                                                                                                                                                                                                                                                    |
@@ -127,6 +127,22 @@ resident's full name); otherwise the literal word `DELETE` (from
 (`matchesConfirmationPhrase` in `components/ui/dangerous-confirm.ts`). Copy for
 the prompt comes from `messages.common.dangerousConfirm.prompt(phrase)`.
 
+## Form feedback (Milestone 12)
+
+Centralized — a form or Server Action never builds its own
+([`milestone-12-form-feedback-design.md`](../architecture/milestone-12-form-feedback-design.md)):
+
+- **`components/ActionForm.tsx`** — `<ActionForm action={…}>` wraps the
+  `<form>`; `FormField` / `FormTextarea` / `FormSelect` (or `useField` for a
+  custom control) bind each input to it. On error: inline danger `Alert` at
+  the top (focused), per-field message + `aria-invalid`, typed values
+  restored (never passwords). `useFormAction` is the same behavior for a
+  bespoke shell (`ConfirmSubmit`, `DangerousConfirm`).
+- **`components/Toaster.tsx`** — the single success surface (Base UI
+  Toast, bottom-right, `success` tokens, `aria-live="polite"`), mounted in
+  `app/layout.tsx`. Errors are never toasts: they stay next to the form.
+- Copy lives in `messages.feedback.*` (success) and `messages.errors.*`.
+
 ## Accessibility baseline
 
 - Contrast: ≥4.5:1 for body text, ≥3:1 for large text and UI boundaries. Verified for `--foreground`/`--muted-foreground` on `--background`, white on `--primary`, `--danger` on `--danger-bg`.
@@ -144,4 +160,3 @@ is never translated. See `ux-principles.md` § "Future i18n".
 
 - Dark mode — the `prefers-color-scheme` block was removed; re-add as a full second token set when revisited.
 - Any new component-library / Tailwind-plugin dependency.
-- Field-level (per-input) validation errors — forms show one inline `<Alert>`; deferred by product decision.

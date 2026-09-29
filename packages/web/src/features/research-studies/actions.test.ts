@@ -1,20 +1,14 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { idleResult } from "@/lib/action-result";
+import { messages } from "@/messages/en";
+import { formData, redirectMock, resetNextActionMocks } from "@/test/next-action-mocks";
 import { ApiDomainError, ApiNotFoundError, ApiUnexpectedError } from "@/lib/api-errors";
 
-const { redirectMock } = vi.hoisted(() => ({ redirectMock: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: redirectMock }));
+vi.mock("next/navigation", async () => (await import("@/test/next-action-mocks")).navigationModule);
+vi.mock("next/headers", async () => (await import("@/test/next-action-mocks")).headersModule);
 
 const { authedApiRequestMock } = vi.hoisted(() => ({ authedApiRequestMock: vi.fn() }));
 vi.mock("@/lib/authed-api-request", () => ({ authedApiRequest: authedApiRequestMock }));
-
-class FakeRedirectSignal extends Error {
-  constructor(public readonly path: string) {
-    super(`NEXT_REDIRECT:${path}`);
-  }
-}
-redirectMock.mockImplementation((path: string) => {
-  throw new FakeRedirectSignal(path);
-});
 
 const {
   addSurgeryToStudyAction,
@@ -24,14 +18,6 @@ const {
   removeSurgeryFromStudyAction,
   updateResearchStudyAction,
 } = await import("./actions.js");
-
-function formData(fields: Record<string, string>): FormData {
-  const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) {
-    data.set(key, value);
-  }
-  return data;
-}
 
 function textFields(overrides: Record<string, string> = {}) {
   return {
@@ -43,11 +29,9 @@ function textFields(overrides: Record<string, string> = {}) {
   };
 }
 
-afterEach(() => {
+beforeEach(() => {
   vi.clearAllMocks();
-  redirectMock.mockImplementation((path: string) => {
-    throw new FakeRedirectSignal(path);
-  });
+  resetNextActionMocks();
 });
 
 describe("createResearchStudyAction", () => {
@@ -55,7 +39,7 @@ describe("createResearchStudyAction", () => {
     authedApiRequestMock.mockResolvedValue({ researchStudyId: "rs1" });
 
     await expect(
-      createResearchStudyAction({}, formData(textFields({ hypothesis: "A hypothesis" }))),
+      createResearchStudyAction(idleResult, formData(textFields({ hypothesis: "A hypothesis" }))),
     ).rejects.toThrow("NEXT_REDIRECT:/research-studies/rs1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
@@ -68,9 +52,9 @@ describe("createResearchStudyAction", () => {
   it("expectable error: surfaces api's DomainError message inline, unchanged", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiDomainError("something invalid"));
 
-    const result = await createResearchStudyAction({}, formData(textFields()));
+    const result = await createResearchStudyAction(idleResult, formData(textFields()));
 
-    expect(result).toEqual({ error: "something invalid" });
+    expect(result).toMatchObject({ status: "error", message: "something invalid" });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 });
@@ -80,7 +64,11 @@ describe("updateResearchStudyAction", () => {
     authedApiRequestMock.mockResolvedValue({ id: "rs1" });
 
     await expect(
-      updateResearchStudyAction("rs1", {}, formData(textFields({ results: "New results" }))),
+      updateResearchStudyAction(
+        "rs1",
+        idleResult,
+        formData(textFields({ results: "New results" })),
+      ),
     ).rejects.toThrow("NEXT_REDIRECT:/research-studies/rs1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
@@ -95,17 +83,24 @@ describe("updateResearchStudyAction", () => {
       new ApiDomainError("A completed research study cannot be modified"),
     );
 
-    const result = await updateResearchStudyAction("rs1", {}, formData(textFields()));
+    const result = await updateResearchStudyAction("rs1", idleResult, formData(textFields()));
 
-    expect(result).toEqual({ error: "A completed research study cannot be modified" });
+    expect(result).toMatchObject({
+      status: "error",
+      message: "A completed research study cannot be modified",
+    });
   });
 
-  it("unexpected error: propagates uncaught for the nearest error.tsx boundary", async () => {
+  it("unexpected error: is shown inline as the generic message — the form survives", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
-    await expect(
-      updateResearchStudyAction("rs1", {}, formData(textFields())),
-    ).rejects.toBeInstanceOf(ApiUnexpectedError);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      await updateResearchStudyAction("rs1", idleResult, formData(textFields())),
+    ).toMatchObject({
+      status: "error",
+      message: messages.errors.unexpected,
+    });
   });
 });
 
@@ -113,9 +108,9 @@ describe("addSurgeryToStudyAction", () => {
   it("succeeds: calls POST /research-studies/:id/surgeries and redirects back to the detail page", async () => {
     authedApiRequestMock.mockResolvedValue({ researchStudyId: "rs1", surgeryIds: ["s1"] });
 
-    await expect(addSurgeryToStudyAction("rs1", {}, formData({ surgeryId: "s1" }))).rejects.toThrow(
-      "NEXT_REDIRECT:/research-studies/rs1",
-    );
+    await expect(
+      addSurgeryToStudyAction("rs1", idleResult, formData({ surgeryId: "s1" })),
+    ).rejects.toThrow("NEXT_REDIRECT:/research-studies/rs1");
 
     expect(authedApiRequestMock).toHaveBeenCalledWith({
       method: "POST",
@@ -125,18 +120,18 @@ describe("addSurgeryToStudyAction", () => {
   });
 
   it("rejects an empty selection before ever calling api", async () => {
-    const result = await addSurgeryToStudyAction("rs1", {}, formData({ surgeryId: "" }));
+    const result = await addSurgeryToStudyAction("rs1", idleResult, formData({ surgeryId: "" }));
 
-    expect(result).toEqual({ error: "Please select a surgery." });
+    expect(result).toMatchObject({ status: "error", message: "Please select a surgery." });
     expect(authedApiRequestMock).not.toHaveBeenCalled();
   });
 
   it("expectable error: surfaces api's NotFoundError message inline, unchanged", async () => {
     authedApiRequestMock.mockRejectedValue(new ApiNotFoundError("Surgery s1 was not found"));
 
-    const result = await addSurgeryToStudyAction("rs1", {}, formData({ surgeryId: "s1" }));
+    const result = await addSurgeryToStudyAction("rs1", idleResult, formData({ surgeryId: "s1" }));
 
-    expect(result).toEqual({ error: "Surgery s1 was not found" });
+    expect(result).toMatchObject({ status: "error", message: "Surgery s1 was not found" });
   });
 });
 
@@ -144,7 +139,7 @@ describe("removeSurgeryFromStudyAction", () => {
   it("succeeds: calls DELETE /research-studies/:id/surgeries/:surgeryId and redirects back", async () => {
     authedApiRequestMock.mockResolvedValue({ researchStudyId: "rs1", surgeryIds: [] });
 
-    await expect(removeSurgeryFromStudyAction("rs1", "s1", {})).rejects.toThrow(
+    await expect(removeSurgeryFromStudyAction("rs1", "s1", idleResult)).rejects.toThrow(
       "NEXT_REDIRECT:/research-studies/rs1",
     );
 
@@ -159,9 +154,12 @@ describe("removeSurgeryFromStudyAction", () => {
       new ApiDomainError("A completed research study cannot be modified"),
     );
 
-    const result = await removeSurgeryFromStudyAction("rs1", "s1", {});
+    const result = await removeSurgeryFromStudyAction("rs1", "s1", idleResult);
 
-    expect(result).toEqual({ error: "A completed research study cannot be modified" });
+    expect(result).toMatchObject({
+      status: "error",
+      message: "A completed research study cannot be modified",
+    });
   });
 });
 
@@ -169,7 +167,7 @@ describe("changeResearchStudyStatusAction", () => {
   it("succeeds: calls POST /research-studies/:id/status with the bound target and redirects back", async () => {
     authedApiRequestMock.mockResolvedValue({ researchStudyId: "rs1", status: "IN_PROGRESS" });
 
-    await expect(changeResearchStudyStatusAction("rs1", "IN_PROGRESS", {})).rejects.toThrow(
+    await expect(changeResearchStudyStatusAction("rs1", "IN_PROGRESS", idleResult)).rejects.toThrow(
       "NEXT_REDIRECT:/research-studies/rs1",
     );
 
@@ -185,9 +183,12 @@ describe("changeResearchStudyStatusAction", () => {
       new ApiDomainError("Only a DRAFT research study can move to IN_PROGRESS"),
     );
 
-    const result = await changeResearchStudyStatusAction("rs1", "IN_PROGRESS", {});
+    const result = await changeResearchStudyStatusAction("rs1", "IN_PROGRESS", idleResult);
 
-    expect(result).toEqual({ error: "Only a DRAFT research study can move to IN_PROGRESS" });
+    expect(result).toMatchObject({
+      status: "error",
+      message: "Only a DRAFT research study can move to IN_PROGRESS",
+    });
   });
 });
 
@@ -195,7 +196,7 @@ describe("deleteResearchStudyAction", () => {
   it("succeeds: calls DELETE /research-studies/:id and redirects to the list", async () => {
     authedApiRequestMock.mockResolvedValue({ researchStudyId: "rs1" });
 
-    await expect(deleteResearchStudyAction("rs1", {})).rejects.toThrow(
+    await expect(deleteResearchStudyAction("rs1", idleResult)).rejects.toThrow(
       "NEXT_REDIRECT:/research-studies",
     );
 
@@ -210,9 +211,12 @@ describe("deleteResearchStudyAction", () => {
       new ApiDomainError("A research study may only be deleted while in DRAFT"),
     );
 
-    const result = await deleteResearchStudyAction("rs1", {});
+    const result = await deleteResearchStudyAction("rs1", idleResult);
 
-    expect(result).toEqual({ error: "A research study may only be deleted while in DRAFT" });
+    expect(result).toMatchObject({
+      status: "error",
+      message: "A research study may only be deleted while in DRAFT",
+    });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 });

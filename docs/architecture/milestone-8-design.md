@@ -455,6 +455,12 @@ the four typed errors above — `queries.ts`/`actions.ts` and the
 components above them catch by type (`instanceof ApiNotFoundError`,
 etc.), never by re-parsing a status code a second time.
 
+> **Implemented in Milestone 12** (2026-09-29): the uniform result below
+> is `lib/action-result.ts`'s `ActionResult`, built only by
+> `lib/form-action.ts`'s `runFormAction` — see
+> [`milestone-12-form-feedback-design.md`](milestone-12-form-feedback-design.md).
+> Until then the code had drifted to per-action `{ error?: string }`.
+
 **Server Actions specifically**: a Server Action cannot simply `throw`
 and expect Next.js to render a nice error — an uncaught throw in a
 Server Action surfaces as a generic, unstyled error in the client

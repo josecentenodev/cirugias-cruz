@@ -61,7 +61,14 @@ export class ApiUnexpectedError extends Error {
   }
 }
 
-export async function toApiError(response: Response): Promise<Error> {
+/**
+ * `domainFallback` is the message for a 400 whose body carries none —
+ * callers with better copy for their route (e.g. login) pass their own.
+ */
+export async function toApiError(
+  response: Response,
+  domainFallback = "The request was rejected",
+): Promise<Error> {
   let body: unknown;
   try {
     body = await response.json();
@@ -79,7 +86,7 @@ export async function toApiError(response: Response): Promise<Error> {
     case 404:
       return new ApiNotFoundError(message ?? "Not found");
     case 400:
-      return new ApiDomainError(message ?? "The request was rejected");
+      return new ApiDomainError(message ?? domainFallback);
     case 429:
       return new ApiRateLimitedError(message);
     default:

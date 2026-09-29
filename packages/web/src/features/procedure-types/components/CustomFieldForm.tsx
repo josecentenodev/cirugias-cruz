@@ -1,37 +1,23 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { Alert } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { ActionForm, FormField, FormSelect, FormTextarea } from "@/components/ActionForm";
 import { PendingButton } from "@/components/ui/pending-button";
 import { messages } from "@/messages/en";
-import {
-  addCustomFieldAction,
-  editCustomFieldAction,
-  type AddCustomFieldFormState,
-} from "../actions";
+import { addCustomFieldAction, editCustomFieldAction } from "../actions";
 import type { CustomFieldView } from "../mappers";
 
-const initialState: AddCustomFieldFormState = {};
-
 type ValueType = "NUMBER" | "ENUM" | "TEXT";
-
-const selectClassName =
-  "h-9 rounded-md border border-border bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const textareaClassName =
-  "rounded-md border border-border bg-surface px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /**
  * Defines a new CustomField on a Procedure Type (ADR 0018), or edits an
  * existing, not-yet-used one in place (ADR 0027 — passing `field` binds
  * to `editCustomFieldAction` instead, mirroring `ControlDefinitionForm`'s
  * own add/edit duality). `valueType` drives which constraint inputs
- * render — plain conditional JSX on local `useState`, same technique
- * `features/surgeries/components/RecordControlForm.tsx` already uses for
- * `authorType`; no generic dynamic-schema-form abstraction is
- * introduced for three branches. DATE is intentionally not offered here
- * — see `schemas.ts`'s `addCustomFieldSchema` comment for why.
+ * render — plain conditional JSX on local `useState`; no generic
+ * dynamic-schema-form abstraction is introduced for three branches.
+ * DATE is intentionally not offered here — see `schemas.ts`'s
+ * `addCustomFieldSchema` comment for why. Feedback is `ActionForm`'s job.
  */
 export function CustomFieldForm({
   procedureTypeId,
@@ -43,125 +29,91 @@ export function CustomFieldForm({
   field?: CustomFieldView;
   onDone?: () => void;
 }) {
-  const boundAction = field
+  const action = field
     ? editCustomFieldAction.bind(null, procedureTypeId, field.id)
     : addCustomFieldAction.bind(null, procedureTypeId);
-  const [state, formAction] = useActionState(boundAction, initialState);
   const [valueType, setValueType] = useState<ValueType>(field?.editable.valueType ?? "NUMBER");
   const c = messages.procedureTypes.customFields;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      {state.error ? <Alert>{state.error}</Alert> : null}
-
+    <ActionForm action={action} className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="name">{messages.fields.name}</Label>
-          <Input id="name" name="name" required defaultValue={field?.name ?? ""} />
-        </div>
+        <FormField name="name" label={messages.fields.name} required defaultValue={field?.name} />
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="scope">{c.recordedOn}</Label>
-          <select
-            id="scope"
-            name="scope"
-            required
-            defaultValue={field?.scope ?? "SURGERY"}
-            className={selectClassName}
-          >
-            <option value="SURGERY">{c.scopeSurgery}</option>
-            <option value="CONTROL">{c.scopeControl}</option>
-          </select>
-        </div>
+        <FormSelect
+          name="scope"
+          label={c.recordedOn}
+          required
+          defaultValue={field?.scope ?? "SURGERY"}
+        >
+          <option value="SURGERY">{c.scopeSurgery}</option>
+          <option value="CONTROL">{c.scopeControl}</option>
+        </FormSelect>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="valueType">{c.valueType}</Label>
-          <select
-            id="valueType"
-            name="valueType"
-            required
-            value={valueType}
-            onChange={(event) => setValueType(event.target.value as ValueType)}
-            className={selectClassName}
-          >
-            <option value="NUMBER">{c.valueTypeNumber}</option>
-            <option value="ENUM">{c.valueTypeEnum}</option>
-            <option value="TEXT">{c.valueTypeText}</option>
-          </select>
-        </div>
+        <FormSelect
+          name="valueType"
+          label={c.valueType}
+          required
+          value={valueType}
+          onChange={(event) => setValueType(event.target.value as ValueType)}
+        >
+          <option value="NUMBER">{c.valueTypeNumber}</option>
+          <option value="ENUM">{c.valueTypeEnum}</option>
+          <option value="TEXT">{c.valueTypeText}</option>
+        </FormSelect>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="description">{messages.fields.descriptionOptional}</Label>
-        <textarea
-          id="description"
-          name="description"
-          rows={2}
-          defaultValue={field?.editable.description ?? ""}
-          className={textareaClassName}
-        />
-      </div>
+      <FormTextarea
+        name="description"
+        label={messages.fields.descriptionOptional}
+        rows={2}
+        defaultValue={field?.editable.description}
+      />
 
       {valueType === "NUMBER" ? (
         <div className="grid gap-4 sm:grid-cols-3">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="unit">{c.unitOptional}</Label>
-            <Input
-              id="unit"
-              name="unit"
-              placeholder={c.unitPlaceholder}
-              defaultValue={field?.editable.unit ?? ""}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="min">{c.minOptional}</Label>
-            <Input
-              id="min"
-              name="min"
-              type="number"
-              step="any"
-              defaultValue={field?.editable.min ?? ""}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="max">{c.maxOptional}</Label>
-            <Input
-              id="max"
-              name="max"
-              type="number"
-              step="any"
-              defaultValue={field?.editable.max ?? ""}
-            />
-          </div>
+          <FormField
+            name="unit"
+            label={c.unitOptional}
+            placeholder={c.unitPlaceholder}
+            defaultValue={field?.editable.unit}
+          />
+          <FormField
+            name="min"
+            label={c.minOptional}
+            type="number"
+            step="any"
+            defaultValue={field?.editable.min}
+          />
+          <FormField
+            name="max"
+            label={c.maxOptional}
+            type="number"
+            step="any"
+            defaultValue={field?.editable.max}
+          />
         </div>
       ) : null}
 
       {valueType === "ENUM" ? (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="options">{c.optionsLabel}</Label>
-          <textarea
-            id="options"
-            name="options"
-            required
-            rows={3}
-            defaultValue={field?.editable.options?.join("\n") ?? ""}
-            className={textareaClassName}
-          />
-        </div>
+        <FormTextarea
+          name="options"
+          label={c.optionsLabel}
+          required
+          rows={3}
+          defaultValue={field?.editable.options?.join("\n")}
+        />
       ) : null}
 
       {valueType === "TEXT" ? (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="maxLength">{c.maxLengthOptional}</Label>
-          <Input
-            id="maxLength"
-            name="maxLength"
-            type="number"
-            step="1"
-            min="1"
-            defaultValue={field?.editable.maxLength ?? ""}
-          />
-        </div>
+        <FormField
+          name="maxLength"
+          label={c.maxLengthOptional}
+          type="number"
+          step="1"
+          min="1"
+          defaultValue={field?.editable.maxLength}
+        />
       ) : null}
 
       <div className="flex gap-2">
@@ -176,6 +128,6 @@ export function CustomFieldForm({
           </button>
         ) : null}
       </div>
-    </form>
+    </ActionForm>
   );
 }

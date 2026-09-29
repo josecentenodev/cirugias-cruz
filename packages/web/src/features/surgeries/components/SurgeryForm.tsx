@@ -1,19 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { Alert } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { ActionForm, FormField, FormSelect } from "@/components/ActionForm";
 import { PendingButton } from "@/components/ui/pending-button";
 import { CustomFieldValueInputs } from "@/features/procedure-types/components/CustomFieldValueInputs";
 import type { ProcedureTypeDto } from "@/features/procedure-types/dtos";
 import { messages } from "@/messages/en";
-import { registerSurgeryAction, type RegisterSurgeryFormState } from "../actions";
-
-const initialState: RegisterSurgeryFormState = {};
-
-const selectClassName =
-  "h-9 rounded-md border border-border bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+import { registerSurgeryAction } from "../actions";
 
 /**
  * The Patient is fixed by the route (`patients/[id]/surgeries/new`) and
@@ -36,43 +29,33 @@ export function SurgeryForm({
   patientId: string;
   procedureTypes: ProcedureTypeDto[];
 }) {
-  const [state, formAction] = useActionState(registerSurgeryAction, initialState);
   const [procedureTypeId, setProcedureTypeId] = useState("");
 
   const selected = procedureTypes.find((procedureType) => procedureType.id === procedureTypeId);
   const surgeryFields = (selected?.customFields ?? []).filter((field) => field.scope === "SURGERY");
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      {state.error ? <Alert>{state.error}</Alert> : null}
-
+    <ActionForm action={registerSurgeryAction} className="flex flex-col gap-4">
       <input type="hidden" name="patientId" value={patientId} />
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="procedureTypeId">{messages.surgeries.procedureType}</Label>
-        <select
-          id="procedureTypeId"
-          name="procedureTypeId"
-          required
-          value={procedureTypeId}
-          onChange={(event) => setProcedureTypeId(event.target.value)}
-          className={selectClassName}
-        >
-          <option value="" disabled>
-            {messages.surgeries.selectProcedureType}
+      <FormSelect
+        name="procedureTypeId"
+        label={messages.surgeries.procedureType}
+        required
+        value={procedureTypeId}
+        onChange={(event) => setProcedureTypeId(event.target.value)}
+      >
+        <option value="" disabled>
+          {messages.surgeries.selectProcedureType}
+        </option>
+        {procedureTypes.map((procedureType) => (
+          <option key={procedureType.id} value={procedureType.id}>
+            {procedureType.name}
           </option>
-          {procedureTypes.map((procedureType) => (
-            <option key={procedureType.id} value={procedureType.id}>
-              {procedureType.name}
-            </option>
-          ))}
-        </select>
-      </div>
+        ))}
+      </FormSelect>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="performedAt">{messages.surgeries.performedDate}</Label>
-        <Input id="performedAt" name="performedAt" type="date" required />
-      </div>
+      <FormField name="performedAt" label={messages.surgeries.performedDate} type="date" required />
 
       <CustomFieldValueInputs fields={surgeryFields} />
 
@@ -81,6 +64,6 @@ export function SurgeryForm({
           {messages.surgeries.register}
         </PendingButton>
       </div>
-    </form>
+    </ActionForm>
   );
 }

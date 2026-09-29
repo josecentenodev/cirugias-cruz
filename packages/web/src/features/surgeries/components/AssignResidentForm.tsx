@@ -1,12 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
-import { Alert } from "@/components/ui/alert";
+import { ActionForm } from "@/components/ActionForm";
 import { PendingButton } from "@/components/ui/pending-button";
 import { messages } from "@/messages/en";
-import { assignResidentAction, type AssignResidentFormState } from "../actions";
-
-const initialState: AssignResidentFormState = {};
+import { assignResidentAction } from "../actions";
 
 /**
  * `residents` is already filtered to exclude anyone currently
@@ -32,9 +29,6 @@ export function AssignResidentForm({
   residents: { id: string; label: string }[];
   totalResidentCount: number;
 }) {
-  const boundAction = assignResidentAction.bind(null, patientId, surgeryId);
-  const [state, formAction] = useActionState(boundAction, initialState);
-
   if (residents.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
@@ -46,12 +40,11 @@ export function AssignResidentForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
-      {state.error ? (
-        <div className="sm:order-3 sm:w-full">
-          <Alert>{state.error}</Alert>
-        </div>
-      ) : null}
+    <ActionForm
+      action={assignResidentAction.bind(null, patientId, surgeryId)}
+      className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-2"
+      feedbackClassName="sm:order-3 sm:w-full"
+    >
       <select
         name="residentId"
         required
@@ -71,6 +64,6 @@ export function AssignResidentForm({
       <PendingButton size="sm" pendingText={messages.surgeries.residents.assigning}>
         {messages.surgeries.residents.assign}
       </PendingButton>
-    </form>
+    </ActionForm>
   );
 }

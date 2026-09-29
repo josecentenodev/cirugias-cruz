@@ -134,6 +134,8 @@ gets corrected — it is not meant to be treated as fixed once written.
   and a patient search on the Pacientes list. Not a problem at current
   volume, but a real one once data volume grows. Not yet designed — see
   Milestone 8.7 for the open questions.
+- **Centralized form feedback (Milestone 12)** — post-MVP polish;
+  design approved 2026-09-29, see Milestone 12.
 - CI/CD.
 - Platform Admin (no domain or application representation exists yet).
 
@@ -1934,6 +1936,61 @@ Deviations recorded in `milestone-11-alignment-design.md` §1:
 edit _form_ is deferred (API edit path complete); the web freeze
 indicator is a client-side join (API enforces authoritatively).
 
+### Milestone 12 — Centralized form feedback (success + error)
+
+**Objective**: every mutation in `packages/web` gives visible feedback —
+inline error on failure, toast on success — through **one** server
+wrapper and **one** client form primitive, with no per-mutation error
+handling left in `features/**`.
+
+**Why it exists**: requested by the product owner on 2026-09-29. Today
+31 Server Actions each hand-copy the same `try/catch` and their own
+`*FormState`, ~23 components each render their own `Alert`, a
+redirect-on-success gives no success signal, and an unexpected API error
+replaces the whole page with `error.tsx` (form lost). It is also
+unimplemented drift from `milestone-8-design.md` §7.
+
+**Scope** (full design:
+[`milestone-12-form-feedback-design.md`](milestone-12-form-feedback-design.md)):
+`lib/action-result.ts` (single result contract), `lib/form-action.ts`
+(the only mutation `try/catch`), `components/ActionForm.tsx` +
+`FormField`/`FormFeedback`, a Base UI `Toaster` in `app/layout.tsx`,
+a one-shot flash cookie for success across a redirect, migration of all
+7 feature slices, an ESLint guard against reintroducing per-action
+catches.
+
+**Scope change (rule 8)**: field-level (per-input) validation errors,
+deferred "by product decision" in Milestone 10, are now **in scope** —
+product owner, 2026-09-29.
+
+**Explicitly out of scope**: `api-client`/`api-errors`/
+`authedApiRequest`; any domain, Application or `api` change; page-level
+`error.tsx`/`not-found.tsx` behavior; new dependencies.
+
+**Steps**: Phase 0 infrastructure + flash spike → Phase 1 `patients` as
+reference slice → Phase 2 remaining six slices, one per commit → Phase 3
+cleanup + ESLint guard + Playwright assertions → docs. Detail and
+per-phase tests in the design doc §7.
+
+**Key files**: `packages/web/src/lib/{action-result,form-action}.ts`
+(new), `packages/web/src/components/ActionForm.tsx` (new),
+`packages/web/src/app/layout.tsx`,
+`packages/web/src/components/{ConfirmSubmit.tsx,ui/DangerousConfirm.tsx}`,
+`packages/web/src/features/*/actions.ts` + `components/*.tsx`,
+`packages/web/src/lib/form-values.ts` (removed), `eslint.config.mjs`,
+`packages/web/e2e/full-workflow.spec.ts`.
+
+**Model/config**: `claude-opus-5-5`, high effort (declared by the
+planning session that analyzed the problem).
+
+**Definition of Done**: the completion criteria in
+`milestone-12-form-feedback-design.md` §0.
+
+**Dependencies**: none blocking. Not in the MVP line (post-MVP polish,
+like Milestone 10's visual half); does not displace Milestone 11 WP4.
+
+**Status**: `NOT_STARTED` — design approved 2026-09-29.
+
 ---
 
 ## Dependency Graph
@@ -2111,6 +2168,13 @@ done as post-MVP polish (ADR 0023/0024).
 
 ## Risks and Unknowns
 
+- **Flash-cookie success toast across a Server Action `redirect()`
+  (Milestone 12) — `hipótesis`, TODO: validar.** Assumes a cookie set
+  inside a Server Action before `redirect()` is readable by a client
+  component on the destination route in Next 16 App Router. Unverified;
+  Phase 0 of `milestone-12-form-feedback-design.md` spikes it on one real
+  redirect before any slice migrates. Fallback: a `?flash=<key>` query
+  param stripped with `router.replace`.
 - **Gaps left open by Milestone 8.5 — all five resolved** in commit
   `c7d7a30` ("Resolve UX gaps before mvp"), kept here for the record:
   (1) the Resident's own Surgery panel now shows Patient/ProcedureType by

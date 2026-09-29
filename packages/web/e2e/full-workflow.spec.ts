@@ -62,9 +62,29 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await page.getByLabel("First name").fill("Juan");
     await page.getByLabel("Last name").fill("Pérez");
     await page.getByLabel("Date of birth").fill("1990-05-20");
+    await page.getByLabel("DNI (optional)").fill("30111222");
     await page.getByRole("button", { name: "Register patient" }).click();
 
     await expect(page.getByRole("heading", { name: "Juan Pérez" })).toBeVisible();
+    // Milestone 12: the success survives the redirect as a one-shot toast.
+    await expect(
+      page.getByRole("region", { name: "Notifications" }).getByText("Patient registered."),
+    ).toBeVisible();
+  });
+
+  await test.step("an api rejection stays inline and keeps what was typed", async () => {
+    await page.goto("/patients/new");
+    await page.getByLabel("First name").fill("Ana");
+    await page.getByLabel("Last name").fill("Duplicada");
+    await page.getByLabel("Date of birth").fill("1985-01-01");
+    await page.getByLabel("DNI (optional)").fill("30111222"); // already taken above
+    await page.getByRole("button", { name: "Register patient" }).click();
+
+    await expect(
+      page.getByRole("alert").filter({ hasText: "A patient with this DNI already exists" }),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/patients\/new$/);
+    await expect(page.getByLabel("First name")).toHaveValue("Ana");
   });
 
   await test.step("register a Surgery, verify it appears in the list", async () => {

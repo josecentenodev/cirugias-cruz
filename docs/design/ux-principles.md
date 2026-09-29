@@ -37,7 +37,9 @@ state changes, color, text.
 
 - Every `<form action={serverAction}>` submit uses `<PendingButton>` (disabled + spinner while pending).
 - Every list/detail route segment has a `loading.tsx`.
-- A successful mutation lands the user somewhere that visibly reflects the change (redirect to the updated record, or an inline success `Alert`).
+- A successful mutation lands the user somewhere that visibly reflects the change **and** confirms it with a success toast — across a redirect too (one-shot flash, Milestone 12).
+- A failed mutation keeps the form and what was typed (never passwords), shows the error inline at the top of the form (focused, `role="alert"`) and per field when validation names one. An unexpected failure is the generic inline message, never the `error.tsx` page.
+- All of it comes from `<ActionForm>` / `runFormAction` — a form or Server Action never implements its own feedback (ESLint-enforced).
 - Responses under ~400ms need no spinner; longer ones must show one.
 
 ## 3. Consistent
@@ -133,9 +135,7 @@ copy from `src/messages/en.ts`.
 | `resident/*`                      | ✅     | ✅      | ✅    | ✅       | ✅        | ✅                 |
 | `error.tsx` / `not-found.tsx`     | ✅     | n/a     | n/a   | n/a      | ✅        | ✅                 |
 
-Known follow-ups (not blockers): field-level (per-input) validation
-errors are still a single inline `<Alert>` per form (deferred by product
-decision); a few composed strings in `features/*/mappers.ts`
+Known follow-ups (not blockers): a few composed strings in `features/*/mappers.ts`
 (`summarizeRules`, procedure-type `TYPE_LABELS` phrasing) are English but
 not yet in `messages/en.ts` — the i18n extraction pass folds them in.
 

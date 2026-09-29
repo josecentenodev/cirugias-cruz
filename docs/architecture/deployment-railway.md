@@ -264,7 +264,30 @@ The Playwright suite (`packages/web/e2e`) runs against whatever `api` you
 start, so for e2e runs start `api` with `DATABASE_URL` set to the test
 database.
 
-## Staging environment (proposed, not provisioned)
+## Staging environment
+
+**Provisioned 2026-09-29** (empírico — done through the Railway dashboard):
+a `staging` environment in this project, duplicated from `production`,
+with its own `Postgres` (fresh volume — schema migrated by `api`'s
+Pre-Deploy, every table empty on first deploy), `cirugias-cruz` (the
+`api` service — that is its Railway name) and `web`. Verified after
+duplication: `api`'s `DATABASE_URL` is `${{Postgres.DATABASE_URL}}` and
+`web`'s `API_BASE_URL` is built from `${{cirugias-cruz.RAILWAY_PRIVATE_DOMAIN}}`,
+so both resolve inside `staging`, never to production. Changed for
+staging: `WEB_BASE_URL=https://staging.seguimientocirugias.com`.
+`https://staging.seguimientocirugias.com` → `web` (port 8080), DNS
+added in Cloudflare through Railway's one-click Cloudflare connection
+(CNAME `staging` proxied + TXT `_railway-verify.staging`); serves HTTP 200.
+
+Gotcha: unlike what the docs led us to expect, duplicating the
+environment **deployed immediately** — nothing was staged for review.
+Check the duplicated variables right away, not after a review step.
+
+Pending: point both staging services at the `staging` branch (Settings
+→ Source; today they still track `main`, so a push to `main` deploys
+both environments). Needs the `staging` branch on GitHub first.
+
+Original plan, kept for reference:
 
 Supported by the current Railway + Cloudflare setup (`oficial` —
 docs.railway.com/environments and

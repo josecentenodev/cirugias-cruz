@@ -1,30 +1,21 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { idleResult } from "@/lib/action-result";
 import { ApiDomainError, ApiUnexpectedError } from "@/lib/api-errors.js";
+import { messages } from "@/messages/en";
+import {
+  formData,
+  lastFlashKey,
+  redirectMock,
+  resetNextActionMocks,
+} from "@/test/next-action-mocks";
 
-const { redirectMock } = vi.hoisted(() => ({ redirectMock: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: redirectMock }));
+vi.mock("next/navigation", async () => (await import("@/test/next-action-mocks")).navigationModule);
+vi.mock("next/headers", async () => (await import("@/test/next-action-mocks")).headersModule);
 
 const { authedApiRequestMock } = vi.hoisted(() => ({ authedApiRequestMock: vi.fn() }));
 vi.mock("@/lib/authed-api-request.js", () => ({ authedApiRequest: authedApiRequestMock }));
 
-class FakeRedirectSignal extends Error {
-  constructor(public readonly path: string) {
-    super(`NEXT_REDIRECT:${path}`);
-  }
-}
-redirectMock.mockImplementation((path: string) => {
-  throw new FakeRedirectSignal(path);
-});
-
 const { registerPatientAction } = await import("./actions.js");
-
-function formData(fields: Record<string, string>): FormData {
-  const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) {
-    data.set(key, value);
-  }
-  return data;
-}
 
 function validPatientFields(overrides: Record<string, string> = {}) {
   return {
@@ -36,17 +27,15 @@ function validPatientFields(overrides: Record<string, string> = {}) {
 }
 
 describe("registerPatientAction", () => {
-  afterEach(() => {
-    vi.clearAllMocks();
-    redirectMock.mockImplementation((path: string) => {
-      throw new FakeRedirectSignal(path);
-    });
+  beforeEach(() => {
+    authedApiRequestMock.mockReset();
+    resetNextActionMocks();
   });
 
-  it("succeeds: calls POST /patients through authedApiRequest and redirects to the new patient's detail page", async () => {
+  it("succeeds: calls POST /patients, flashes a success toast and redirects to the new patient", async () => {
     authedApiRequestMock.mockResolvedValue({ patientId: "patient-1" });
 
-    await expect(registerPatientAction({}, formData(validPatientFields()))).rejects.toThrow(
+    await expect(registerPatientAction(idleResult, formData(validPatientFields()))).rejects.toThrow(
       "NEXT_REDIRECT:/patients/patient-1",
     );
 
@@ -59,54 +48,62 @@ describe("registerPatientAction", () => {
         dateOfBirth: "1990-01-01",
       },
     });
+    expect(lastFlashKey()).toBe("patientRegistered");
   });
 
   it("includes the dni in the body when provided", async () => {
     authedApiRequestMock.mockResolvedValue({ patientId: "patient-1" });
 
     await expect(
-      registerPatientAction({}, formData(validPatientFields({ dni: "30111222" }))),
+      registerPatientAction(idleResult, formData(validPatientFields({ dni: "30111222" }))),
     ).rejects.toThrow("NEXT_REDIRECT:/patients/patient-1");
 
     const call = authedApiRequestMock.mock.calls[0]?.[0] as { body: { dni?: string } };
     expect(call.body.dni).toBe("30111222");
   });
 
-  it("surfaces api's duplicate-dni rejection inline", async () => {
+  it("surfaces api's duplicate-dni rejection inline, keeping what was typed", async () => {
     authedApiRequestMock.mockRejectedValue(
       new ApiDomainError("A patient with this DNI already exists"),
     );
 
     const result = await registerPatientAction(
-      {},
+      idleResult,
       formData(validPatientFields({ dni: "30111222" })),
     );
 
-    expect(result).toEqual({ error: "A patient with this DNI already exists" });
+    expect(result).toMatchObject({
+      status: "error",
+      message: "A patient with this DNI already exists",
+      values: { firstName: "Ana", dni: "30111222" },
+    });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
-  it("rejects a missing required field before ever calling api", async () => {
-    const result = await registerPatientAction({}, formData(validPatientFields({ firstName: "" })));
+  it("rejects a missing required field before ever calling api, naming the field", async () => {
+    const result = await registerPatientAction(
+      idleResult,
+      formData(validPatientFields({ firstName: "" })),
+    );
 
-    expect(result).toEqual({ error: "Please fill in every required field." });
+    expect(result).toMatchObject({
+      status: "error",
+      message: messages.errors.requiredFields,
+      fieldErrors: { firstName: "First name is required" },
+    });
     expect(authedApiRequestMock).not.toHaveBeenCalled();
   });
 
-  it("expectable error: surfaces api's DomainError message inline, unchanged", async () => {
-    authedApiRequestMock.mockRejectedValue(new ApiDomainError("firstName is required"));
-
-    const result = await registerPatientAction({}, formData(validPatientFields()));
-
-    expect(result).toEqual({ error: "firstName is required" });
-    expect(redirectMock).not.toHaveBeenCalled();
-  });
-
-  it("unexpected error: propagates uncaught for the nearest error.tsx boundary, not returned as a form error", async () => {
+  it("unexpected error: shown inline as the generic message — the form survives instead of error.tsx", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     authedApiRequestMock.mockRejectedValue(new ApiUnexpectedError());
 
-    await expect(registerPatientAction({}, formData(validPatientFields()))).rejects.toBeInstanceOf(
-      ApiUnexpectedError,
-    );
+    const result = await registerPatientAction(idleResult, formData(validPatientFields()));
+
+    expect(result).toMatchObject({
+      status: "error",
+      message: messages.errors.unexpected,
+      values: { firstName: "Ana" },
+    });
   });
 });

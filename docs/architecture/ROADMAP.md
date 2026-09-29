@@ -2352,6 +2352,23 @@ done as post-MVP polish (ADR 0023/0024).
   not authorize Milestone 8 implementation** — that remains a separate,
   explicit go-ahead from the product owner, still pending as of this
   entry.
+- **Bug — the DB-backed test suites run against the PRODUCTION
+  database.** The local `packages/infrastructure/.env` and
+  `packages/http/.env` `DATABASE_URL` point, through Railway's public
+  proxy, at the same Postgres the live `api` uses (product owner
+  confirmed, 2026-09-29). Every `pnpm run test` therefore creates and
+  `deleteMany`s fixture rows in the real clinical database. Fix: a
+  separate test database (local Postgres or its own Railway service) and
+  `.env.example` guidance that never suggests the production URL. This
+  also resolves the latency entry below.
+- **Who/what emptied `_prisma_migrations` in production — `hipótesis`,
+  TODO: validar.** Between the last successful `api` deploy and
+  2026-09-15 19:55 UTC the history table lost all 13 applied rows while
+  the schema stayed intact, which blocked every deploy with `P3009`
+  (diagnosis and recovery: `deployment-railway.md` § Migrations). No code
+  in the repo touches that table; a manual/tooling action against the
+  production URL (which local dev and tests share — see above) is the
+  leading suspect, unverified.
 - **DB-backed tests are latency-bound against the remote Railway
   Postgres, so `pnpm run test` is non-deterministically red from a
   developer machine** (empírico, measured 2026-09-29): `DATABASE_URL`

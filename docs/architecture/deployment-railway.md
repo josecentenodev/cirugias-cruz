@@ -124,6 +124,35 @@ and env access, and **a failure blocks the rollout** so the previous
 version keeps serving. This is the mechanism `README.md` and ADR 0013
 already assume.
 
+#### `P3009` on `…_init` = the migration history was lost, not a bad migration
+
+Seen 2026-09-29 (empírico — diagnosed read-only against the production
+database): every `api` deploy since 2026-09-15 19:55 UTC failed at
+Pre-Deploy with `P3009 … The 20260828132836_init migration … failed`.
+`_prisma_migrations` held **one row** (that failed `init`, error `42P07
+relation "physicians" already exists`) instead of 14, while every table
+existed. Something had emptied the history table without touching the
+schema, so `migrate deploy` re-ran `init` against a populated database.
+Cause of the emptying: unknown — see ROADMAP § Risks and Unknowns.
+
+Recovery is **baselining, never `migrate reset`** (reset drops clinical
+data):
+
+1. Read `SELECT migration_name, finished_at, logs FROM _prisma_migrations`
+   — `logs` holds the real SQL error Railway's log prints as `undefined`.
+2. Prove the schema is already at the repo's final state:
+   `prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel
+prisma/schema.prisma --script` must print an empty migration.
+3. For migrations that also change **data** (today: `…0905…_drop_magnitude`,
+   `…0914150000_resident_invitation_by_email`,
+   `…0914170000_control_definition_mandatory`), check their effect with a
+   count query — the schema diff can't see data.
+4. Mark every migration applied without running it:
+   `prisma migrate resolve --applied <name>` for each folder
+   (`oficial` — Prisma CLI `migrate resolve`, prisma@5.22.0; procedure at
+   https://pris.ly/d/migrate-resolve, the link the error itself emits),
+   then `prisma migrate status` must report up to date; redeploy `api`.
+
 ### Gotchas discovered while getting `api` to deploy
 
 1. **`tsx` must be a runtime `dependency`, not a `devDependency`.**

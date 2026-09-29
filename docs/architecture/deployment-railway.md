@@ -283,9 +283,11 @@ Gotcha: unlike what the docs led us to expect, duplicating the
 environment **deployed immediately** — nothing was staged for review.
 Check the duplicated variables right away, not after a review step.
 
-Pending: point both staging services at the `staging` branch (Settings
-→ Source; today they still track `main`, so a push to `main` deploys
-both environments). Needs the `staging` branch on GitHub first.
+Both staging services track the `staging` branch (Settings → Source,
+auto-deploy on push); production tracks `main`. Flow: merge to `staging`
+→ check https://staging.seguimientocirugias.com → merge `staging` into
+`main` to release. The `staging` branch was created on GitHub from
+`main` (155ca3d) on 2026-09-29.
 
 Original plan, kept for reference:
 

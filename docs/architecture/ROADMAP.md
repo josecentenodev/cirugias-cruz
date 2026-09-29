@@ -76,6 +76,14 @@ gets corrected — it is not meant to be treated as fixed once written.
   has their own login — issued a temporary password by the Physician,
   scoped read/write access to only the Surgeries they participate in.
   See Milestone 8.5's entry below for full detail.
+- **Control definitions become mandatory, ad-hoc controls removed (ADR 0030)** — done in `2d8a663`, folded into Milestone 11 WP3's control-
+  definitions work: `Control.create()` now requires `definitionId` at
+  every layer (Domain throws `DomainError` without one; Application,
+  HTTP, and `web` all pass it through); `registerProcedureType` seeds
+  every new `ProcedureType` with one default `uncapped`
+  `ControlDefinition` so a type is never left without one; the migration
+  dropped the pre-existing ad-hoc test-data Control rows rather than
+  backfilling them (confirmed non-clinical, product-owner authorized).
 
 ### Completed (post-MVP polish)
 
@@ -105,32 +113,21 @@ gets corrected — it is not meant to be treated as fixed once written.
   present-tense docs. Internal identifiers (`cirugias-cruz`,
   `@cirugias-cruz/*`, Railway/DB names) deliberately unchanged. The
   project skill is now `seguimiento-cirugias-project`.
+- **Physician email confirmation re-enabled (ADR 0028) + Resident
+  invitation by email (ADR 0029)** — done in `c90cd2e`, across every
+  layer. ADR 0028: the `confirmedAt` check is restored in `login`
+  (`packages/application/src/physician/login.ts`), plus a self-service
+  `resendConfirmationEmail` operation + `POST /resend-confirmation`
+  route. ADR 0029: `acceptResidentInvitation` (Application) +
+  `ResidentInvitationTokenRepository` + `POST /residents/accept-invitation`
+  - `web`'s `/accept-invitation` page replace ADR 0017's visible-
+    temporary-password mechanism entirely — the now-unused view/reset-
+    temporary-password machinery and forced-password-change gate were
+    removed across Application, Infrastructure, HTTP, and web in the same
+    commit.
 
 ### Not started
 
-- **Physician email confirmation re-enabled (ADR 0028) — not scoped to a
-  milestone number yet.** `seguimientocirugias.com` is purchased and
-  verified in Resend (DNS in Cloudflare); `RESEND_API_KEY` is set on the
-  live `api` service. Implementation (restore the `confirmedAt` check in
-  `login`, add `resendConfirmationEmail` + route + `web` affordance, set
-  `RESEND_FROM_EMAIL`/`WEB_BASE_URL`) has not started at any layer.
-- **Control definitions become mandatory, ad-hoc controls removed (ADR 0030) — not scoped to a milestone number yet.** Reopens ADR 0026's
-  "ad-hoc controls stay valid" decision: recording a Control with no
-  type was confusing UX (a hidden "none" branch alongside real,
-  physician-defined types). `Control.definitionId` becomes required;
-  `registerProcedureType` seeds a default `uncapped` `ControlDefinition`
-  so a `ProcedureType` is never left without one. Implementation
-  (Domain/Application/Infrastructure/HTTP/web, plus a migration dropping
-  the pre-existing ad-hoc test-data Control rows) has not started at any
-  layer.
-- **Resident invitation by email (ADR 0029) — not scoped to a milestone
-  number yet.** Replaces ADR 0017's visible-temporary-password mechanism
-  with an emailed invitation the Resident accepts by setting their own
-  password — a real security-posture change (no one but the Resident
-  ever holds their own password), not a cosmetic one. Implementation
-  (Application operations, `ResidentInvitationTokenRepository`,
-  nullable `passwordHash`, HTTP routes, `web`'s `/accept-invitation`
-  page) has not started at any layer.
 - **Patient identity & search (Milestone 8.7) — `MVP-required`** (product
   owner decision, this pass). Add an identifying field to Patient so the
   same real person isn't loaded twice — `DNI` is the leading candidate —
@@ -359,8 +356,8 @@ field content, which remains deferred exactly as before.
 | Capability                                                                                                       | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                                                                                                                                                                                                                                                                                          |
 | ---------------------------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Physician authentication (login/logout)                                                                          | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                                                                                                                                                                                                                                                                |
-| Physician self-registration                                                                                      | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation gate re-enabled by decision (ADR 0028) — sending domain verified, `RESEND_API_KEY` set, but the `login` check restoration + resend-email UX are **not implemented yet**                                                                                                                                             |
-| Resident authentication (login, forced password change, temp-password issue/reset, deactivate)                   | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5, COMPLETED under ADR 0017; **ADR 0029 replaces the temp-password mechanism with emailed invitation-and-acceptance, not yet implemented at any layer** — treat "temp-password issue/reset" as superseded design, not current target                                                                                                                                        |
+| Physician self-registration                                                                                      | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation gate re-enabled (ADR 0028, `c90cd2e`) — `login`'s `confirmedAt` check restored, `resendConfirmationEmail` + route + `web` affordance done; no human walkthrough yet                                                                                                                                                 |
+| Resident authentication (login, invitation-by-email, deactivate)                                                 | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5 COMPLETED under ADR 0017, **superseded by ADR 0029** (`c90cd2e`): emailed invitation-and-acceptance replaces the visible-temporary-password mechanism end to end (`acceptResidentInvitation`, `ResidentInvitationTokenRepository`, `/accept-invitation`); the old temp-password issue/reset and forced-password-change gate were removed, not just superseded on paper    |
 | Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                                       | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType **by name** (resolved in `c7d7a30` — `getSurgeryForResident`/`listSurgeriesForResident` resolve them server-side, see Risks); no human walkthrough yet                                                                                                                                                                            |
 | Patient (register + retrieve)                                                                                    | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | Milestone 11 WP1 (ADR 0025) merged: `email`/`phone` removed at every layer, `Patient` no longer composes `Person`, computed age in the UI, Railway migration applied. Walkthrough delta sign-off pending (WP4)                                                                                                                                                                          |
 | Patient identity (dedup field, e.g. DNI) + patient search (**MVP-required**)                                     | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Milestone 8.7 — not started at any layer; product owner decision, pre-MVP                                                                                                                                                                                                                                                                                                               |

@@ -1,7 +1,8 @@
 # Desktop space usage — killing the single-column scroll
 
-> **Status:** design investigation → **implemented** (steps 1–6, 2026-09-10;
-> see §7). Product owner raised it 2026-09-10: the app is **desktop-first,
+> **Status:** design investigation → **implemented** (steps 1–7, 2026-09-10
+> and 2026-09-22; see §7). Product owner raised it 2026-09-10: the app is
+> **desktop-first,
 > with no mobile target now or planned**, and the screens waste horizontal
 > space — everything is one tall vertical column (name, then its fields,
 > then its list, then the add form, then the next list, then its add
@@ -168,6 +169,50 @@ Metadata grids are `sm:grid-cols-2` today. In a wider container they
 become `lg:grid-cols-3` / `-4` with tighter vertical rhythm
 (`gap-x-8 gap-y-3`). Applies to Patient identity, Surgery summary,
 Research read-view.
+
+### P7 — Group inline edit-form fields into rows, not one column per field
+
+**Added 2026-09-22**, found live in `settings/procedure-types/[id]`:
+steps 1–6 fixed the _page's_ verticalization (§1) but left a second,
+narrower instance of the same problem one level down — an inline
+add/edit form's _own_ fields, still `flex flex-col` one-per-row, even
+though P4 now seats that form inside a primary column ~570–600px wide.
+`CustomFieldForm` stacked seven fields (`name`, `description`, `scope`,
+`valueType`, `unit`, `min`, `max`) full-height in a single column —
+~450px tall for one row's edit — pushing the second scheme table
+(Control types) well below the fold on a screen that P1–P6 had already
+widened. The same Law-of-Proximity/Prägnanz argument from §1c applies
+here unchanged, just scoped to a form instead of a page: fields that
+are one _thought_ (a field's identity: name/scope/type; a NUMBER
+field's range: unit/min/max) should sit in one _row_, not be read as
+unrelated because they're vertically separated.
+
+**Rule:** inside a `DetailGrid` primary column (not a narrow
+`FormLayout` single-task form — see §2's "not widen the create/edit
+forms" guardrail, which is about _page_-level forms and stays as-is),
+group an edit-in-place form's fields with `grid gap-4 sm:grid-cols-N`
+by _conceptual_ grouping, not by "however many fit": 2–3 columns,
+never a field alone in a row unless it's genuinely singular (a
+`description`/`options` textarea, a lone conditional field). Keep the
+free-text field (`description`) full-width below the identity row —
+P2's "text still needs a comfortable measure" guardrail applies inside
+a form row exactly as it does inside a page.
+
+Applied to:
+
+- **`CustomFieldForm.tsx`** — `name` / `scope` (`recordedOn`) /
+  `valueType` become one `sm:grid-cols-3` row; `description` stays
+  full-width below it (unchanged); the NUMBER branch's `unit` / `min`
+  / `max` become one `sm:grid-cols-3` row (previously `unit` alone
+  full-width, then `min`/`max` in their own `sm:grid-cols-2` row).
+  `options` (ENUM) and `maxLength` (TEXT) stay solo — each is the only
+  field in its conditional branch. ~450px tall → ~200px for one field's
+  edit.
+- **`ControlDefinitionForm.tsx`** — `name` / `mode` become one
+  `sm:grid-cols-[2fr_1fr]` row (name gets more width as free text,
+  mode is a short select); the `capped` branch's `count`/`every`/`unit`
+  row was already `sm:grid-cols-3` (P7-compliant from the start — no
+  change there).
 
 ---
 
@@ -348,17 +393,18 @@ now; flagged so the wide container is in place when it lands.
 
 ## 5. Summary table
 
-| Screen                 | Now                          | Proposed                                          | Primary pattern      |
-| ---------------------- | ---------------------------- | ------------------------------------------------- | -------------------- |
-| Procedure Type detail  | 5 stacked cards              | 2-col: scheme tables ‖ identity + hints           | `DetailGrid` + P3/P4 |
-| Surgery detail         | 4 stacked cards              | 2-col: control history ‖ summary+follow-up+roster | `DetailGrid` + P3/P5 |
-| Resident Surgery panel | stacked                      | 2-col: control history ‖ summary+follow-up        | `DetailGrid`         |
-| Patient detail         | card + list stacked          | 2-col: surgery list ‖ patient identity            | `DetailGrid` + P6    |
-| Research Study detail  | 2 cards, 4 stacked textareas | 2-col: 2×2 field grid ‖ status+universe           | `DetailGrid` + P6    |
-| List pages (4)         | `max-w-5xl` table            | workspace-width table, more columns               | P1 only              |
-| `*/new`, `*/edit`      | narrow-ish                   | explicit narrow `FormLayout`                      | P1 (narrow)          |
-| Auth (5)               | narrow                       | same `FormLayout`                                 | P1 (narrow)          |
-| Dashboard landing      | redirect                     | (future) overview tile grid                       | P1 + tiles           |
+| Screen                                                         | Now                          | Proposed                                          | Primary pattern      |
+| -------------------------------------------------------------- | ---------------------------- | ------------------------------------------------- | -------------------- |
+| Procedure Type detail                                          | 5 stacked cards              | 2-col: scheme tables ‖ identity + hints           | `DetailGrid` + P3/P4 |
+| Surgery detail                                                 | 4 stacked cards              | 2-col: control history ‖ summary+follow-up+roster | `DetailGrid` + P3/P5 |
+| Resident Surgery panel                                         | stacked                      | 2-col: control history ‖ summary+follow-up        | `DetailGrid`         |
+| Patient detail                                                 | card + list stacked          | 2-col: surgery list ‖ patient identity            | `DetailGrid` + P6    |
+| Research Study detail                                          | 2 cards, 4 stacked textareas | 2-col: 2×2 field grid ‖ status+universe           | `DetailGrid` + P6    |
+| List pages (4)                                                 | `max-w-5xl` table            | workspace-width table, more columns               | P1 only              |
+| `*/new`, `*/edit`                                              | narrow-ish                   | explicit narrow `FormLayout`                      | P1 (narrow)          |
+| Auth (5)                                                       | narrow                       | same `FormLayout`                                 | P1 (narrow)          |
+| Dashboard landing                                              | redirect                     | (future) overview tile grid                       | P1 + tiles           |
+| Inline edit forms (`CustomFieldForm`, `ControlDefinitionForm`) | fields one-per-row           | related fields grouped in `sm:grid-cols-N` rows   | P7                   |
 
 ---
 
@@ -445,14 +491,29 @@ now; flagged so the wide container is in place when it lands.
    layout for every detail screen), §6 (DOM source order primary-first,
    sticky aside can't cover focus, `Disclosure` stays keyboard-reachable),
    and a post-M10 note on the audit tracker.
+7. **DONE (2026-09-22, §3 P7).** Found live in production use, not by
+   inspection: the physician flagged `settings/procedure-types/[id]`
+   still reading as one long vertical scroll after steps 1–6.
+   `CustomFieldForm` (`name`/`scope`/`valueType` → one `sm:grid-cols-3`
+   row; `description` stays full-width; the NUMBER branch's
+   `unit`/`min`/`max` → one `sm:grid-cols-3` row instead of
+   `unit` alone then a separate `min`/`max` row) and
+   `ControlDefinitionForm` (`name`/`mode` → one
+   `sm:grid-cols-[2fr_1fr]` row; the `capped` branch's
+   `count`/`every`/`unit` row was already P7-compliant) both regrouped.
+   Lint / format / web typecheck / 218 web tests green. Visual
+   verification: code-level only (grid classes, no new logic) — no
+   authenticated live render was done for this step; still owed,
+   same as steps 3–6.
 
 ---
 
-**All six steps of the plan are implemented and merged into the working
-tree** (uncommitted, awaiting the usual review/push). Independent
+**All seven steps of the plan are implemented and merged into the
+working tree** (uncommitted, awaiting the usual review/push). Independent
 follow-ups still open: update `e2e/full-workflow.spec.ts` for the
 `Disclosure`-folded forms (step 4 note); a real authenticated visual /
-keyboard / sticky pass, which the code-level gate can't cover.
+keyboard / sticky pass across every step, which the code-level gate
+can't cover.
 
 Each step is independently shippable and independently screenshot-able —
 no big-bang layout rewrite.

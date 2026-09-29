@@ -44,29 +44,31 @@ export function ControlDefinitionForm({
     <form action={formAction} className="flex flex-col gap-4">
       {state.error ? <Alert>{state.error}</Alert> : null}
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="cd-name">{c.nameLabel}</Label>
-        <input
-          id="cd-name"
-          name="name"
-          required
-          defaultValue={definition?.name ?? ""}
-          className={fieldClassName}
-        />
-      </div>
+      <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="cd-name">{c.nameLabel}</Label>
+          <input
+            id="cd-name"
+            name="name"
+            required
+            defaultValue={definition?.name ?? ""}
+            className={fieldClassName}
+          />
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="cd-mode">{c.modeLabel}</Label>
-        <select
-          id="cd-mode"
-          name="mode"
-          value={mode}
-          onChange={(event) => setMode(event.target.value as "uncapped" | "capped")}
-          className={fieldClassName}
-        >
-          <option value="uncapped">{c.modeUncapped}</option>
-          <option value="capped">{c.modeCapped}</option>
-        </select>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="cd-mode">{c.modeLabel}</Label>
+          <select
+            id="cd-mode"
+            name="mode"
+            value={mode}
+            onChange={(event) => setMode(event.target.value as "uncapped" | "capped")}
+            className={fieldClassName}
+          >
+            <option value="uncapped">{c.modeUncapped}</option>
+            <option value="capped">{c.modeCapped}</option>
+          </select>
+        </div>
       </div>
 
       {mode === "capped" ? (

@@ -54,9 +54,41 @@ export function CustomFieldForm({
     <form action={formAction} className="flex flex-col gap-4">
       {state.error ? <Alert>{state.error}</Alert> : null}
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="name">{messages.fields.name}</Label>
-        <Input id="name" name="name" required defaultValue={field?.name ?? ""} />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="name">{messages.fields.name}</Label>
+          <Input id="name" name="name" required defaultValue={field?.name ?? ""} />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="scope">{c.recordedOn}</Label>
+          <select
+            id="scope"
+            name="scope"
+            required
+            defaultValue={field?.scope ?? "SURGERY"}
+            className={selectClassName}
+          >
+            <option value="SURGERY">{c.scopeSurgery}</option>
+            <option value="CONTROL">{c.scopeControl}</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="valueType">{c.valueType}</Label>
+          <select
+            id="valueType"
+            name="valueType"
+            required
+            value={valueType}
+            onChange={(event) => setValueType(event.target.value as ValueType)}
+            className={selectClassName}
+          >
+            <option value="NUMBER">{c.valueTypeNumber}</option>
+            <option value="ENUM">{c.valueTypeEnum}</option>
+            <option value="TEXT">{c.valueTypeText}</option>
+          </select>
+        </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -70,38 +102,8 @@ export function CustomFieldForm({
         />
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="scope">{c.recordedOn}</Label>
-        <select
-          id="scope"
-          name="scope"
-          required
-          defaultValue={field?.scope ?? "SURGERY"}
-          className={selectClassName}
-        >
-          <option value="SURGERY">{c.scopeSurgery}</option>
-          <option value="CONTROL">{c.scopeControl}</option>
-        </select>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="valueType">{c.valueType}</Label>
-        <select
-          id="valueType"
-          name="valueType"
-          required
-          value={valueType}
-          onChange={(event) => setValueType(event.target.value as ValueType)}
-          className={selectClassName}
-        >
-          <option value="NUMBER">{c.valueTypeNumber}</option>
-          <option value="ENUM">{c.valueTypeEnum}</option>
-          <option value="TEXT">{c.valueTypeText}</option>
-        </select>
-      </div>
-
       {valueType === "NUMBER" ? (
-        <>
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="unit">{c.unitOptional}</Label>
             <Input
@@ -111,29 +113,27 @@ export function CustomFieldForm({
               defaultValue={field?.editable.unit ?? ""}
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="min">{c.minOptional}</Label>
-              <Input
-                id="min"
-                name="min"
-                type="number"
-                step="any"
-                defaultValue={field?.editable.min ?? ""}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="max">{c.maxOptional}</Label>
-              <Input
-                id="max"
-                name="max"
-                type="number"
-                step="any"
-                defaultValue={field?.editable.max ?? ""}
-              />
-            </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="min">{c.minOptional}</Label>
+            <Input
+              id="min"
+              name="min"
+              type="number"
+              step="any"
+              defaultValue={field?.editable.min ?? ""}
+            />
           </div>
-        </>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="max">{c.maxOptional}</Label>
+            <Input
+              id="max"
+              name="max"
+              type="number"
+              step="any"
+              defaultValue={field?.editable.max ?? ""}
+            />
+          </div>
+        </div>
       ) : null}
 
       {valueType === "ENUM" ? (

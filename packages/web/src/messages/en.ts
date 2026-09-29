@@ -74,6 +74,9 @@ export const messages = {
 
   errors: {
     requiredFields: "Please fill in every required field.",
+    fieldRequired: "This field is required.",
+    rateLimited: "Too many attempts — please wait a moment and try again.",
+    unexpected: "We couldn’t complete that request. Please try again.",
     generic: {
       title: "Something went wrong",
       body: "We couldn’t complete that request. Please try again.",
@@ -84,6 +87,41 @@ export const messages = {
       body: "That page, or the resource it refers to, doesn’t exist.",
       home: "Back to patients",
     },
+  },
+
+  /**
+   * Success toasts (Milestone 12). A key, not free text, is what crosses
+   * a redirect in the one-shot flash cookie (`lib/flash.ts`) — so every
+   * value here must be safe to show without any record-specific data.
+   */
+  feedback: {
+    notifications: "Notifications",
+    dismiss: "Dismiss",
+    patientRegistered: "Patient registered.",
+    surgeryRegistered: "Surgery registered.",
+    controlRecorded: "Control recorded.",
+    controlUpdated: "Control updated.",
+    residentAssigned: "Resident assigned.",
+    residentRemoved: "Resident removed from the surgery.",
+    procedureTypeCreated: "Procedure type created.",
+    procedureTypeUpdated: "Procedure type updated.",
+    customFieldAdded: "Field added.",
+    customFieldUpdated: "Field updated.",
+    customFieldRemoved: "Field removed.",
+    controlDefinitionAdded: "Control added.",
+    controlDefinitionUpdated: "Control updated.",
+    controlDefinitionRemoved: "Control removed.",
+    studyCreated: "Research study created.",
+    studyUpdated: "Research study saved.",
+    studySurgeryAdded: "Surgery added to the study.",
+    studySurgeryRemoved: "Surgery removed from the study.",
+    studyStatusChanged: "Study status updated.",
+    studyDeleted: "Research study deleted.",
+    residentRegistered: "Resident registered.",
+    invitationResent: "Invitation resent.",
+    residentDeactivated: "Login deactivated.",
+    residentReactivated: "Login reactivated.",
+    passwordChanged: "Password changed.",
   },
 
   auth: {

@@ -30,9 +30,10 @@ import { cn } from "@/lib/cn";
 
 /**
  * `useActionState` plus the app-wide feedback side effects: a success
- * toast for an in-place success, and a flash check once the submission
- * settles (a redirect back to the same page never changes the pathname,
- * so the Toaster's own route-change check alone would miss it).
+ * toast for an in-place success, and a flash check whenever the redirect
+ * that follows a submission could have landed (a redirect back to the same
+ * page never changes the pathname, so the Toaster's own route-change check
+ * alone would miss it).
  */
 export function useFormAction(action: FormActionFn) {
   const [result, formAction, isPending] = useActionState(action, idleResult);
@@ -46,16 +47,25 @@ export function useFormAction(action: FormActionFn) {
     showSuccessToast(result.message);
   }, [result]);
 
-  // Two triggers, because which one fires depends on how React reconciles
-  // the redirect: a settled submission on a form that survives it, and a
-  // (re)mount for a form the redirect re-created.
+  // Three triggers, because which one fires depends on how React reconciles
+  // the redirect: a settled submission on a form that survives it, a
+  // (re)mount for a form the redirect re-created, and an unmount for a form
+  // the redirect removed — a row's own remove button disappears with the
+  // row, before it ever settles (2026-09-30: "Control removed." never
+  // showed, then surfaced on the next page). Only a form that submitted
+  // checks on unmount; a plain navigation away is the Toaster's own job.
   const wasPending = useRef(false);
+  const hasSubmitted = useRef(false);
   useEffect(() => {
     if (wasPending.current && !isPending) requestFlashCheck();
     wasPending.current = isPending;
+    if (isPending) hasSubmitted.current = true;
   }, [isPending]);
   useEffect(() => {
     requestFlashCheck();
+    return () => {
+      if (hasSubmitted.current) requestFlashCheck();
+    };
   }, []);
 
   return [result, formAction, isPending] as const;

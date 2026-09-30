@@ -171,6 +171,12 @@ gets corrected — it is not meant to be treated as fixed once written.
   retried control recorded under "General". `useSelectSurvivesReset` in
   `components/ActionForm.tsx` now covers `FormSelect`, the control-type
   selects and options fields.
+  A later pass the same day fixed removals with no feedback: removing a
+  row's own record (control type, custom field, surgery resident, study
+  surgery) showed no toast, and the message surfaced later on another page.
+  `useFormAction` now also reads the flash when a form that submitted
+  unmounts (milestone-12-form-feedback-design.md §9), covered by
+  `full-workflow` removal steps.
 
 ### Not started
 

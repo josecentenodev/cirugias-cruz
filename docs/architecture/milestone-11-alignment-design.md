@@ -12,9 +12,10 @@
 > (`packages/domain`, `packages/application`, `packages/web` as of
 > commit `6d47a25`).
 >
-> **Nothing here is implemented yet.** This is the design to build
-> Milestone 11 against, in the same relationship
-> `milestone-8-design.md` had to Milestone 8.
+> This is the design Milestone 11 was built against, in the same
+> relationship `milestone-8-design.md` had to Milestone 8. **WP1–WP3 are
+> implemented and deployed; WP4's doc closeout is done (2026-09-30)** —
+> only the delta re-verification of F-01…F-09 remains (§1, §6).
 
 ---
 
@@ -54,9 +55,10 @@ milestone but do not individually block sign-off.
 > (`feat/milestone-11-alignment` for WP1+WP2, `feat/milestone-11-wp3` for
 > WP3), full quality gate green (domain 117 / application 169 /
 > infrastructure 70 / http 42 / web 221), both migrations applied to the
-> Railway Postgres. **Only WP4 remains** — this doc reconciliation plus
-> the product-owner delta walkthrough that lets `milestone-9-walkthrough.md`
-> be signed.
+> Railway Postgres; everything deployed to production and staging. **WP4:
+> doc closeout done (2026-09-30); remaining is the product-owner delta
+> re-verification of F-01…F-09**, run on staging, with each outcome
+> recorded in `milestone-9-walkthrough.md`'s Findings Log.
 >
 > **Deviations carried in WP3** (also in `alignment-restructuring.md`):
 > (1) `modify-control` does not accept `definitionId` — a Control is typed

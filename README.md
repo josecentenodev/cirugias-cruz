@@ -11,20 +11,21 @@
 > [`docs/architecture/ROADMAP.md`](docs/architecture/ROADMAP.md) — ese es
 > el documento a consultar antes de empezar cualquier trabajo.
 >
-> Resumen a la fecha de esta edición:
+> Resumen al 2026-09-30:
 >
-> - **Backend (Milestones 1–7): completo.** Dominio, Application,
->   persistencia Prisma/PostgreSQL, HTTP (Fastify) + autenticación
->   (email + contraseña, sesiones server-side en PostgreSQL), read/query,
->   Residentes, Investigación y hardening de seguridad de `api` — todo
->   probado end-to-end contra una instancia real de PostgreSQL en Railway.
-> - **`api` (`packages/http`) se despliega y ejecuta en Railway** desde
->   `main`. Sin dominio público todavía (solo red privada).
-> - **Frontend (`packages/web`, Milestone 8): en curso.** Next.js App
->   Router en patrón BFF. Construido el primer slice (Autenticación +
->   Pacientes); faltan Procedure Type, Cirugía + Control, Residentes e
->   Investigación. `web` aún no está desplegado en Railway.
-> - **Dominio público + validación humana (Milestone 9): no iniciado.**
+> - **Producto (MVP): construido y desplegado.** Backend completo
+>   (dominio, Application, Prisma/PostgreSQL, Fastify + sesiones
+>   server-side), frontend Next.js (BFF) con pacientes, cirugías y
+>   controles, residentes, investigación y CustomFields.
+> - **Producción:** https://seguimientocirugias.com (rama `main`).
+>   **Staging:** https://staging.seguimientocirugias.com (rama `staging`),
+>   con su propia base de datos. Flujo: `staging` → verificar → `main`.
+> - **Validación humana:** recorrido completo aprobado con el product
+>   owner el 2026-09-09 (sin P0). Sus 9 ajustes (F-01…F-09, Milestone 11)
+>   están implementados. **Falta solo re-verificarlos con el product
+>   owner (Milestone 11 WP4)** para cerrar el MVP.
+> - **Calidad:** `pnpm run check` completo en verde, con los tests de base
+>   de datos aislados en un PostgreSQL local; suite Playwright en verde.
 
 ---
 
@@ -36,7 +37,7 @@ Este proyecto nace con un objetivo concreto:
 
 La aplicación está pensada como un espacio de trabajo personal para cada médico.
 
-El médico es el propietario de su espacio y de la información que gestiona. Dentro de ese espacio puede trabajar con sus pacientes, incorporar residentes a cargo, asignarles pacientes y utilizar la información recopilada para realizar seguimiento e investigación.
+El médico es el propietario de su espacio y de la información que gestiona. Dentro de ese espacio puede trabajar con sus pacientes, incorporar residentes a cargo, asignarlos a sus cirugías y utilizar la información recopilada para realizar seguimiento e investigación.
 
 La aplicación busca ofrecer una experiencia **simple, limpia y de baja carga cognitiva**.
 
@@ -81,14 +82,10 @@ Es el usuario principal y propietario de su espacio de trabajo.
 Puede:
 
 - Gestionar pacientes.
-- Invitar pacientes.
-- Registrar y gestionar cirugías.
-- Agendar cirugías.
-- Incorporar residentes.
-- Asignar pacientes a residentes.
-- Realizar seguimiento.
-- Comunicarse con pacientes.
-- Enviar notificaciones y recordatorios.
+- Registrar y gestionar cirugías (siempre ya realizadas).
+- Incorporar residentes (invitados por email).
+- Asignar residentes a una cirugía (nunca a un paciente — ADR 0010).
+- Realizar seguimiento mediante controles.
 - Consultar información histórica.
 - Analizar información relacionada con sus cirugías.
 - Utilizar los datos recopilados para investigación.
@@ -97,13 +94,18 @@ Puede:
 
 Trabaja dentro del espacio del médico.
 
-Puede recibir pacientes asignados por el médico y participar en su seguimiento, registrando la información requerida según la cirugía correspondiente.
+Se le asignan cirugías (no pacientes) y participa en su seguimiento, registrando los controles de las cirugías en las que participa.
 
 ### Paciente
 
-Participa en el seguimiento de su propio proceso quirúrgico.
+Hoy es un registro clínico del médico, no un usuario del sistema: no
+inicia sesión ni guarda datos de contacto (ADR 0025).
 
-Puede recibir invitaciones, comunicaciones, recordatorios y solicitudes de información relacionadas con su seguimiento.
+> **Visión, fuera del alcance actual:** agendar cirugías, invitar y
+> comunicarse con pacientes, y notificaciones/recordatorios fueron parte
+> de la visión original. Hoy están cerrados o diferidos por decisión de
+> producto (Surgery siempre `DONE`; ADR 0008 difiere notificaciones y
+> pagos) — ver `docs/architecture/ROADMAP.md` § Explicitly deferred.
 
 ---
 
@@ -370,15 +372,15 @@ La infraestructura estará compuesta por:
 Servicio que ejecuta el frontend Next.js: `packages/web`. Como corre en
 patrón BFF, es el **único** servicio con dominio público. Llama a `api`
 por la red privada de Railway (`API_BASE_URL`, variable server-only).
-Todavía no está creado en Railway (Milestone 8/9).
+Desplegado en producción y en staging.
 
 ### API Service (`cirugias-cruz` / `api`)
 
 Servicio que ejecuta el backend Fastify: `packages/http`. Usa los
 paquetes compartidos del workspace: `packages/domain`,
 `packages/application`, `packages/infrastructure`. **No necesita dominio
-público** — solo es alcanzable desde `web` por la red privada. Ya
-desplegado y en ejecución desde `main`.
+público** — solo es alcanzable desde `web` por la red privada.
+Desplegado en producción (`main`) y en staging (`staging`).
 
 ### PostgreSQL (`Postgres`)
 

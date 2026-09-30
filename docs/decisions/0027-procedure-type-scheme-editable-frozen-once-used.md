@@ -2,6 +2,9 @@
 
 ## Status
 
+**Implemented in Milestone 11 (WP3)** — merged to `main` and deployed
+(production and staging).
+
 Established (current iteration). **Amends** [0011](0011-procedure-type-ownership-and-no-deletion.md)
 (ProcedureType ownership / no-deletion) and closes the mutability open
 point in [0018](0018-customfield-value-representation.md)'s "Not decided

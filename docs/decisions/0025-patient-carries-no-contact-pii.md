@@ -2,6 +2,9 @@
 
 ## Status
 
+**Implemented in Milestone 11 (WP1)** — merged to `main` and deployed
+(production and staging).
+
 Established (current iteration). **Amends** [0009](0009-physician-is-the-tenant-shared-person-shape.md)
 (the shared person shape) and touches the same Patient-structure area as
 [0021](0021-patient-dni-and-search.md). Comes out of the 2026-09-09

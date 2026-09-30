@@ -84,6 +84,28 @@ gets corrected — it is not meant to be treated as fixed once written.
   `ControlDefinition` so a type is never left without one; the migration
   dropped the pre-existing ad-hoc test-data Control rows rather than
   backfilling them (confirmed non-clinical, product-owner authorized).
+- **Patient identity & search (Milestone 8.7) and technique-as-CustomField
+  (Milestone 8.8)** — Patient `dni` (per-tenant unique) + patient search
+  (ADR 0021); `ProcedureType.technique` removed in favour of a CustomField
+  (ADR 0022). See their entries below.
+- **Milestone 11 WP1–WP3** — Patient contact PII removed + computed age
+  (ADR 0025), whole-row table links + type-to-confirm deletion, control
+  definitions with an optional cap + measurement period and
+  editable-but-freezing schemes (ADR 0026/0027). Only WP4 (the delta
+  re-verification of the F-01…F-09 fixes) remains — see Milestone 11.
+- **Test isolation (2026-09-29)** — the DB-backed suites
+  (`packages/infrastructure`, `packages/http`) run only against
+  `DATABASE_URL_TEST`, guarded to a local database by
+  `scripts/test-database.mjs`; local development uses its own local
+  database; the full `pnpm run check` gate is green. See
+  `deployment-railway.md` § Test database.
+- **Staging environment (2026-09-29)** — a Railway `staging` environment
+  with its own Postgres, served at `https://staging.seguimientocirugias.com`
+  and deployed from the `staging` branch; production deploys from `main`.
+  See `deployment-railway.md` § Staging environment.
+- **Playwright full-workflow suite green again (2026-09-30)** — updated to
+  the Milestone 10 IA, the ADR 0028 confirmation gate and ADR 0030, with
+  Milestone 12's feedback assertions; runs against a local `api` + `web`.
 
 ### Completed (post-MVP polish)
 
@@ -125,18 +147,15 @@ gets corrected — it is not meant to be treated as fixed once written.
     temporary-password machinery and forced-password-change gate were
     removed across Application, Infrastructure, HTTP, and web in the same
     commit.
+- **Milestone 12 — centralized form feedback** — every Server Action goes
+  through `runFormAction`, every form through `ActionForm`; inline errors
+  that keep what was typed, per-field validation, success toasts (also
+  across redirects), ESLint-enforced. See Milestone 12.
 
 ### Not started
 
-- **Patient identity & search (Milestone 8.7) — `MVP-required`** (product
-  owner decision, this pass). Add an identifying field to Patient so the
-  same real person isn't loaded twice — `DNI` is the leading candidate —
-  and a patient search on the Pacientes list. Not a problem at current
-  volume, but a real one once data volume grows. Not yet designed — see
-  Milestone 8.7 for the open questions.
-- **Centralized form feedback (Milestone 12)** — post-MVP polish;
-  design approved 2026-09-29, see Milestone 12.
-- CI/CD.
+- CI/CD (deploys are Railway auto-deploys: `main` → production,
+  `staging` → staging; no pipeline runs the gate).
 - Platform Admin (no domain or application representation exists yet).
 
 ### Public domain
@@ -163,9 +182,11 @@ Railpack's pnpm-workspace detection breaks; `tsx` must be a runtime
 consolidated in
 [`deployment-railway.md`](deployment-railway.md), with the config itself
 versioned in `railway.api.json` / `railway.web.json` at the repo root.
-Both services build and deploy successfully from `main`: `api`
-(Railway service name `cirugias-cruz`) and, since Milestone 8's closure,
-`web` too (`https://web-production-c686b1.up.railway.app`).
+Two Railway environments in the same project, each with its own
+Postgres, `api` (Railway service name `cirugias-cruz`) and `web`:
+`production` deploys from `main` and serves
+`https://seguimientocirugias.com`; `staging` deploys from `staging` and
+serves `https://staging.seguimientocirugias.com`.
 
 ### Explicitly deferred
 
@@ -355,33 +376,32 @@ field content, which remains deferred exactly as before.
 > "usable by a physician through the product" are no longer treated as
 > equivalent — see Progress Measurement below.
 
-| Capability                                                                                                       | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                                                                                                                                                                                                                                                                                          |
-| ---------------------------------------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Physician authentication (login/logout)                                                                          | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                                                                                                                                                                                                                                                                |
-| Physician self-registration                                                                                      | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | UI built (Milestone 8.5, COMPLETED — `/signup`); email confirmation gate re-enabled (ADR 0028, `c90cd2e`) — `login`'s `confirmedAt` check restored, `resendConfirmationEmail` + route + `web` affordance done; no human walkthrough yet                                                                                                                                                 |
-| Resident authentication (login, invitation-by-email, deactivate)                                                 | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ❌        | Milestone 8.5 COMPLETED under ADR 0017, **superseded by ADR 0029** (`c90cd2e`): emailed invitation-and-acceptance replaces the visible-temporary-password mechanism end to end (`acceptResidentInvitation`, `ResidentInvitationTokenRepository`, `/accept-invitation`); the old temp-password issue/reset and forced-password-change gate were removed, not just superseded on paper    |
-| Resident's own Surgery panel (read own Surgeries, record/edit-own Control)                                       | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ❌        | Milestone 8.5, COMPLETED; shows Patient/ProcedureType **by name** (resolved in `c7d7a30` — `getSurgeryForResident`/`listSurgeriesForResident` resolve them server-side, see Risks); no human walkthrough yet                                                                                                                                                                            |
-| Patient (register + retrieve)                                                                                    | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | Milestone 11 WP1 (ADR 0025) merged: `email`/`phone` removed at every layer, `Patient` no longer composes `Person`, computed age in the UI, Railway migration applied. Walkthrough delta sign-off pending (WP4)                                                                                                                                                                          |
-| Patient identity (dedup field, e.g. DNI) + patient search (**MVP-required**)                                     | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Milestone 8.7 — not started at any layer; product owner decision, pre-MVP                                                                                                                                                                                                                                                                                                               |
-| Procedure Type (register + retrieve)                                                                             | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8); `name` + `description` only — surgical technique is a CustomField ENUM (Milestone 8.8, ADR 0022, done on branch)                                                                                                                                                                                                                                                |
-| Surgery + Control history (register/record/modify + retrieve)                                                    | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | Milestone 11 WP3 (ADR 0026): Surgery-detail cards reordered, Control `observations` optional, `definitionId` + `followUp` projection. Walkthrough delta sign-off pending (WP4)                                                                                                                                                                                                          |
-| Resident (register, assign/remove on Surgery, retrieve, credential mgmt)                                         | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, credential actions added Milestone 8.5); no human walkthrough yet                                                                                                                                                                                                                                                                                                |
-| Research Study (create, edit, manage universe, full lifecycle, retrieve)                                         | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | UI built (Milestone 8, COMPLETED); publicly deployed on Railway — no human walkthrough yet (Milestone 9)                                                                                                                                                                                                                                                                                |
-| CustomField (define on Procedure Type; record/retrieve values on Surgery/Control)                                | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | Milestone 11 WP3 (ADR 0027): Procedure Type schemes are editable, a definition freezes once it holds data (enforced in Application + web affordances). CustomField inline edit-form deferred; API edit path complete. Walkthrough delta sign-off pending (WP4)                                                                                                                          |
-| Control schemes & cardinality — control definitions with an optional cap + measurement period (**MVP-required**) | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ❌        | Milestone 11 WP3 (ADR 0026) merged — `ControlDefinition` in the ProcedureType aggregate, `≤ N` cap invariant on `Surgery.recordControl`, measurement-period follow-up projection on get-surgery. Walkthrough delta sign-off pending (WP4)                                                                                                                                               |
-| `api` security baseline (validation, forwarded-IP rate limiting, headers)                                        | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                                                                                                                                                                                                                                                                                                  |
-| `web` security baseline (headers/CSP, client-IP forwarding)                                                      | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, `X-Frame-Options`, HSTS, etc.; see closure entry)                                                                                                                                                                                                                                                                                       |
-| Public reachability                                                                                              | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ⚠️        | Railway-provided domain live and accepted for the MVP (custom domain post-MVP). Human walkthrough **performed 2026-09-09**; formal sign-off pending the Milestone 11 fixes it produced (F-01…F-09)                                                                                                                                                                                      |
-| Physician-facing IA/navigation reorganized by clinical workflow (**MVP-required**)                               | N/A    | N/A         | N/A         | N/A       | N/A      | ⚠️  | ❌        | IA decided (Milestone 10); Configuración section built, Pacientes/Plantilla/Investigaciones not yet                                                                                                                                                                                                                                                                                     |
-| Design system / visual redesign (**not** MVP)                                                                    | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ⬜        | Done — ADR 0023 (rename) + ADR 0024 (palette/Roboto/semantic colors/light-only); tokens + `components/ui` restyle + primitives; per-screen 7-principles audit complete (loading/empty/feedback/confirm/breadcrumbs on every route); all UI copy in `src/messages/en.ts` (English). Refs: `docs/design/*`, `ux-laws` skill. Human walkthrough of the polished UI not separately tracked. |
-| Platform Admin visibility                                                                                        | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                                                                                                                                                                                                                                                                                      |
+| Capability                                                                      | Domain | Application | Persistence | API write | API read | UI  | Human E2E | Overall status                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------- | ------ | ----------- | ----------- | --------- | -------- | --- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Physician authentication (login/logout)                                         | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ⚠️        | Milestone 8. Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)                                                                                             |
+| Physician self-registration + email confirmation                                | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ⚠️        | Milestone 8.5; confirmation gate re-enabled (ADR 0028) with self-service resend. Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)                         |
+| Resident authentication (invitation by email, deactivate/reactivate)            | N/A    | ✅          | ✅          | ✅        | N/A      | ✅  | ⚠️        | ADR 0029 (supersedes ADR 0017's temporary passwords). Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)                                                    |
+| Resident's own Surgery panel (read own Surgeries, record/edit-own Control)      | N/A    | ✅          | N/A         | ✅        | ✅       | ✅  | ⚠️        | Milestone 8.5; Patient/ProcedureType shown by name. Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)                                                      |
+| Patient (register + retrieve, computed age)                                     | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ⚠️        | Milestone 11 WP1 (ADR 0025): no contact PII. Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)                                                             |
+| Patient identity (DNI) + patient search                                         | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ⚠️        | Milestone 8.7 (ADR 0021). Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)                                                                                |
+| Procedure Type (register, edit, retrieve)                                       | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ⚠️        | Milestone 8; technique is a CustomField (Milestone 8.8, ADR 0022). Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)                                       |
+| Surgery + Control history (register/record/modify + retrieve)                   | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ⚠️        | Surgery nested under its Patient (Milestone 10 IA); Control observations optional (ADR 0026). Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)            |
+| Resident (register, assign/remove on Surgery, retrieve, credentials)            | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ⚠️        | Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)                                                                                                          |
+| Research Study (create, edit, manage universe, full lifecycle, retrieve)        | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ⚠️        | Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)                                                                                                          |
+| CustomField (define on Procedure Type; record/retrieve on Surgery/Control)      | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ⚠️        | Schemes editable, a definition freezes once it holds data (ADR 0027). Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)                                    |
+| Control schemes — control definitions with an optional cap + measurement period | ✅     | ✅          | ✅          | ✅        | ✅       | ✅  | ⚠️        | Milestone 11 WP3 (ADR 0026/0030): every type has at least one definition; ≤ N cap; follow-up projection. Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4) |
+| Centralized form feedback (errors inline, success toasts)                       | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ⬜        | Milestone 12 (post-MVP polish); covered by the Playwright suite                                                                                                                                            |
+| `api` security baseline (validation, forwarded-IP rate limiting, headers)       | N/A    | N/A         | N/A         | ✅        | N/A      | N/A | N/A       | Complete — Milestone 7                                                                                                                                                                                     |
+| `web` security baseline (headers/CSP, client-IP forwarding)                     | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | N/A       | Complete — Milestone 8 (strict nonce-based CSP, HSTS, etc.)                                                                                                                                                |
+| Public reachability                                                             | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ⚠️        | Production at https://seguimientocirugias.com, staging at https://staging.seguimientocirugias.com. Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)       |
+| Physician-facing IA/navigation by clinical workflow                             | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ⚠️        | Milestone 10: Patients / Staff / Research / Settings; Surgery nested under Patient. Walkthrough passed 2026-09-09; its F-01…F-09 fixes await delta re-verification (Milestone 11 WP4)                      |
+| Design system / visual redesign (**not** MVP)                                   | N/A    | N/A         | N/A         | N/A       | N/A      | ✅  | ⬜        | Done — ADR 0023/0024; per-screen 7-principles audit; UI copy in `src/messages/en.ts`                                                                                                                       |
+| Platform Admin visibility                                                       | ❌     | ❌          | ❌          | ❌        | ❌       | ❌  | ❌        | Post-MVP, not started at any layer                                                                                                                                                                         |
 
-**Nothing is Human-E2E complete yet.** Every MVP-required backend
-capability (Milestones 1–7) is now `TECHNICALLY_COMPLETE` — proven
-end-to-end at the HTTP/Postgres level — but "proven by an automated HTTP
-test" and "usable by a physician through the product" are different
-claims; that gap closes with Milestone 8 (frontend) and Milestone 9
-(public domain + human walkthrough) — see Progress Measurement below.
+Every MVP-required capability is built, deployed and passed the
+product owner's walkthrough on 2026-09-09 (no P0). Human E2E stays ⚠️
+until Milestone 11 WP4 re-verifies the F-01…F-09 fixes that walkthrough
+produced.
 
 ---
 
@@ -820,7 +840,7 @@ structured logging, no health check.
 proceed in parallel with all of them.
 
 **Scope** (revised — two tension points resolved during the
-post-decision documentation review, see Risks and Unknowns): request
+post-decision documentation review that confirmed Next.js/BFF): request
 validation (Fastify JSON-schema on every route body/params — this is
 **structural/shape validation only**: "is this a well-formed request,"
 not a re-implementation of Domain business rules like "Patient requires
@@ -930,7 +950,7 @@ list + create + assign/remove on a surgery; Research Study list + create
   `frontend-architecture-discovery.md` §5. **Two items that belong here
   specifically because `web`, not `api`, is the actual public-facing
   surface** (moved from Milestone 7 during the post-decision documentation
-  review — see Risks and Unknowns): (a) security headers/CSP for `web`
+  review that confirmed Next.js/BFF): (a) security headers/CSP for `web`
   itself (Next.js `headers()`/middleware — `api`'s Milestone-7 headers
   don't cover `web`'s own responses, they're a different HTTP surface);
   (b) Server Actions forward the real client IP to `api` in a trusted
@@ -992,7 +1012,7 @@ Concretely, what exists in `packages/web` today:
   _presence_-only check the design specifies, not a second auth
   authority).
 - Login (`POST /sessions`) and logout (`DELETE /sessions`), with the
-  four requirements `milestone-8-session-security-review.md` added
+  four requirements [`milestone-8-session-security-review.md`](milestone-8-session-security-review.md) added
   before implementation: fail-closed login (no session cookie set if
   `api`'s response carries no extractable session id), unconditional
   cookie-clearing logout (even if invalidating on `api` fails).
@@ -1716,20 +1736,16 @@ zero P0 issues found during it.
 **Testing strategy**: human-driven, not automated — the one stage in the
 whole plan that is deliberately not a test suite.
 
-**Status**: `WALKTHROUGH_PERFORMED — sign-off pending Milestone 11`. The
-human walkthrough was **run on 2026-09-09** with the product owner (the
-physician who commissioned the product) as the tester, against the live
-deployment. Result: the full core-loop + Resident + Research workflow was
-completed **unaided, with no manual API calls and no P0 finding** — the
-Definition of Done's workflow bar is met. The session also produced nine
-alignment/restructuring directives (**F-01 … F-09**, severities P1–P3, no
-P0), recorded in
-[`alignment-restructuring.md`](alignment-restructuring.md) and scheduled
-as **Milestone 11**. The walkthrough's **formal sign-off block stays
-unsigned** until those fixes land and a short delta re-run confirms them
-— that re-run and signature are Milestone 11's WP4. So Milestone 9 is
-functionally done (the walkthrough happened, findings triaged) but not
-formally closed.
+**Status**: `COMPLETED` — the human walkthrough was **run on 2026-09-09**
+with the product owner (the physician who commissioned the product) as
+the tester, against the live deployment: the full core-loop + Resident +
+Research workflow was completed **unaided, with no manual API calls and
+no P0 finding**, and the sign-off block in `milestone-9-walkthrough.md`
+reads **Passed**. The session produced nine alignment directives
+(**F-01 … F-09**, P1–P3), recorded in
+[`alignment-restructuring.md`](alignment-restructuring.md) and built as
+**Milestone 11**; the Findings Log marks each "fixed in code (M11),
+pending delta re-verify" — that re-verification is Milestone 11 WP4.
 
 Prior to the walkthrough, and following a Railway build failure this
 milestone's own investigation surfaced (see below), a full **scripted**
@@ -1927,10 +1943,11 @@ to `main`** (`feat/milestone-11-alignment` for WP1+WP2,
 application 169 / infrastructure 70 / http 42 / web 221); both migrations
 (`20260909120000_drop_patient_contact_pii`,
 `20260909140000_add_control_definitions_and_optional_observations`)
-applied to the Railway Postgres. **Only WP4 remains**: the final doc
-reconciliation (largely done — DOMAIN.md, this ROADMAP, the ADRs and the
-alignment doc are updated) and the product-owner **delta walkthrough**
-that lets `milestone-9-walkthrough.md`'s sign-off block be filled.
+applied to the Railway Postgres. **Only WP4 remains**: the doc
+closeout is done (2026-09-30 — DOMAIN.md, this ROADMAP, ADRs 0025–0027,
+the alignment and design docs); left is the product-owner **delta
+re-verification of F-01…F-09 on staging**, recording each outcome in
+`milestone-9-walkthrough.md`'s Findings Log.
 Deviations recorded in `milestone-11-alignment-design.md` §1:
 `modify-control` takes no `definitionId`; the web CustomField-definition
 edit _form_ is deferred (API edit path complete); the web freeze
@@ -1989,15 +2006,12 @@ planning session that analyzed the problem).
 **Dependencies**: none blocking. Not in the MVP line (post-MVP polish,
 like Milestone 10's visual half); does not displace Milestone 11 WP4.
 
-**Status**: `IN_PROGRESS` — implemented 2026-09-29 on `feat/milestone-12-form-feedback`
-(phases 0–3 + docs): every Server Action goes through `runFormAction`,
-every form through `ActionForm`, ESLint guard live and mutation-tested;
-`packages/web` lint/format/typecheck/tests and `next build` green. **Only
-remaining DoD item**: the Playwright `full-workflow` run — its new
-assertions are written but not run, because the DB-backed stack points
-at the production database (Risks and Unknowns, Bug above) and the spec
-itself is stale since Milestone 10 (it still visits the removed
-`/surgeries/new` and `/surgeries` routes). Deviations: design doc §9.
+**Status**: `COMPLETED` — implemented 2026-09-29, merged to `main` and
+deployed (production + staging). Every Server Action goes through
+`runFormAction`, every form through `ActionForm`; ESLint guard live and
+mutation-tested; full `pnpm run check`, `next build` and the Playwright
+`full-workflow` suite (with the Milestone 12 toast and inline-error
+assertions) green. Deviations: design doc §9.
 
 ---
 
@@ -2108,150 +2122,45 @@ Railway's generated URL, a custom domain being post-MVP).
 
 ## Current Milestone
 
-> **CURRENT MILESTONE: 11 — post-walkthrough alignment. `IN_PROGRESS`: WP1 (Patient contact-PII removed + computed age, ADR 0025), WP2 (whole-row table links + type-to-confirm deletion) and WP3 (control definitions with an optional cap + measurement period, editable-but-freezing schemes, optional Control observations, ADR 0026/0027) are all implemented and merged to `main`; full quality gate green; both migrations applied to Railway Postgres. Only WP4 remains — the delta walkthrough with the product owner that lets `milestone-9-walkthrough.md` be signed. Milestone 9's human walkthrough itself was run 2026-09-09 (full workflow, no P0), which produced findings F-01…F-09. Milestones 1–8.8 and Milestone 10's nav/IA half are all `COMPLETED` and merged. Milestone 10's visual/design-system half is NOT in the MVP line and is done as post-MVP polish (ADR 0023/0024).**
+> **CURRENT MILESTONE: 11 — post-walkthrough alignment. `IN_PROGRESS`: WP1, WP2 and WP3 are implemented, merged and deployed; WP4's doc closeout is done. Only the delta re-verification of the F-01…F-09 fixes with the product owner remains — to be run on staging (https://staging.seguimientocirugias.com), recording each outcome in `milestone-9-walkthrough.md`'s Findings Log. That is the MVP exit gate.**
 
-Milestones 1 through 8.8 are complete (see their entries above and
-Historical Progress below): the full core loop plus read/query,
-Resident, Research, the `api` security baseline, the frontend, physician
-self-registration, Resident authentication, CustomField end to end, the
-navigation/IA reorganization, Patient `dni` + search, and
-technique-as-CustomField are all done and merged to `main`, with the
-full workspace quality gate (lint, format-check, typecheck, test —
-~570 tests across the five packages, as of Milestone 8.8) green,
-including the M4–M7 conformance-review fixes (see the Risks and Unknowns
-entry above and `docs/architecture/m4-m7-conformance-review.md`),
-Milestone 8's own closure audit, and Milestone 8.5's own evidence (see
-each milestone's entry above).
+Everything else in the MVP line is done and deployed: Milestones 1–8.8,
+Milestone 10's navigation/IA, and Milestone 11 WP1–WP3 (see Current
+State and each milestone's entry). Post-MVP polish already landed:
+Milestone 10's visual redesign and Milestone 12's centralized form
+feedback.
 
-Milestone 8's Definition of Done was met when every MVP-required
-backend capability got a reachable screen, `web` was verified able to
-reach `api` over Railway's private network, and a scripted browser-level
-walkthrough passed against that real stack. Milestone 8.5 then closed a
-real gap Milestone 8 had explicitly left out of scope. Milestone 8.6
-made CustomField usable end to end (Physician + Resident). Milestone
-10's navigation/IA half then reorganized the app into four
-workflow-based sections and nested Surgery/Control under Patient
-(commits `57a5b57`, `1b15656`, merged).
+Engineering baseline as of 2026-09-30:
 
-What remains before the MVP closes:
-
-1. **Milestone 9 walkthrough — done 2026-09-09** (product owner as
-   tester): full workflow completed unaided, no P0. Findings F-01…F-09
-   logged in `alignment-restructuring.md` and
-   `milestone-9-walkthrough.md`. Formal sign-off deferred to Milestone
-   11's WP4.
-2. **Milestone 11 — post-walkthrough alignment** (the current milestone):
-   implement ADRs 0025/0026/0027 + the web-UX findings, then re-run and
-   sign the Milestone 9 walkthrough. See
-   `milestone-11-alignment-design.md`. This is now the **only** remaining
-   MVP step; all build slices through Milestone 8.8 plus Milestone 10's
-   nav/IA half are merged to `main`, and the public-domain requirement is
-   met by Railway's URL (a custom domain is post-MVP).
-
-Milestone 10's **visual/design-system redesign** is outside the MVP line
-and is **done** as post-MVP polish (ADR 0023/0024 — palette, Roboto,
-per-screen 7-principles audit, English consolidation).
+- Full `pnpm run check` gate green (domain, application,
+  infrastructure, http, web), with the DB-backed suites isolated on a
+  local test database — see `deployment-railway.md` § Test database.
+- Playwright `full-workflow` suite green against a local `api` + `web`.
+- Two Railway environments: `production` (from `main`,
+  https://seguimientocirugias.com) and `staging` (from `staging`,
+  https://staging.seguimientocirugias.com), each with its own Postgres.
+  Release flow: merge to `staging` → verify on staging → merge to `main`.
 
 ---
 
 ## Next Milestone
 
-**Milestone 11 — post-walkthrough alignment.** The last MVP step. The
-Milestone 9 walkthrough was run on 2026-09-09 (product owner as tester):
-the full workflow completed unaided with no P0, and it produced nine
-alignment directives (F-01…F-09) captured in
-`docs/architecture/alignment-restructuring.md` and the three ADRs
-0025/0026/0027. Milestone 11 implements them —
-WP1 Patient contact-PII removal + computed age;
-WP2 whole-row table links + type-to-confirm deletion;
-WP3 control definitions with an optional cap + measurement period,
-editable-but-freezing Procedure Type schemes, optional Control
-observations; WP4 doc reconciliation and the Milestone 9 sign-off
-delta re-run. Full design: `docs/architecture/milestone-11-alignment-design.md`.
+**Milestone 11 WP4** — re-verify the F-01…F-09 fixes with the product
+owner on staging (the focused delta over walkthrough sections 2/3/5 that
+`milestone-11-alignment-design.md` §6 describes) and record each outcome
+in `milestone-9-walkthrough.md`'s Findings Log. That closes the MVP.
 
-**Not in the MVP line**: Milestone 10's visual/design-system redesign —
-done as post-MVP polish (ADR 0023/0024).
+Before real (non-test) clinical data is stored, the open items in
+§ Planning Decisions Requiring Approval need an answer — notably CI/CD
+and security/compliance timing (2) and the production backup policy (3).
 
 ---
 
 ## Risks and Unknowns
 
-- **Flash-cookie success toast across a Server Action `redirect()`
-  (Milestone 12) — resolved, `empírico` (2026-09-29).** A cookie set in a
-  Server Action before `redirect()` is readable client-side on the
-  destination route in Next 16.3.4 App Router — validated in the browser
-  on a throwaway route for a same-page redirect, a cross-page redirect,
-  back navigation (no replay), an in-place success and an unexpected
-  error. Gotcha found: on a same-page redirect the pathname doesn't
-  change, so the reader also runs when a form (re)mounts or settles —
-  see `milestone-12-form-feedback-design.md` §9. The query-param
-  fallback was not needed.
-- **`e2e/full-workflow.spec.ts` is stale since Milestone 10** — it still
-  visits `/surgeries/new` and `/surgeries`, removed when Surgery moved
-  under its Patient. Found while adding Milestone 12's assertions; not
-  runnable anyway until the test-database Bug above is fixed.
-- **Gaps left open by Milestone 8.5 — all five resolved** in commit
-  `c7d7a30` ("Resolve UX gaps before mvp"), kept here for the record:
-  (1) the Resident's own Surgery panel now shows Patient/ProcedureType by
-  **name** — `getSurgeryForResident` / `listSurgeriesForResident` resolve
-  them server-side and `serializeSurgeryForResident` carries
-  `patientName`/`procedureTypeName`; (2) `login/page.tsx` now explains a
-  session that was force-closed by deactivation; (3) the
-  form-reset-on-error pattern was fixed across `LoginForm` /
-  `RegisterForm` / `ResidentForm` (values re-hydrated on a rejected
-  submit); (4) `ResidentCredentialActions` gained an active/inactive
-  status indicator and post-action feedback; (5) `AssignResidentForm`'s
-  `totalResidentCount` prop now disambiguates "no Residents exist" from
-  "all Residents already assigned".
-- **Componentizing cost risk, raised by the product owner ahead of
-  Milestone 10**: every screen built against the current minimal
-  `components/ui/*` primitives (chosen deliberately for Milestone 8,
-  not as a final design — see that milestone's "Deviations and
-  decisions") is a screen a future redesign pass will have to revisit.
-  The product owner has flagged this explicitly and wants Milestone 10
-  planned before much more UI is added on top of the current styling —
-  see that milestone's entry. Not yet a decision to pause other UI
-  work, just a named risk to weigh when deciding what to build next.
-- **Two tension points found and resolved during the post-decision
-  documentation review that followed confirming Next.js/BFF** (not
-  Milestone defects — the plan was updated before either was
-  implemented): (1) Milestone 7 originally claimed it would "confirm a
-  private-network path between `web` and `api` works" as part of its own
-  Definition of Done, despite `packages/web` not existing until Milestone
-  8 — a real sequencing contradiction, now fixed by moving that specific
-  verification into Milestone 8 and leaving Milestone 7 responsible only
-  for what's verifiable with `api` alone. (2) Naive IP-based rate
-  limiting on `api`'s `/sessions`/`/physicians` routes would be
-  ineffective once the BFF pattern is live: every request reaches `api`
-  from `web`'s single Railway-internal address, so rate-limiting by raw
-  source IP would throttle all physicians collectively instead of
-  individual attackers — now fixed by keying rate limiting on a real
-  client IP that `web` forwards in a trusted header (Milestone 8) and
-  `api` trusts and rate-limits on (Milestone 7).
-- Milestone 1 closed the gap where Application operations did not cover
-  the Domain's own stated core purpose (postoperative follow-up /
-  `recordControl`) — a real, evidence-based gap, not a stylistic
-  observation.
-- Infrastructure (Milestone 2) and HTTP + auth (Milestone 3) both exist
-  and are now deployed and running on Railway — but read/query,
-  Resident, Research, frontend, security hardening, and public
-  reachability still do not exist at all; any planning that assumes
-  those are "mostly done" would be incorrect.
-- Two Application-level tenant checks were required beyond what Domain
-  enforces on its own, because the affected Domain methods have no
-  parameter to check the relevant tenant themselves: `registerSurgery`
-  verifying the referenced Patient/ProcedureType belong to the acting
-  physician (mirroring the Resident/Surgery gap documented in
-  `docs/architecture/application-layer-discovery.md` §4.3), and
-  `recordControl` verifying the surgery itself belongs to the acting
-  physician for every authorship branch (since `Surgery.recordControl`'s
-  resident-authored branch has no tenant parameter at all). Both are now
-  implemented and tested — recorded here as a pattern to watch for in
-  future milestones, not as an open risk. This pattern was re-verified
-  during Milestones 5 and 6: `removeResidentFromSurgery` and every
-  Research Study operation each check the relevant tenant explicitly
-  wherever the underlying Domain method has no parameter to do so
-  itself — no unaddressed gap of this class was found.
+Only what is open today. Risks that were resolved live in their
+milestone's entry and in Historical Progress.
+
 - **`PrismaSurgeryRepository.save()` participant-persistence lost-update
   risk (deferred, not a Milestone 2 defect).** `save()` replaces the
   persisted `SurgeryParticipant` rows with `deleteMany` + `createMany`
@@ -2294,116 +2203,15 @@ done as post-MVP polish (ADR 0023/0024).
   `save` inside one transaction, which `operation(deps) => (input) => …`
   does not currently express).
 
-- **CustomField's value model is resolved and scheduled.** What ADR 0005
-  left blocked on a physician consultation is now closed by ADR 0018
-  (value model: `valueType`/constraint/`scope`, placement inside the
-  `ProcedureType`/`Surgery` aggregates) and ADR 0019 (normalized-SQL
-  persistence, not a JSON column), informed by reviewing a working
-  prototype independently built by the project's physician — see
-  `physician-prototype-analysis.md`. CustomField moved from "blocked by
-  discovery" to MVP-required and is scheduled as Milestone 8.6. Note what
-  did _not_ change: pterygium-specific (or other specialty) field
-  _content_ is still not to be guessed or hard-coded — only the generic
-  mechanism was unblocked.
-- HTTP framework and authentication mechanism were resolved (Fastify;
-  email + password with PostgreSQL-backed server-side sessions) and
-  implemented in Milestone 3 — no longer an open risk.
-- Resident and Research each needed new Prisma tables/migrations, not
-  purely Application-layer wiring — both are now implemented (Milestones
-  5–6) with `residents`/`research_studies`/`research_study_surgeries`
-  tables in place.
-- CORS/cookie strategy is resolved by the confirmed BFF hosting topology
-  (Next.js `web` calls `api` server-to-server; the browser never talks
-  to `api` directly) — no longer open.
-- **Milestone 8 architectural design is complete** —
-  `docs/architecture/milestone-8-design.md` turns
-  `frontend-architecture-discovery.md`'s decisions into a concrete
-  design (BFF↔`api` boundary, session propagation via a `web`-owned
-  cookie relaying `api`'s session id, Server/Client Component rules,
-  error handling for 401/404/domain-400 — `api` never returns 403 — DTOs/
-  mappers, testing strategy), validated against the real M1–M7 routes
-  rather than assumed.
-- **The M4–M7 conformance review's two actionable findings are fixed.**
-  [`m4-m7-conformance-review.md`](m4-m7-conformance-review.md) checked M4–M7's actual
-  implementation against their own documented Scope/DoD and found two
-  gaps, both now corrected in a dedicated fix pass before Milestone 8's
-  implementation began: (1) `resident.ts`/`research-study.ts` now
-  declare request-body/params JSON schemas (mirroring `core-loop.ts`),
-  closing the case where a malformed `POST /research-studies` body
-  returned `500` instead of the clean `400` Milestone 7's DoD requires —
-  covered by 8 new tests in `security.test.ts`; (2) `listResidents`/
-  `getResident` were added to `packages/application` and `resident.ts`
-  now calls them instead of `ResidentRepository` directly, matching
-  every other resource's read pattern — covered by 5 new Application
-  tests. A third finding (two different Domain→wire-shape conventions
-  across resources) was resolved as a deliberate, documented decision
-  rather than a refactor — see `application-layer-discovery.md` §8: both
-  conventions stay (neither is a duplication risk, and
-  `milestone-8-design.md` already absorbs the variation), with the
-  DTO-returning convention recorded as the default for new Application
-  read operations going forward. Full workspace quality gate green after
-  the fixes: 81 Domain + 102 Application + 45 Infrastructure + 31 HTTP
-  tests (259 total).
-- **Milestone 8's design has been re-verified against the stabilized
-  backend, and its session mechanism has passed a dedicated security
-  review — implementation is not yet authorized.** After the M4–M7 fix
-  pass above, `milestone-8-design.md` was re-checked against the actual
-  API (not the documented gaps that existed before the fix pass); two
-  small staleness notes in its §8 navigable-flow section were corrected
-  (cosmetic — the endpoints didn't change). Separately,
-  [`milestone-8-session-security-review.md`](milestone-8-session-security-review.md) gives a dedicated review of
-  §3's `web_session` design (relaying `api`'s own session id in a
-  `web`-owned cookie), requested explicitly given this product handles
-  clinical data. **Verdict: architecturally approved** — the mechanism
-  introduces no new exposure beyond what `api`'s own session cookie
-  already carries, and the plausible alternative (`web` minting its own
-  indirection token instead of relaying `api`'s) was evaluated and
-  correctly rejected as adding complexity without a security benefit in
-  this architecture. Four small, concrete requirements from that review
-  are now folded into `milestone-8-design.md` §3/§11 (fail-closed
-  login/logout handling; confirming the `secure` cookie flag's
-  correctness is a deployment-configuration checklist item, not an
-  assumed fact) — none of them change the mechanism itself. **This does
-  not authorize Milestone 8 implementation** — that remains a separate,
-  explicit go-ahead from the product owner, still pending as of this
-  entry.
-- **Bug — the DB-backed test suites run against the PRODUCTION
-  database.** The local `packages/infrastructure/.env` and
-  `packages/http/.env` `DATABASE_URL` point, through Railway's public
-  proxy, at the same Postgres the live `api` uses (product owner
-  confirmed, 2026-09-29). Every `pnpm run test` therefore creates and
-  `deleteMany`s fixture rows in the real clinical database. Fix: a
-  separate test database (local Postgres or its own Railway service) and
-  `.env.example` guidance that never suggests the production URL. This
-  also resolves the latency entry below. **Fix in progress
-  (2026-09-29, `fix/test-database-isolation`)**: the suites now read only
-  `DATABASE_URL_TEST`, guarded by `scripts/test-database.mjs` (local host
-  only, never equal to `DATABASE_URL`, no fallback) and migrated by a
-  Vitest global setup — see `deployment-railway.md` § Test database.
-  Remaining: create the local `cirugias_test` role/database and set
-  `DATABASE_URL_TEST` in both package `.env` files.
-- **Who/what emptied `_prisma_migrations` in production — `hipótesis`,
-  TODO: validar.** Between the last successful `api` deploy and
-  2026-09-15 19:55 UTC the history table lost all 13 applied rows while
-  the schema stayed intact, which blocked every deploy with `P3009`
-  (diagnosis and recovery: `deployment-railway.md` § Migrations). No code
-  in the repo touches that table; a manual/tooling action against the
-  production URL (which local dev and tests share — see above) is the
-  leading suspect, unverified.
-- **DB-backed tests are latency-bound against the remote Railway
-  Postgres, so `pnpm run test` is non-deterministically red from a
-  developer machine** (empírico, measured 2026-09-29): `DATABASE_URL`
-  goes through Railway's public TCP proxy — ~2.1 s to connect, ~245 ms
-  per `SELECT 1` round trip. Every failure seen was a timeout, never an
-  assertion, and the victim moves between runs: `packages/infrastructure`
-  runs on vitest's 5 s default `testTimeout` (it sets none;
-  `packages/http` sets 60 s) and failed 1/77 in one run, 0/77 in the
-  next; in `packages/http` the passing e2e tests take 10–47 s each,
-  `research-study.test.ts`'s own `{ timeout: 40000 }` override is
-  _lower_ than the package's 60 s, and a `beforeEach` hit the 10 s
-  default `hookTimeout` in another run. Not yet decided: whether to point
-  tests at a local/near Postgres, or raise `testTimeout`/`hookTimeout`
-  uniformly — raising timeouts hides the latency rather than removing it.
+- **No CI pipeline.** The quality gate (`pnpm run check`, plus the
+  chasis hooks) runs locally and in the pre-commit hook only; Railway
+  auto-deploys `staging` and `main` without running it. Tracked as open
+  Planning Decision 2.
+- **Staging sends real email.** `staging` shares production's
+  `RESEND_API_KEY` and verified sending domain, so confirmation and
+  invitation emails from staging really go out. Accepted by the product
+  owner on 2026-09-30 (no real customers yet, full control of the data);
+  revisit before staging is used by anyone outside the team.
 
 ---
 
@@ -2471,16 +2279,24 @@ rather than leaving the resolved question listed here as still open.
 
 ## Historical Progress
 
-| Milestone                                                                                                                                                                   | Status    | Completion evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Milestone 1 — Complete the core clinical Application capability set                                                                                                         | COMPLETED | `registerPatient`, `registerProcedureType`, `registerSurgery`, `recordControl`, `modifyControl` implemented in `packages/application/src`; 79 Domain + 30 Application tests passing; full workspace quality gate (lint, format-check, typecheck, test) green                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Milestone 2 — Real persistence for the core loop                                                                                                                            | COMPLETED | `packages/infrastructure` added with a Prisma schema for Physician/Patient/ProcedureType/Surgery/Control (+ `SurgeryParticipant`, no Resident table); `PrismaPatientRepository`/`PrismaProcedureTypeRepository`/`PrismaSurgeryRepository` implement the existing Application ports unchanged; `Surgery.reconstitute(...)` added to Domain as the sole hydration mechanism; all five Milestone 1 operations run against real repositories (no fakes) and pass against a real Postgres instance on Railway; 80 Domain + 30 Application + 17 Infrastructure tests passing; full workspace quality gate green                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| Milestone 3 — Minimal reachable surface (HTTP + auth)                                                                                                                       | COMPLETED | `packages/http` (Fastify) added with `POST /physicians`, `POST /sessions`, `DELETE /sessions`, and the five Milestone 1 operations behind a `requireAuth` preHandler resolving physicianId only from the session cookie; `registerPhysician`/`login`/`logout` added to `packages/application` with `PhysicianRepository`/`PhysicianCredentialRepository`/`PasswordHasher`/`SessionRepository` ports; `PrismaPhysicianRepository`/`PrismaPhysicianCredentialRepository`/`PrismaSessionRepository`/`BcryptPasswordHasher` added to `packages/infrastructure`; `PhysicianCredential`/`Session` Prisma models added (case-insensitive email uniqueness via a normalized unique index, no `citext`); e2e tests (real HTTP, real bcrypt, real session cookie, real Postgres) cover registration, login success/failure, session expiry, logout, unauthenticated rejection, and cross-tenant rejection; 80 Domain + 40 Application + 31 Infrastructure + 8 HTTP tests passing; full workspace quality gate green                                                                                                                                              |
-| Milestone 4 — Read/Query for the core loop                                                                                                                                  | COMPLETED | `findByPhysicianId` added to `PatientRepository`/`ProcedureTypeRepository`/`SurgeryRepository` with Prisma implementations; `GET /patients`, `GET /procedure-types`, `GET /surgeries` (list) and `GET /patients/:id`, `GET /procedure-types/:id`, `GET /surgeries/:id` (get, including full Control history) added to `packages/http`, each enforcing tenant scoping with 404 (not 403) on a foreign resource; e2e tests prove list + get for all three resources plus cross-tenant 404 for each; no Domain changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| Milestone 5 — Resident capability (vertical slice)                                                                                                                          | COMPLETED | `registerResident` and `removeResidentFromSurgery` added to `packages/application`; `residents` Prisma model + migration and `PrismaResidentRepository` added; HTTP routes `POST /residents`, `GET /residents`, `GET /residents/:id`, `POST /surgeries/:id/residents`, `DELETE /surgeries/:id/residents/:residentId` added; e2e test proves register → assign → record-control-as-resident → removal-rejected-after-participation → removal-allowed-before-participation, plus cross-tenant rejection; no Domain changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| Milestone 6 — Research capability (vertical slice)                                                                                                                          | COMPLETED | ~11 Application operations added, each a thin wrapper over the existing `research-study.ts` Domain methods; `research_studies` and `research_study_surgeries` Prisma models added (bridge table has no FK to `surgeries`, mirroring `SurgeryParticipant`); `PrismaResearchStudyRepository` added; 8 HTTP routes added for the full lifecycle; `ResearchStudy.reconstitute(...)` added to `packages/domain` during integration review, mirroring `Surgery.reconstitute`, so hydration no longer replays transition-guard methods against persisted rows; e2e test exercises the full lifecycle (create, edit, add/remove surgeries, DRAFT → IN_PROGRESS → COMPLETED → reopen → IN_PROGRESS, rejecting edits while COMPLETED) plus cross-tenant rejection                                                                                                                                                                                                                                                                                                                                                                                                |
-| Milestone 7 — API security & operational hardening                                                                                                                          | COMPLETED | Fastify JSON-schema validation added on every route; `@fastify/rate-limit` added on `POST /sessions`/`POST /physicians`, keyed by forwarded client IP (`X-Forwarded-For`/`X-Real-IP`, not raw TCP source IP); `@fastify/helmet` added for security headers; `GET /health` route added; structured logging enabled via Fastify's built-in Pino logger; a Fastify AJV `removeAdditional` bug affecting `recordControl`'s discriminated `author` union was found and fixed (`removeAdditional: false`) during integration; e2e tests prove malformed-body rejection, per-forwarded-IP rate-limit triggering, and `/health` 200                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| **Milestones 4–7 integration** — merged in sequence into `main` from four parallel git worktrees                                                                            | COMPLETED | Full workspace quality gate (lint, format-check, typecheck, test) green with all four milestones combined: 81 Domain + 97 Application + 45 Infrastructure + 23 HTTP tests passing against a real Railway Postgres instance; `prisma migrate status` confirms no drift across all migrations                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| **M4–M7 conformance-review fix pass** — corrected the two actionable findings from `docs/architecture/m4-m7-conformance-review.md`, before Milestone 8 implementation began | COMPLETED | `resident.ts`/`research-study.ts` now declare request-body/params JSON schemas (previously zero — a malformed `POST /research-studies` body returned 500, not the clean 400 Milestone 7's DoD requires); `listResidents`/`getResident` added to `packages/application`, `resident.ts` now calls them instead of `ResidentRepository` directly, matching every other resource's read pattern; the Domain→wire-shape convention question was resolved as a documented decision (`application-layer-discovery.md` §8), not a refactor — both existing conventions kept, one recorded as the default for new work. `ResearchStudy.reconstitute` re-verified against the same criteria as `Surgery.reconstitute` (§7.1) — no persistence logic hidden in Domain. 5 new Application tests + 8 new HTTP tests; full workspace quality gate green: 81 Domain + 102 Application + 45 Infrastructure + 31 HTTP tests (259 total)                                                                                                                                                                                                                                 |
-| Milestone 8 — Minimal physician-facing frontend (Next.js App Router, BFF)                                                                                                   | COMPLETED | `packages/web` added (Next.js App Router, Server Components by default, Server Actions for writes, `web_session` cookie relaying `api`'s own session id, centralized typed error contract). Five vertical slices built and manually + automatically verified: Authentication + Patients, Procedure Type, Surgery + Control (Aggregate with nested Control history/participants), Resident (cross-feature composition — assign/remove live on Surgery's own actions, mirroring `api`'s module boundaries), Research Study (full `DRAFT ⇄ IN_PROGRESS ⇄ COMPLETED` lifecycle, surgery-universe management). Milestone 8 closure: `web`'s own security headers + strict nonce-based CSP (`lib/security-headers.ts`), `web` deployed to Railway (`https://web-production-c686b1.up.railway.app`) with its private-network path to `api` proven by a real login through the public URL, and a scripted Playwright walkthrough (`packages/web/e2e/full-workflow.spec.ts`) passing end to end against a real stack. 139 web tests (was 0); full workspace quality gate green: 81 Domain + 102 Application + 45 Infrastructure + 31 HTTP + 139 web = 398 tests |
-| Milestone 8.5 — Physician self-registration + Resident authentication (ADR 0015/0016/0017)                                                                                  | COMPLETED | `/signup`+`/confirm-email` self-registration (ADR 0015); its email-confirmation login gate paused for MVP, machinery left dormant (ADR 0016); Resident authentication (ADR 0017) — `Session` gains `userType`; `ResidentCredentialRepository`/`TemporaryPasswordGenerator` (temp password issue/view/reset/deactivate, forced first-login change); a Resident's own scoped Surgery panel + Control record/edit-own (`packages/web/src/app/resident/*`), amending ADR 0004's Physician-only Control-modification rule. Bug found via manual browser verification (not the test suite): bodyless `authedApiRequest` calls sent a `content-type: application/json` header Fastify's parser rejects on an empty body — fixed in `lib/api-client.ts`. Full workspace quality gate green: 84 Domain + 137 Application + 63 Infrastructure + 39 HTTP + 174 web = 497 tests. Known gaps tracked, not blocking: Resident panel shows Patient/ProcedureType by id not name; no dedicated UX for a force-deactivated Resident's stale session beyond the already-enforced 401.                                                                                    |
+| Milestone                                                                                                                                                                                | Status      | Completion evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Milestone 1 — Complete the core clinical Application capability set                                                                                                                      | COMPLETED   | `registerPatient`, `registerProcedureType`, `registerSurgery`, `recordControl`, `modifyControl` implemented in `packages/application/src`; 79 Domain + 30 Application tests passing; full workspace quality gate (lint, format-check, typecheck, test) green                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Milestone 2 — Real persistence for the core loop                                                                                                                                         | COMPLETED   | `packages/infrastructure` added with a Prisma schema for Physician/Patient/ProcedureType/Surgery/Control (+ `SurgeryParticipant`, no Resident table); `PrismaPatientRepository`/`PrismaProcedureTypeRepository`/`PrismaSurgeryRepository` implement the existing Application ports unchanged; `Surgery.reconstitute(...)` added to Domain as the sole hydration mechanism; all five Milestone 1 operations run against real repositories (no fakes) and pass against a real Postgres instance on Railway; 80 Domain + 30 Application + 17 Infrastructure tests passing; full workspace quality gate green                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Milestone 3 — Minimal reachable surface (HTTP + auth)                                                                                                                                    | COMPLETED   | `packages/http` (Fastify) added with `POST /physicians`, `POST /sessions`, `DELETE /sessions`, and the five Milestone 1 operations behind a `requireAuth` preHandler resolving physicianId only from the session cookie; `registerPhysician`/`login`/`logout` added to `packages/application` with `PhysicianRepository`/`PhysicianCredentialRepository`/`PasswordHasher`/`SessionRepository` ports; `PrismaPhysicianRepository`/`PrismaPhysicianCredentialRepository`/`PrismaSessionRepository`/`BcryptPasswordHasher` added to `packages/infrastructure`; `PhysicianCredential`/`Session` Prisma models added (case-insensitive email uniqueness via a normalized unique index, no `citext`); e2e tests (real HTTP, real bcrypt, real session cookie, real Postgres) cover registration, login success/failure, session expiry, logout, unauthenticated rejection, and cross-tenant rejection; 80 Domain + 40 Application + 31 Infrastructure + 8 HTTP tests passing; full workspace quality gate green                                                                                                                                              |
+| Milestone 4 — Read/Query for the core loop                                                                                                                                               | COMPLETED   | `findByPhysicianId` added to `PatientRepository`/`ProcedureTypeRepository`/`SurgeryRepository` with Prisma implementations; `GET /patients`, `GET /procedure-types`, `GET /surgeries` (list) and `GET /patients/:id`, `GET /procedure-types/:id`, `GET /surgeries/:id` (get, including full Control history) added to `packages/http`, each enforcing tenant scoping with 404 (not 403) on a foreign resource; e2e tests prove list + get for all three resources plus cross-tenant 404 for each; no Domain changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Milestone 5 — Resident capability (vertical slice)                                                                                                                                       | COMPLETED   | `registerResident` and `removeResidentFromSurgery` added to `packages/application`; `residents` Prisma model + migration and `PrismaResidentRepository` added; HTTP routes `POST /residents`, `GET /residents`, `GET /residents/:id`, `POST /surgeries/:id/residents`, `DELETE /surgeries/:id/residents/:residentId` added; e2e test proves register → assign → record-control-as-resident → removal-rejected-after-participation → removal-allowed-before-participation, plus cross-tenant rejection; no Domain changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Milestone 6 — Research capability (vertical slice)                                                                                                                                       | COMPLETED   | ~11 Application operations added, each a thin wrapper over the existing `research-study.ts` Domain methods; `research_studies` and `research_study_surgeries` Prisma models added (bridge table has no FK to `surgeries`, mirroring `SurgeryParticipant`); `PrismaResearchStudyRepository` added; 8 HTTP routes added for the full lifecycle; `ResearchStudy.reconstitute(...)` added to `packages/domain` during integration review, mirroring `Surgery.reconstitute`, so hydration no longer replays transition-guard methods against persisted rows; e2e test exercises the full lifecycle (create, edit, add/remove surgeries, DRAFT → IN_PROGRESS → COMPLETED → reopen → IN_PROGRESS, rejecting edits while COMPLETED) plus cross-tenant rejection                                                                                                                                                                                                                                                                                                                                                                                                |
+| Milestone 7 — API security & operational hardening                                                                                                                                       | COMPLETED   | Fastify JSON-schema validation added on every route; `@fastify/rate-limit` added on `POST /sessions`/`POST /physicians`, keyed by forwarded client IP (`X-Forwarded-For`/`X-Real-IP`, not raw TCP source IP); `@fastify/helmet` added for security headers; `GET /health` route added; structured logging enabled via Fastify's built-in Pino logger; a Fastify AJV `removeAdditional` bug affecting `recordControl`'s discriminated `author` union was found and fixed (`removeAdditional: false`) during integration; e2e tests prove malformed-body rejection, per-forwarded-IP rate-limit triggering, and `/health` 200                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Milestones 4–7 integration** — merged in sequence into `main` from four parallel git worktrees                                                                                         | COMPLETED   | Full workspace quality gate (lint, format-check, typecheck, test) green with all four milestones combined: 81 Domain + 97 Application + 45 Infrastructure + 23 HTTP tests passing against a real Railway Postgres instance; `prisma migrate status` confirms no drift across all migrations                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **M4–M7 conformance-review fix pass** — corrected the two actionable findings from [`m4-m7-conformance-review.md`](m4-m7-conformance-review.md), before Milestone 8 implementation began | COMPLETED   | `resident.ts`/`research-study.ts` now declare request-body/params JSON schemas (previously zero — a malformed `POST /research-studies` body returned 500, not the clean 400 Milestone 7's DoD requires); `listResidents`/`getResident` added to `packages/application`, `resident.ts` now calls them instead of `ResidentRepository` directly, matching every other resource's read pattern; the Domain→wire-shape convention question was resolved as a documented decision (`application-layer-discovery.md` §8), not a refactor — both existing conventions kept, one recorded as the default for new work. `ResearchStudy.reconstitute` re-verified against the same criteria as `Surgery.reconstitute` (§7.1) — no persistence logic hidden in Domain. 5 new Application tests + 8 new HTTP tests; full workspace quality gate green: 81 Domain + 102 Application + 45 Infrastructure + 31 HTTP tests (259 total)                                                                                                                                                                                                                                 |
+| Milestone 8 — Minimal physician-facing frontend (Next.js App Router, BFF)                                                                                                                | COMPLETED   | `packages/web` added (Next.js App Router, Server Components by default, Server Actions for writes, `web_session` cookie relaying `api`'s own session id, centralized typed error contract). Five vertical slices built and manually + automatically verified: Authentication + Patients, Procedure Type, Surgery + Control (Aggregate with nested Control history/participants), Resident (cross-feature composition — assign/remove live on Surgery's own actions, mirroring `api`'s module boundaries), Research Study (full `DRAFT ⇄ IN_PROGRESS ⇄ COMPLETED` lifecycle, surgery-universe management). Milestone 8 closure: `web`'s own security headers + strict nonce-based CSP (`lib/security-headers.ts`), `web` deployed to Railway (`https://web-production-c686b1.up.railway.app`) with its private-network path to `api` proven by a real login through the public URL, and a scripted Playwright walkthrough (`packages/web/e2e/full-workflow.spec.ts`) passing end to end against a real stack. 139 web tests (was 0); full workspace quality gate green: 81 Domain + 102 Application + 45 Infrastructure + 31 HTTP + 139 web = 398 tests |
+| Milestone 8.5 — Physician self-registration + Resident authentication (ADR 0015/0016/0017)                                                                                               | COMPLETED   | `/signup`+`/confirm-email` self-registration (ADR 0015); its email-confirmation login gate paused for MVP, machinery left dormant (ADR 0016); Resident authentication (ADR 0017) — `Session` gains `userType`; `ResidentCredentialRepository`/`TemporaryPasswordGenerator` (temp password issue/view/reset/deactivate, forced first-login change); a Resident's own scoped Surgery panel + Control record/edit-own (`packages/web/src/app/resident/*`), amending ADR 0004's Physician-only Control-modification rule. Bug found via manual browser verification (not the test suite): bodyless `authedApiRequest` calls sent a `content-type: application/json` header Fastify's parser rejects on an empty body — fixed in `lib/api-client.ts`. Full workspace quality gate green: 84 Domain + 137 Application + 63 Infrastructure + 39 HTTP + 174 web = 497 tests. Known gaps tracked, not blocking: Resident panel shows Patient/ProcedureType by id not name; no dedicated UX for a force-deactivated Resident's stale session beyond the already-enforced 401.                                                                                    |
+| Milestone 8.6 — CustomField / structured clinical extensibility (ADR 0018/0019/0020)                                                                                                     | COMPLETED   | CustomField definable on a Procedure Type and recordable on Surgery/Control, for both Physician and Resident; normalized SQL persistence; unit is NUMBER-only metadata (ADR 0020)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Milestone 8.7 — Patient identity & search (ADR 0021)                                                                                                                                     | COMPLETED   | Patient `dni` (per-tenant unique) and patient search on the Patients list                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Milestone 8.8 — technique is a CustomField (ADR 0022)                                                                                                                                    | COMPLETED   | `ProcedureType.technique` removed; technique modelled as a CustomField ENUM                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Milestone 9 — Public domain + human walkthrough                                                                                                                                          | COMPLETED   | Product owner walked the full workflow on 2026-09-09 unaided, no P0; findings F-01…F-09 became Milestone 11. Sign-off: Passed. Public at https://seguimientocirugias.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Milestone 10 — IA & design system rework                                                                                                                                                 | COMPLETED   | Navigation by clinical workflow (Patients / Staff / Research / Settings; Surgery nested under Patient) plus the ADR 0023/0024 visual redesign and per-screen 7-principles audit (post-MVP polish)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Milestone 11 — Post-walkthrough alignment                                                                                                                                                | IN_PROGRESS | WP1 (ADR 0025), WP2 (row links, type-to-confirm deletion) and WP3 (ADR 0026/0027/0030) merged and deployed; WP4 doc closeout done; delta re-verification of F-01…F-09 remaining                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Milestone 12 — Centralized form feedback                                                                                                                                                 | COMPLETED   | `runFormAction` + `ActionForm` + Toaster; per-field validation, inline errors keeping typed values, success toasts across redirects; ESLint guard; full gate, `next build` and Playwright green                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Engineering baseline (2026-09-29/30)                                                                                                                                                     | COMPLETED   | DB-backed tests isolated on a local test database (guarded); `pnpm run check` fully green; Railway `staging` environment (own Postgres, https://staging.seguimientocirugias.com, `staging` branch); Playwright `full-workflow` suite updated and green                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |

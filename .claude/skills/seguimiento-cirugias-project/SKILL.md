@@ -140,11 +140,17 @@ changes.
   input. No `ControlRepository` and no `CustomFieldRepository` — Control
   and CustomField definitions/values are reachable only through
   `SurgeryRepository` / `ProcedureTypeRepository`. The project is
-  deployed on Railway (`api` private, `web` on the Railway-generated URL).
+  deployed on Railway in two environments — `production` (from `main`,
+  https://seguimientocirugias.com) and `staging` (from `staging`,
+  https://staging.seguimientocirugias.com), each with its own Postgres;
+  `api` private in both.
 - Tooling baseline: pnpm workspaces (`workspace:*` protocol), Vitest per
   package (`"test": "vitest run"`), a flat ESLint config +
   Prettier at the repo root, and a root `check` script chaining
-  `lint && format:check && typecheck && test`.
+  `lint && format:check && typecheck && test`. The DB-backed suites
+  (`infrastructure`, `http`) run only on `DATABASE_URL_TEST`, guarded to a
+  local database (`scripts/test-database.mjs`) — never production. A
+  Playwright `full-workflow` suite runs against a local `api` + `web`.
 - **Frontend (built and deployed, Milestone 8 → 10 nav reorg)**: Next.js,
   App Router, `packages/web`. Runs as a **BFF** — its own server calls `packages/http`
   server-to-server (over Railway's private network where possible, not a
@@ -176,6 +182,13 @@ changes.
   the i18n extraction point) — no string literals in JSX. Working refs:
   `docs/design/design-system.md`, `docs/design/ux-principles.md`, the
   `ux-laws` skill.
+- **Form feedback (Milestone 12, done)**: every Server Action returns
+  `runFormAction(...)` (`lib/form-action.ts` — the only mutation
+  try/catch) and every form renders through `ActionForm`
+  (`components/ActionForm.tsx` — the only `useActionState`); success is a
+  toast (flashed across redirects), errors are inline. ESLint forbids
+  per-action `Api*Error` handling. Design:
+  `docs/architecture/milestone-12-form-feedback-design.md`.
 
 ## Explicitly deferred / unresolved — do not invent answers
 

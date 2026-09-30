@@ -20,9 +20,14 @@ One GitHub repo (`cirugias-cruz`) → one Railway project (`cirugias-cruz`),
 
 ```
 Railway project: cirugias-cruz
-├── api        (packages/http, Fastify)      — private network only
-├── web        (packages/web, Next.js BFF)   — the only public service
-└── Postgres   (Railway-managed PostgreSQL)  — private network only
+├── environment: production   (deploys from `main`)
+│   ├── api  (Railway name: cirugias-cruz; packages/http, Fastify) — private network only
+│   ├── web  (packages/web, Next.js BFF) — https://seguimientocirugias.com
+│   └── Postgres                          — private network only
+└── environment: staging      (deploys from `staging`)
+    ├── api  (cirugias-cruz)              — private network only
+    ├── web                               — https://staging.seguimientocirugias.com
+    └── Postgres (its own, disposable)    — private network only
 ```
 
 - The browser only talks to `web`. `web` talks to `api` over the private
@@ -124,35 +129,6 @@ and env access, and **a failure blocks the rollout** so the previous
 version keeps serving. This is the mechanism `README.md` and ADR 0013
 already assume.
 
-#### `P3009` on `…_init` = the migration history was lost, not a bad migration
-
-Seen 2026-09-29 (empírico — diagnosed read-only against the production
-database): every `api` deploy since 2026-09-15 19:55 UTC failed at
-Pre-Deploy with `P3009 … The 20260828132836_init migration … failed`.
-`_prisma_migrations` held **one row** (that failed `init`, error `42P07
-relation "physicians" already exists`) instead of 14, while every table
-existed. Something had emptied the history table without touching the
-schema, so `migrate deploy` re-ran `init` against a populated database.
-Cause of the emptying: unknown — see ROADMAP § Risks and Unknowns.
-
-Recovery is **baselining, never `migrate reset`** (reset drops clinical
-data):
-
-1. Read `SELECT migration_name, finished_at, logs FROM _prisma_migrations`
-   — `logs` holds the real SQL error Railway's log prints as `undefined`.
-2. Prove the schema is already at the repo's final state:
-   `prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel
-prisma/schema.prisma --script` must print an empty migration.
-3. For migrations that also change **data** (today: `…0905…_drop_magnitude`,
-   `…0914150000_resident_invitation_by_email`,
-   `…0914170000_control_definition_mandatory`), check their effect with a
-   count query — the schema diff can't see data.
-4. Mark every migration applied without running it:
-   `prisma migrate resolve --applied <name>` for each folder
-   (`oficial` — Prisma CLI `migrate resolve`, prisma@5.22.0; procedure at
-   https://pris.ly/d/migrate-resolve, the link the error itself emits),
-   then `prisma migrate status` must report up to date; redeploy `api`.
-
 ### Gotchas discovered while getting `api` to deploy
 
 1. **`tsx` must be a runtime `dependency`, not a `devDependency`.**
@@ -213,19 +189,38 @@ deploy — the fix this doc had already flagged as required.
 
 ---
 
-## Per-environment configuration
+## Environments: production and staging
 
-For a pre-production / staging environment, create a separate Railway
-**environment** in the same project rather than a second project:
+Both live in this one Railway project as separate **environments**, each
+with its own variables and its own `Postgres` (staging never shares a
+database with production):
 
-- Each environment has its own variables and should have its own
-  `Postgres` instance (staging data must never share a database with
-  production).
-- Sealed/secret variables are **not** copied when an environment is
-  duplicated — re-set them per environment on purpose.
+| Environment  | Branch    | Public URL                              | Data                                   |
+| ------------ | --------- | --------------------------------------- | -------------------------------------- |
+| `production` | `main`    | https://seguimientocirugias.com         | real                                   |
+| `staging`    | `staging` | https://staging.seguimientocirugias.com | disposable, never a copy of production |
+
+Release flow: merge to `staging` → verify on the staging URL → merge
+`staging` into `main`. Both services in each environment auto-deploy on
+push to their branch (Settings → Source).
+
 - Reference variables (`${{Postgres.DATABASE_URL}}`,
-  `${{api.RAILWAY_PRIVATE_DOMAIN}}`) resolve per environment
-  automatically — prefer them over copy-pasting values.
+  `${{cirugias-cruz.RAILWAY_PRIVATE_DOMAIN}}`) resolve **inside the
+  environment** they are read in — that is what keeps staging's `api`
+  on staging's Postgres. Prefer them over copied values.
+- Staging overrides only `WEB_BASE_URL=https://staging.seguimientocirugias.com`
+  (so email links point at staging). It shares production's `RESEND_*`
+  values, so staging email is real — accepted by the product owner
+  (ROADMAP § Risks and Unknowns).
+- Custom domains: Railway gives a CNAME target plus a TXT verification
+  record, both in Cloudflare's DNS for `seguimientocirugias.com` (staging's
+  were added through Railway's one-click Cloudflare connection). With
+  Cloudflare's proxy on, SSL/TLS mode must be **Full**, not Full (Strict)
+  (`oficial` — docs.railway.com/networking/domains/working-with-domains).
+  `web` listens on port 8080 in both environments.
+- Gotcha: duplicating an environment in the dashboard **deploys
+  immediately** — nothing waits for review. Check the duplicated
+  variables right away.
 
 ---
 
@@ -236,103 +231,53 @@ only against `DATABASE_URL_TEST` — enforced by
 [`scripts/test-database.mjs`](../../scripts/test-database.mjs), wired
 through each package's `vitest.config.mjs`. There is no fallback to
 `DATABASE_URL`; a missing, remote (without `TEST_DATABASE_ALLOW_REMOTE=1`)
-or production-equal URL aborts the run before any connection. The global
-setup runs `prisma migrate deploy` against it first.
+or `DATABASE_URL`-equal URL aborts the run before any connection. The
+global setup runs `prisma migrate deploy` against it first.
 
-Why: until 2026-09-29 those suites used the package `.env`'s
-`DATABASE_URL` — the production Postgres through Railway's public proxy —
-so every test run wrote and deleted real rows (ROADMAP § Risks and
-Unknowns). It was also why they timed out: ~245 ms per round trip.
+Local databases (PostgreSQL on the developer machine, one-time setup):
 
-One-time local setup (PostgreSQL on this machine):
-
-1. As a Postgres superuser, create a disposable role + database:
+1. As a Postgres superuser, create a disposable role and two databases:
    `CREATE ROLE cirugias_test LOGIN PASSWORD '…';`
    `CREATE DATABASE cirugias_test OWNER cirugias_test;`
-2. Add `DATABASE_URL_TEST=postgresql://cirugias_test:…@localhost:5432/cirugias_test`
-   to both `packages/infrastructure/.env` and `packages/http/.env`
-   (gitignored; see each `.env.example`).
-3. `pnpm run test` — the first run migrates the empty database.
+   `CREATE DATABASE cirugias_dev OWNER cirugias_test;`
+2. In both `packages/infrastructure/.env` and `packages/http/.env`
+   (gitignored; see each `.env.example`): `DATABASE_URL` → `cirugias_dev`
+   (what a locally run `api` uses), `DATABASE_URL_TEST` → `cirugias_test`.
+   Never point either at production.
+3. Migrate the dev database once:
+   `DATABASE_URL=… pnpm --filter @cirugias-cruz/infrastructure exec prisma migrate deploy`.
+   The test database migrates itself on the first `pnpm run test`.
 
-The local `DATABASE_URL` (what `api` uses when run on your machine)
-points at a **separate** local dev database, e.g. `cirugias_dev` on the
-same Postgres — never production, and not the test database either: the
-guard refuses `DATABASE_URL_TEST === DATABASE_URL`, so dev data and test
-fixtures never share a database. Migrate it once with
-`DATABASE_URL=… pnpm --filter @cirugias-cruz/infrastructure exec prisma migrate deploy`.
-The Playwright suite (`packages/web/e2e`) runs against whatever `api` you
-start, so for e2e runs start `api` with `DATABASE_URL` set to the test
-database.
+## End-to-end suite (Playwright)
 
-## Staging environment
+`packages/web/e2e/full-workflow.spec.ts` drives the whole physician
+workflow in a real browser against a real local stack:
 
-**Provisioned 2026-09-29** (empírico — done through the Railway dashboard):
-a `staging` environment in this project, duplicated from `production`,
-with its own `Postgres` (fresh volume — schema migrated by `api`'s
-Pre-Deploy, every table empty on first deploy), `cirugias-cruz` (the
-`api` service — that is its Railway name) and `web`. Verified after
-duplication: `api`'s `DATABASE_URL` is `${{Postgres.DATABASE_URL}}` and
-`web`'s `API_BASE_URL` is built from `${{cirugias-cruz.RAILWAY_PRIVATE_DOMAIN}}`,
-so both resolve inside `staging`, never to production. Changed for
-staging: `WEB_BASE_URL=https://staging.seguimientocirugias.com`.
-`https://staging.seguimientocirugias.com` → `web` (port 8080), DNS
-added in Cloudflare through Railway's one-click Cloudflare connection
-(CNAME `staging` proxied + TXT `_railway-verify.staging`); serves HTTP 200.
+1. Start `api` (port 3000) and `web` (port 3001) — the `api` and `web`
+   entries in `.claude/launch.json`, or `pnpm --filter @cirugias-cruz/http
+run start` and `pnpm --filter @cirugias-cruz/web run dev`. `api` uses
+   the local `DATABASE_URL` (the dev database).
+2. `pnpm --filter @cirugias-cruz/web e2e`.
 
-Gotcha: unlike what the docs led us to expect, duplicating the
-environment **deployed immediately** — nothing was staged for review.
-Check the duplicated variables right away, not after a review step.
+The global setup registers a fresh physician through `api`, confirms its
+email directly in the database (`packages/infrastructure/e2e-confirm.ts`
+— there is no inbox) and deletes the whole tenant afterwards
+(`e2e-cleanup.ts`). No Resend key is configured locally, so no email is
+sent (send failures are logged, never thrown — ADR 0015).
 
-Both staging services track the `staging` branch (Settings → Source,
-auto-deploy on push); production tracks `main`. Flow: merge to `staging`
-→ check https://staging.seguimientocirugias.com → merge `staging` into
-`main` to release. The `staging` branch was created on GitHub from
-`main` (155ca3d) on 2026-09-29.
-
-Original plan, kept for reference:
-
-Supported by the current Railway + Cloudflare setup (`oficial` —
-docs.railway.com/environments and
-docs.railway.com/networking/domains/working-with-domains, read 2026-09-29):
-
-- A `staging` Railway **environment** in this same project (see
-  § Per-environment configuration above) with its own `Postgres`, `api`
-  and `web`; Railway documents the pattern of a staging environment that
-  auto-deploys from a `staging` branch. Duplicated environments stage
-  their changes for review before anything deploys.
-- `web` (staging) gets a custom domain, e.g.
-  `staging.seguimientocirugias.com`: Railway gives a CNAME target and a
-  TXT verification record — **both** go in Cloudflare's DNS for
-  `seguimientocirugias.com`. With Cloudflare's proxy on, SSL/TLS mode
-  must be **Full**, not Full (Strict).
-- Staging variables set on purpose, never inherited from production:
-  `WEB_BASE_URL=https://staging.seguimientocirugias.com` (email links),
-  its own `RESEND_*` (or the same sending domain), `NODE_ENV=production`.
-- Staging data is disposable and never a copy of production (clinical
-  data — no PII in staging).
+---
 
 ## Open items (tracked in `ROADMAP.md`, not decided here)
 
-- `RESEND_API_KEY` is set and `seguimientocirugias.com` is verified in
-  Resend (DNS in Cloudflare) — ADR 0028. `RESEND_FROM_EMAIL` must still
-  be set to an address on that domain and `WEB_BASE_URL` to `web`'s real
-  public URL on the live `api` service (see the Variables table above) —
-  not yet confirmed applied on Railway itself, only decided/documented.
-  Resident onboarding now also depends on this (ADR 0029 — invitation by
-  email, replacing ADR 0017's "no email involved" temporary-password
-  hand-off).
-- Backup/recovery policy for the `Postgres` instance (Railway
-  plan-tier-dependent).
+- CI/CD: no pipeline — Railway auto-deploys `main` and `staging` without
+  running the quality gate (ROADMAP Planning Decision 2).
+- Backup/recovery policy for the production `Postgres` (Railway
+  plan-tier-dependent; Planning Decision 3).
 - Whether `api` ever needs a public domain / CORS surface (leans
-  private-only given the BFF pattern).
-- CI/CD (no pipeline yet — deploys are triggered by pushes to `main`).
-- `web` has a Railway-provided domain (`*.up.railway.app`); a custom
-  domain and the human end-to-end walkthrough remain Milestone 9.
+  private-only given the BFF pattern; Planning Decision 1).
 - `web`'s health check: none yet (`web` exposes no `/healthz`-style
-  route). Not blocking — Railway falls back to container-health only —
-  but worth adding before relying on Railway's own rollout gating.
-- Re-attaching `railway.api.json`/`railway.web.json` as actual
-  Infrastructure-as-Code (`.railway/railway.ts`) once that migration
-  path is worth taking on — see "Config-as-code is deprecated on this
-  project" above. Not urgent: the settings are already applied and
-  documented, just not auto-synced from the file.
+  route). Not blocking — Railway falls back to container health — but
+  worth adding before relying on Railway's own rollout gating.
+- Re-attaching `railway.api.json`/`railway.web.json` as Infrastructure-as-Code
+  (`.railway/railway.ts`) once worth it — see "Config-as-code is
+  deprecated on this project" above.

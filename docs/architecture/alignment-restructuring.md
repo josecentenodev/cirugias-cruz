@@ -439,9 +439,9 @@ is completable unaided, and that the conclusions above (A1–B5) are its
 findings. Sign-off filled as **passed with alignment follow-ups** (no P0
 open — the follow-ups are P1–P3 restructuring, not workflow blockers).
 
-### C3 — Downstream doc & ADR updates (follow-up) 🟡
+### C3 — Downstream doc & ADR updates (follow-up) 🟢
 
-- **New ADRs** — **drafted**:
+- **New ADRs** — **accepted and implemented in Milestone 11**:
   [0025](../decisions/0025-patient-carries-no-contact-pii.md) (A1,
   amends ADR 0009),
   [0026](../decisions/0026-control-types-cap-and-measurement-period.md)

@@ -2,6 +2,9 @@
 
 ## Status
 
+**Implemented in Milestone 11 (WP3)** — merged to `main` and deployed
+(production and staging).
+
 Established. Its "Ad-hoc controls stay valid" section was **reversed by
 [0030](0030-control-definition-mandatory-no-ad-hoc-controls.md)**: every
 `Control` now requires a `definitionId`, and `registerProcedureType`

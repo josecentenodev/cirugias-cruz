@@ -1,9 +1,9 @@
 # Milestone 12 — Centralized form feedback (success + error) — design
 
 > Status: **approved 2026-09-29** by the product owner (all three
-> recommended options in §6 accepted). **Implemented 2026-09-29** —
-> everything but the Playwright run (see ROADMAP § Milestone 12 Status);
-> what changed against this plan is §9.
+> recommended options in §6 accepted). **Completed**: implemented
+> 2026-09-29, deployed, and covered by the Playwright `full-workflow`
+> suite (green 2026-09-30). What changed against this plan is §9.
 > Tracked in [`ROADMAP.md`](ROADMAP.md) § Milestone 12.
 
 ## 0. Completion criteria

@@ -22,7 +22,7 @@ export function getPatient(deps: GetPatientDeps) {
   return async function execute(input: GetPatientInput): Promise<Patient> {
     const patient = await deps.patientRepository.findById(input.patientId);
     if (!patient || patient.physicianId !== input.physicianId) {
-      throw new NotFoundError(`Patient ${input.patientId} was not found`);
+      throw new NotFoundError("This patient was not found");
     }
 
     return patient;

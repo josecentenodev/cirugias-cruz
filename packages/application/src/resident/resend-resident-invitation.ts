@@ -31,11 +31,11 @@ export function resendResidentInvitation(deps: ResendResidentInvitationDeps) {
   return async function execute(input: ResendResidentInvitationInput): Promise<void> {
     const credential = await deps.residentCredentialRepository.findByResidentId(input.residentId);
     if (!credential || credential.physicianId !== input.physicianId) {
-      throw new NotFoundError(`Resident ${input.residentId} was not found`);
+      throw new NotFoundError("This resident was not found");
     }
     const resident = await deps.residentRepository.findById(input.residentId);
     if (!resident) {
-      throw new NotFoundError(`Resident ${input.residentId} was not found`);
+      throw new NotFoundError("This resident was not found");
     }
 
     await deps.residentInvitationTokenRepository.deleteByResidentId(input.residentId);

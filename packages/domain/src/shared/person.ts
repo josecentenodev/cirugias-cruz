@@ -19,19 +19,19 @@ export class Person {
 
   static create(attributes: PersonAttributes): Person {
     if (!attributes.firstName.trim()) {
-      throw new DomainError("firstName is required");
+      throw new DomainError("First name is required");
     }
     if (!attributes.lastName.trim()) {
-      throw new DomainError("lastName is required");
+      throw new DomainError("Last name is required");
     }
     if (!attributes.phone.trim()) {
-      throw new DomainError("phone is required");
+      throw new DomainError("Phone is required");
     }
     if (!attributes.email.trim()) {
-      throw new DomainError("email is required");
+      throw new DomainError("Email is required");
     }
     if (!attributes.dateOfBirth) {
-      throw new DomainError("dateOfBirth is required");
+      throw new DomainError("Date of birth is required");
     }
 
     return new Person({ ...attributes });

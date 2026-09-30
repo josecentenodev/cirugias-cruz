@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   type FormHTMLAttributes,
   type InputHTMLAttributes,
@@ -62,6 +63,37 @@ export function useFormAction(action: FormActionFn) {
 
 type FormContextValue = { result: ActionResult; idPrefix: string };
 const FormContext = createContext<FormContextValue>({ result: idleResult, idPrefix: "" });
+
+/**
+ * A ref for any `<select>` inside an `<ActionForm>` that must keep its
+ * choice across a submission. React 19 natively resets the form after
+ * every action: an `<input>`/`<textarea>` comes back with its echoed
+ * `defaultValue`, but a `<select>` doesn't — React applies a select's
+ * `defaultValue` only on mount, and a controlled `value` that didn't
+ * change causes no re-render. The DOM falls back to the first option while
+ * the UI still shows the old choice, so the retry submits something else
+ * (2026-09-30: a control recorded under "General" instead of the chosen
+ * type; a scheduled control type saved as "uncapped"). This re-asserts
+ * `value` right after the native reset.
+ */
+export function useSelectSurvivesReset(value: string | undefined) {
+  const ref = useRef<HTMLSelectElement>(null);
+  const latest = useRef(value);
+  useLayoutEffect(() => {
+    latest.current = value;
+  });
+  useEffect(() => {
+    const form = ref.current?.form;
+    if (!form) return;
+    const restore = () =>
+      queueMicrotask(() => {
+        if (ref.current && latest.current !== undefined) ref.current.value = latest.current;
+      });
+    form.addEventListener("reset", restore);
+    return () => form.removeEventListener("reset", restore);
+  }, []);
+  return ref;
+}
 
 /** The current form's last result — for the rare leaf that must react to it (e.g. LoginForm's resend prompt). */
 export function useActionResult(): ActionResult {
@@ -248,10 +280,13 @@ export function FormSelect({
 }) {
   const field = useField(name, defaultValue);
   const { defaultValue: uncontrolledDefault, ...bindings } = field.inputProps;
+  const ref = useSelectSurvivesReset(value ?? uncontrolledDefault);
+
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <Label htmlFor={field.id}>{label}</Label>
       <select
+        ref={ref}
         {...bindings}
         {...(value === undefined ? { defaultValue: uncontrolledDefault } : { value, onChange })}
         required={required}

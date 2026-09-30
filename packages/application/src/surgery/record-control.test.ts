@@ -109,7 +109,7 @@ describe("recordControl", () => {
         author: { type: "resident", residentId: "resident-1" },
         definitionId: "def-general",
       }),
-    ).rejects.toThrow(/own tenant/);
+    ).rejects.toThrow(/your own surgeries/);
   });
 
   it("lets the domain reject a resident who is not participating in this surgery", async () => {
@@ -218,6 +218,43 @@ describe("recordControl", () => {
     ).rejects.toThrow();
   });
 
+  it("caps a scheduled control type at its number of timepoints (ADR 0031)", async () => {
+    const procedureTypeRepository = new InMemoryProcedureTypeRepository();
+    procedureTypeRepository.seed(
+      ProcedureType.reconstitute({
+        id: "procedure-type-1",
+        physicianId: PHYSICIAN_ID,
+        name: "Pterigión",
+        customFields: [],
+        controlDefinitions: [
+          {
+            id: "def-visits",
+            name: "Postop visits",
+            occurrenceRule: { mode: "scheduled", unit: "days", offsets: [1, 3] },
+          },
+        ],
+      }),
+    );
+    const deps = { surgeryRepository: new InMemorySurgeryRepository(), procedureTypeRepository };
+    seedSurgery(deps.surgeryRepository);
+    const record = (id: string, day: string) =>
+      recordControl(deps)({
+        physicianId: PHYSICIAN_ID,
+        surgeryId: "surgery-1",
+        id,
+        // An off-schedule date is fine — the schedule never gates a write.
+        recordedAt: new Date(day),
+        author: { type: "physician" },
+        definitionId: "def-visits",
+      });
+
+    await record("control-1", "2026-01-11");
+    await record("control-2", "2026-01-20");
+    await expect(record("control-3", "2026-01-21")).rejects.toThrow(
+      "This control type already has all 2 expected recording(s) for this surgery",
+    );
+  });
+
   it("rejects an empty definitionId (ADR 0030: no ad-hoc controls)", async () => {
     const deps = buildDeps();
     seedSurgery(deps.surgeryRepository);
@@ -275,6 +312,6 @@ describe("recordControl", () => {
         definitionId: "def-general",
         customFieldValues: [{ definitionId: "cf-eva", value: 99 }],
       }),
-    ).rejects.toThrow(/must be <=/);
+    ).rejects.toThrow('"Pain (EVA)" must be at most 10');
   });
 });

@@ -157,8 +157,10 @@ model ProcedureType {
 // written/read only through ProcedureTypeRepository.
 //
 // The occurrence rule is flattened: `occurrenceMode` is "uncapped" |
-// "capped"; the three `occurrence*` columns are populated only when
-// capped (count + period every/unit). ADR 0027 freezes a definition once
+// "capped" | "scheduled" (ADR 0031). Capped fills count + period
+// every/unit; scheduled fills count (= number of timepoints), unit and
+// `occurrenceOffsets` (the explicit timepoints, ascending). Uncapped
+// leaves them all null / empty. ADR 0027 freezes a definition once
 // any Control references it — enforced in the Application layer, not here.
 model ControlDefinition {
   id                    String   @id
@@ -168,6 +170,7 @@ model ControlDefinition {
   occurrenceCount       Int?
   occurrencePeriodEvery Int?
   occurrencePeriodUnit  String?
+  occurrenceOffsets     Int[]    @default([])
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

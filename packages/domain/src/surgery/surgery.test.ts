@@ -130,7 +130,7 @@ describe("Surgery", () => {
         author: { type: "physician", physicianId: PHYSICIAN_ID },
         definitionId: "",
       }),
-    ).toThrow(/control definition/);
+    ).toThrow(/control type/);
   });
 
   it("allows a control with no observations (A4/F-08)", () => {

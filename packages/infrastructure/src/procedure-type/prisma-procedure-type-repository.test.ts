@@ -158,6 +158,14 @@ describe("PrismaProcedureTypeRepository", () => {
     );
     procedureType.addControlDefinition(
       ControlDefinition.create({
+        id: "infra-def-visits",
+        name: "Postop visits",
+        occurrenceRule: { mode: "scheduled", unit: "days", offsets: [7, 1, 3] },
+      }),
+      PHYSICIAN_ID,
+    );
+    procedureType.addControlDefinition(
+      ControlDefinition.create({
         id: "infra-def-open",
         name: "Wound check",
         occurrenceRule: { mode: "uncapped" },
@@ -167,12 +175,17 @@ describe("PrismaProcedureTypeRepository", () => {
     await repository.save(procedureType);
 
     const found = await repository.findById("infra-test-procedure-type-1");
-    expect(found?.controlDefinitions).toHaveLength(2);
+    expect(found?.controlDefinitions).toHaveLength(3);
+    // ADR 0031: explicit timepoints survive the round trip, normalised ascending.
+    expect(
+      found?.controlDefinitions.find((d) => d.id === "infra-def-visits")?.occurrenceRule,
+    ).toEqual({ mode: "scheduled", unit: "days", offsets: [1, 3, 7] });
     expect(
       found?.controlDefinitions.find((d) => d.id === "infra-def-pain")?.occurrenceRule,
     ).toEqual({ mode: "capped", count: 4, period: { every: 24, unit: "hours" } });
 
     found?.removeControlDefinition("infra-def-open", PHYSICIAN_ID, { inUse: false });
+    found?.removeControlDefinition("infra-def-visits", PHYSICIAN_ID, { inUse: false });
     await repository.save(found!);
 
     const reloaded = await repository.findById("infra-test-procedure-type-1");

@@ -85,7 +85,7 @@ describe("registerSurgery", () => {
     seedPatient(deps.patientRepository, OTHER_PHYSICIAN_ID);
     seedProcedureType(deps.procedureTypeRepository);
 
-    await expect(registerSurgery(deps)(validInput)).rejects.toThrow(/same tenant/);
+    await expect(registerSurgery(deps)(validInput)).rejects.toThrow(/one of your own/);
   });
 
   it("rejects a procedure type belonging to a different tenant", async () => {
@@ -93,7 +93,7 @@ describe("registerSurgery", () => {
     seedPatient(deps.patientRepository);
     seedProcedureType(deps.procedureTypeRepository, OTHER_PHYSICIAN_ID);
 
-    await expect(registerSurgery(deps)(validInput)).rejects.toThrow(/same tenant/);
+    await expect(registerSurgery(deps)(validInput)).rejects.toThrow(/one of your own/);
   });
 
   it("accepts a SURGERY-scoped CustomField value matching the procedure type's definition", async () => {
@@ -141,7 +141,7 @@ describe("registerSurgery", () => {
         ...validInput,
         customFieldValues: [{ definitionId: "cf-technique", value: "Not a real option" }],
       }),
-    ).rejects.toThrow(/must be one of/);
+    ).rejects.toThrow('"Surgical technique" must be one of: Autograft');
   });
 
   it("rejects a CustomField value whose scope does not match SURGERY", async () => {
@@ -164,6 +164,6 @@ describe("registerSurgery", () => {
         ...validInput,
         customFieldValues: [{ definitionId: "cf-eva", value: 3 }],
       }),
-    ).rejects.toThrow(/scoped to CONTROL/);
+    ).rejects.toThrow(/is a control field and cannot be recorded on a surgery/);
   });
 });

@@ -20,7 +20,7 @@ export function getProcedureType(deps: GetProcedureTypeDeps) {
   return async function execute(input: GetProcedureTypeInput): Promise<ProcedureType> {
     const procedureType = await deps.procedureTypeRepository.findById(input.procedureTypeId);
     if (!procedureType || procedureType.physicianId !== input.physicianId) {
-      throw new NotFoundError(`Procedure type ${input.procedureTypeId} was not found`);
+      throw new NotFoundError("This procedure type was not found");
     }
 
     return procedureType;

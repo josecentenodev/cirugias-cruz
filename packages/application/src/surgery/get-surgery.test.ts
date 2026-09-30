@@ -32,6 +32,12 @@ function buildDeps() {
           name: "Pain scale",
           occurrenceRule: { mode: "capped", count: 4, period: { every: 24, unit: "hours" } },
         },
+        {
+          id: "def-visits",
+          name: "Postop visits",
+          occurrenceRule: { mode: "scheduled", unit: "days", offsets: [1, 3, 7] },
+        },
+        { id: "def-general", name: "General", occurrenceRule: { mode: "uncapped" } },
       ],
     }),
   );
@@ -70,7 +76,7 @@ describe("getSurgery", () => {
       surgeryId: "surgery-1",
     });
 
-    expect(result.followUp).toHaveLength(1);
+    expect(result.followUp).toHaveLength(2);
     expect(result.followUp[0]).toMatchObject({
       definitionId: "def-pain",
       recorded: 1,
@@ -78,6 +84,48 @@ describe("getSurgery", () => {
     });
     // performedAt 2026-01-10 + (1 + 1) * 24h
     expect(result.followUp[0]?.nextDueAt).toEqual(new Date("2026-01-12T00:00:00.000Z"));
+  });
+
+  it("projects a scheduled control type onto its explicit timepoints (ADR 0031)", async () => {
+    const deps = buildDeps();
+    const surgery = buildSurgery("surgery-1", PHYSICIAN_ID);
+    deps.surgeryRepository.seed(surgery);
+    const read = async () =>
+      (await getSurgery(deps)({ physicianId: PHYSICIAN_ID, surgeryId: "surgery-1" })).followUp.find(
+        (item) => item.definitionId === "def-visits",
+      );
+
+    // Nothing recorded yet → day 1 after 2026-01-10.
+    expect(await read()).toMatchObject({ recorded: 0, expected: 3 });
+    expect((await read())?.nextDueAt).toEqual(new Date("2026-01-11T00:00:00.000Z"));
+
+    surgery.recordControl(
+      {
+        id: "control-1",
+        recordedAt: new Date("2026-01-11"),
+        author: { type: "physician", physicianId: PHYSICIAN_ID },
+        definitionId: "def-visits",
+      },
+      { definitionId: "def-visits", count: 3 },
+    );
+    // One recorded → day 3, not day 2: the timepoints are irregular.
+    expect((await read())?.nextDueAt).toEqual(new Date("2026-01-13T00:00:00.000Z"));
+
+    for (const [id, day] of [
+      ["control-2", "2026-01-13"],
+      ["control-3", "2026-01-17"],
+    ] as const) {
+      surgery.recordControl(
+        {
+          id,
+          recordedAt: new Date(day),
+          author: { type: "physician", physicianId: PHYSICIAN_ID },
+          definitionId: "def-visits",
+        },
+        { definitionId: "def-visits", count: 3 },
+      );
+    }
+    expect(await read()).toMatchObject({ recorded: 3, expected: 3, nextDueAt: null });
   });
 
   it("throws NotFoundError when the surgery does not exist", async () => {

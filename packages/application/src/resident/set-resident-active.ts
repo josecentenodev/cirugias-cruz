@@ -28,7 +28,7 @@ export function setResidentActive(deps: SetResidentActiveDeps) {
   return async function execute(input: SetResidentActiveInput): Promise<void> {
     const credential = await deps.residentCredentialRepository.findByResidentId(input.residentId);
     if (!credential || credential.physicianId !== input.physicianId) {
-      throw new NotFoundError(`Resident ${input.residentId} was not found`);
+      throw new NotFoundError("This resident was not found");
     }
 
     await deps.residentCredentialRepository.setActive(input.residentId, input.active);

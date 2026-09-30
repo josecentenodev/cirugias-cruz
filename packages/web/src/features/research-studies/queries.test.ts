@@ -68,7 +68,7 @@ describe("getResearchStudy", () => {
 
   it("calls Next's notFound() for a study that does not exist (or belongs to another tenant)", async () => {
     authedApiRequestMock.mockRejectedValue(
-      new ApiNotFoundError("Research study rs1 was not found"),
+      new ApiNotFoundError("This research study was not found"),
     );
 
     await expect(getResearchStudy("rs1")).rejects.toThrow("NEXT_NOT_FOUND");

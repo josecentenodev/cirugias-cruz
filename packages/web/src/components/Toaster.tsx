@@ -3,6 +3,7 @@
 import { Toast } from "@base-ui/react/toast";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { CheckCircleIcon } from "@/components/ui/icons";
 import { FLASH_COOKIE, readFlashKey } from "@/lib/flash";
 import { messages } from "@/messages/en";
 
@@ -10,6 +11,10 @@ import { messages } from "@/messages/en";
  * The app's single toast surface (Milestone 12, design §4) — mounted
  * once in `app/layout.tsx`. Success feedback only: errors stay inline
  * next to the form that produced them (`components/ActionForm.tsx`).
+ *
+ * Top-center with a solid success fill (white on `--success`, AA) and a
+ * lifted shadow: a pale bottom-corner toast went unnoticed in manual
+ * testing (2026-09-30), and a confirmation nobody sees is no feedback.
  *
  * A module-level manager (Base UI's `createToastManager`) so
  * `showSuccessToast` works from any client code without prop-drilling.
@@ -58,7 +63,7 @@ export function Toaster() {
       <Toast.Portal>
         <Toast.Viewport
           aria-label={messages.feedback.notifications}
-          className="fixed bottom-4 right-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2 outline-none"
+          className="fixed left-1/2 top-4 z-50 flex w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 flex-col gap-2 outline-none"
         >
           <ToastList />
         </Toast.Viewport>
@@ -73,12 +78,13 @@ function ToastList() {
     <Toast.Root
       key={toast.id}
       toast={toast}
-      className="flex items-start justify-between gap-3 rounded-md border border-success/30 bg-success-bg p-3 text-sm text-success shadow-sm transition-opacity data-[ending-style]:opacity-0 data-[starting-style]:opacity-0"
+      className="flex items-center gap-3 rounded-md bg-success px-4 py-3 text-sm text-success-foreground shadow-lg ring-1 ring-black/10 transition-[opacity,transform] duration-200 data-[ending-style]:-translate-y-2 data-[ending-style]:opacity-0 data-[starting-style]:-translate-y-2 data-[starting-style]:opacity-0"
     >
-      <Toast.Title className="font-medium" />
+      <CheckCircleIcon width={20} height={20} className="shrink-0" />
+      <Toast.Title className="flex-1 font-semibold" />
       <Toast.Close
         aria-label={messages.feedback.dismiss}
-        className="rounded-sm px-1 leading-none opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="rounded-sm px-1 text-base leading-none opacity-80 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-foreground"
       >
         ×
       </Toast.Close>

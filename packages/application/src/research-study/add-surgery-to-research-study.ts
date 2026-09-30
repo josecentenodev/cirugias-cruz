@@ -33,12 +33,12 @@ export function addSurgeryToResearchStudy(deps: AddSurgeryToResearchStudyDeps) {
   ): Promise<AddSurgeryToResearchStudyOutput> {
     const study = await deps.researchStudyRepository.findById(input.researchStudyId);
     if (!study) {
-      throw new NotFoundError(`Research study ${input.researchStudyId} was not found`);
+      throw new NotFoundError("This research study was not found");
     }
 
     const surgery = await deps.surgeryRepository.findById(input.surgeryId);
     if (!surgery) {
-      throw new NotFoundError(`Surgery ${input.surgeryId} was not found`);
+      throw new NotFoundError("This surgery was not found");
     }
 
     study.addSurgery({ id: surgery.id, physicianId: surgery.physicianId }, input.physicianId);

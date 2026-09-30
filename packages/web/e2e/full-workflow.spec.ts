@@ -68,6 +68,24 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await expect(toast(page, "Control added.")).toBeVisible();
   });
 
+  await test.step("define a control type on explicit days, surviving a rejected submit (ADR 0031)", async () => {
+    const addControlType = page.locator("details", { hasText: "Add a control type" });
+    await addControlType.locator("summary").click();
+    await addControlType.getByLabel("Name").fill("Postop visits");
+    await addControlType.getByLabel("Recording cap").selectOption("scheduled");
+    await addControlType.getByLabel("Timepoints after surgery").fill("1, 3, 3");
+    await addControlType.getByRole("button", { name: "Add control type" }).click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "A timepoint cannot be listed more than once" }),
+    ).toBeVisible();
+
+    // Retry without re-picking "Recording cap": the select must have kept
+    // its choice through React's post-action form reset.
+    await addControlType.getByLabel("Timepoints after surgery").fill("7, 1, 3");
+    await addControlType.getByRole("button", { name: "Add control type" }).click();
+    await expect(page.getByText("Days 1, 3, 7 after surgery")).toBeVisible();
+  });
+
   await test.step("register a Patient", async () => {
     await page.goto("/patients/new");
     await page.getByLabel("First name").fill("Juan");

@@ -25,7 +25,7 @@ export function deleteResearchStudy(deps: DeleteResearchStudyDeps) {
   ): Promise<DeleteResearchStudyOutput> {
     const study = await deps.researchStudyRepository.findById(input.researchStudyId);
     if (!study) {
-      throw new NotFoundError(`Research study ${input.researchStudyId} was not found`);
+      throw new NotFoundError("This research study was not found");
     }
 
     study.assertCanBeDeletedBy(input.physicianId);

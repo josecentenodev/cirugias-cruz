@@ -29,10 +29,10 @@ export class ControlDefinition {
 
   static create(attributes: ControlDefinitionAttributes): ControlDefinition {
     if (!attributes.id.trim()) {
-      throw new DomainError("ControlDefinition requires an id");
+      throw new DomainError("A control type requires an identifier");
     }
     if (!attributes.name.trim()) {
-      throw new DomainError("ControlDefinition requires a name");
+      throw new DomainError("A control type requires a name");
     }
 
     return new ControlDefinition(
@@ -62,7 +62,7 @@ export class ControlDefinition {
   applyChanges(changes: { name?: string; occurrenceRule?: ControlOccurrenceRule }): void {
     if (changes.name !== undefined) {
       if (!changes.name.trim()) {
-        throw new DomainError("ControlDefinition requires a name");
+        throw new DomainError("A control type requires a name");
       }
       this.name_ = changes.name;
     }

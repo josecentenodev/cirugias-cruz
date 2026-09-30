@@ -1,6 +1,7 @@
 import type {
   ControlDefinitionDto,
   ControlOccurrenceRuleDto,
+  ControlPeriodUnitDto,
   CustomFieldDto,
   ProcedureTypeDto,
 } from "./dtos";
@@ -114,21 +115,30 @@ function summarizeRules(constraint: CustomFieldDto["constraint"]): string {
 export interface ControlDefinitionView {
   id: string;
   name: string;
-  /** "Uncapped" or e.g. "4 × every 24 hours". */
+  /** "Uncapped", e.g. "4 × every 24 hours", or e.g. "Days 1, 3, 7 after surgery". */
   ruleSummary: string;
-  mode: "uncapped" | "capped";
+  mode: ControlOccurrenceRuleDto["mode"];
   count?: number;
   periodEvery?: number;
-  periodUnit?: "hours" | "days" | "weeks";
+  /** The period unit (capped) or the unit the timepoints are counted in (scheduled). */
+  periodUnit?: ControlPeriodUnitDto;
+  /** Scheduled only (ADR 0031): the timepoints as the form edits them, e.g. "1, 3, 7". */
+  timepoints?: string;
   /** True when a Control already references it — frozen (ADR 0027): no edit, no remove. */
   inUse: boolean;
 }
 
 export function summarizeOccurrenceRule(rule: ControlOccurrenceRuleDto): string {
-  if (rule.mode === "uncapped") {
-    return "Uncapped";
+  switch (rule.mode) {
+    case "uncapped":
+      return "Uncapped";
+    case "capped":
+      return `${rule.count} × every ${rule.period.every} ${rule.period.unit}`;
+    case "scheduled": {
+      const unit = rule.unit.charAt(0).toUpperCase() + rule.unit.slice(1);
+      return `${unit} ${rule.offsets.join(", ")} after surgery`;
+    }
   }
-  return `${rule.count} × every ${rule.period.every} ${rule.period.unit}`;
 }
 
 export function toControlDefinitionView(
@@ -143,7 +153,9 @@ export function toControlDefinitionView(
     mode: rule.mode,
     count: rule.mode === "capped" ? rule.count : undefined,
     periodEvery: rule.mode === "capped" ? rule.period.every : undefined,
-    periodUnit: rule.mode === "capped" ? rule.period.unit : undefined,
+    periodUnit:
+      rule.mode === "capped" ? rule.period.unit : rule.mode === "scheduled" ? rule.unit : undefined,
+    timepoints: rule.mode === "scheduled" ? rule.offsets.join(", ") : undefined,
     inUse,
   };
 }

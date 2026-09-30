@@ -29,7 +29,7 @@ export function modifyProcedureType(deps: ModifyProcedureTypeDeps) {
   ): Promise<ModifyProcedureTypeOutput> {
     const procedureType = await deps.procedureTypeRepository.findById(input.procedureTypeId);
     if (!procedureType) {
-      throw new NotFoundError(`Procedure type ${input.procedureTypeId} was not found`);
+      throw new NotFoundError("This procedure type was not found");
     }
 
     procedureType.modify({ name: input.name, description: input.description }, input.physicianId);

@@ -7,9 +7,12 @@ import { messages } from "@/messages/en";
 import { addControlDefinitionAction, editControlDefinitionAction } from "../actions";
 import type { ControlDefinitionView } from "../mappers";
 
+type Mode = ControlDefinitionView["mode"];
+
 /**
- * Add or edit one control definition (ADR 0026). The `capped`/`uncapped`
- * toggle reveals the count + period inputs. `api` stays the authority on
+ * Add or edit one control definition (ADR 0026). The recording-cap select
+ * reveals the count + period inputs (`capped`) or the explicit timepoints
+ * + unit inputs (`scheduled`, ADR 0031 — e.g. days 1, 3 and 7). `api` stays the authority on
  * name-uniqueness and the ADR 0027 freeze rule — a rejected edit surfaces
  * its message inline (`ActionForm`).
  */
@@ -27,7 +30,7 @@ export function ControlDefinitionForm({
   const action = definition
     ? editControlDefinitionAction.bind(null, procedureTypeId, definition.id)
     : addControlDefinitionAction.bind(null, procedureTypeId);
-  const [mode, setMode] = useState<"uncapped" | "capped">(definition?.mode ?? "uncapped");
+  const [mode, setMode] = useState<Mode>(definition?.mode ?? "uncapped");
 
   return (
     <ActionForm action={action} className="flex flex-col gap-4">
@@ -38,10 +41,11 @@ export function ControlDefinitionForm({
           name="mode"
           label={c.modeLabel}
           value={mode}
-          onChange={(event) => setMode(event.target.value as "uncapped" | "capped")}
+          onChange={(event) => setMode(event.target.value as Mode)}
         >
           <option value="uncapped">{c.modeUncapped}</option>
           <option value="capped">{c.modeCapped}</option>
+          <option value="scheduled">{c.modeScheduled}</option>
         </FormSelect>
       </div>
 
@@ -67,6 +71,29 @@ export function ControlDefinitionForm({
             name="unit"
             label={c.unitLabel}
             defaultValue={definition?.periodUnit ?? "hours"}
+          >
+            <option value="hours">{c.unitHours}</option>
+            <option value="days">{c.unitDays}</option>
+            <option value="weeks">{c.unitWeeks}</option>
+          </FormSelect>
+        </div>
+      ) : null}
+
+      {mode === "scheduled" ? (
+        <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+          <FormField
+            name="timepoints"
+            label={c.timepointsLabel}
+            placeholder={c.timepointsPlaceholder}
+            hint={c.timepointsHint}
+            inputMode="numeric"
+            required
+            defaultValue={definition?.timepoints}
+          />
+          <FormSelect
+            name="unit"
+            label={c.timepointsUnitLabel}
+            defaultValue={definition?.mode === "scheduled" ? definition.periodUnit : "days"}
           >
             <option value="hours">{c.unitHours}</option>
             <option value="days">{c.unitDays}</option>

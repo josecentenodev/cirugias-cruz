@@ -37,5 +37,6 @@ lo repite para no quedar desactualizada).
 | [0028](0028-physician-email-confirmation-reenabled.md)                      | Physician email confirmation gate is re-enabled; sending domain is verified                          |
 | [0029](0029-resident-invitation-by-email.md)                                | Resident onboarding moves from a visible temporary password to an emailed invitation with acceptance |
 | [0030](0030-control-definition-mandatory-no-ad-hoc-controls.md)             | Every Control has a type; ad-hoc (typeless) controls are removed                                     |
+| [0031](0031-control-types-at-explicit-timepoints.md)                        | Control types may expect their recordings at explicit timepoints (e.g. days 1, 3, 7)                 |
 
 Al agregar un ADR nuevo, sumá su fila acá — `node scripts/docs-linkcheck.mjs` lo marca huérfano si falta.

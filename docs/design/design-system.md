@@ -139,7 +139,8 @@ Centralized — a form or Server Action never builds its own
   restored (never passwords). `useFormAction` is the same behavior for a
   bespoke shell (`ConfirmSubmit`, `DangerousConfirm`).
 - **`components/Toaster.tsx`** — the single success surface (Base UI
-  Toast, bottom-right, `success` tokens, `aria-live="polite"`), mounted in
+  Toast, top-center, solid `success` fill with white text + `shadow-lg` so it
+  cannot be missed, `aria-live="polite"`), mounted in
   `app/layout.tsx`. Errors are never toasts: they stay next to the form.
 - Copy lives in `messages.feedback.*` (success) and `messages.errors.*`.
 

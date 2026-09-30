@@ -27,7 +27,7 @@ export function removeSurgeryFromResearchStudy(deps: RemoveSurgeryFromResearchSt
   ): Promise<RemoveSurgeryFromResearchStudyOutput> {
     const study = await deps.researchStudyRepository.findById(input.researchStudyId);
     if (!study) {
-      throw new NotFoundError(`Research study ${input.researchStudyId} was not found`);
+      throw new NotFoundError("This research study was not found");
     }
 
     study.removeSurgery(input.surgeryId, input.physicianId);

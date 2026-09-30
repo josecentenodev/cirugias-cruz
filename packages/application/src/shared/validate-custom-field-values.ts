@@ -1,5 +1,13 @@
 import { DomainError, type CustomField, type CustomFieldScope } from "@cirugias-cruz/domain";
 
+/** How a scope reads in a message shown to the physician — never the raw enum. */
+const SCOPE_LABEL: Record<CustomFieldScope, string> = { SURGERY: "surgery", CONTROL: "control" };
+
+/** Calendar date only (YYYY-MM-DD) — a raw ISO timestamp is not physician-facing copy. */
+function formatDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
 export interface CustomFieldValueInput {
   definitionId: string;
   value: string | number | Date;
@@ -23,11 +31,11 @@ export function validateCustomFieldValues(
   for (const { definitionId, value } of values) {
     const definition = definitions.find((candidate) => candidate.id === definitionId);
     if (!definition) {
-      throw new DomainError(`CustomField ${definitionId} is not defined on this Procedure Type`);
+      throw new DomainError("One of the submitted fields does not belong to this procedure type");
     }
     if (definition.scope !== expectedScope) {
       throw new DomainError(
-        `CustomField "${definition.name}" is scoped to ${definition.scope}, not ${expectedScope}`,
+        `"${definition.name}" is a ${SCOPE_LABEL[definition.scope]} field and cannot be recorded on a ${SCOPE_LABEL[expectedScope]}`,
       );
     }
 
@@ -35,47 +43,47 @@ export function validateCustomFieldValues(
     switch (constraint.valueType) {
       case "NUMBER": {
         if (typeof value !== "number") {
-          throw new DomainError(`CustomField "${definition.name}" requires a numeric value`);
+          throw new DomainError(`"${definition.name}" must be a number`);
         }
         if (constraint.min !== undefined && value < constraint.min) {
-          throw new DomainError(`CustomField "${definition.name}" must be >= ${constraint.min}`);
+          throw new DomainError(`"${definition.name}" must be at least ${constraint.min}`);
         }
         if (constraint.max !== undefined && value > constraint.max) {
-          throw new DomainError(`CustomField "${definition.name}" must be <= ${constraint.max}`);
+          throw new DomainError(`"${definition.name}" must be at most ${constraint.max}`);
         }
         break;
       }
       case "ENUM": {
         if (typeof value !== "string" || !constraint.options.includes(value)) {
           throw new DomainError(
-            `CustomField "${definition.name}" must be one of: ${constraint.options.join(", ")}`,
+            `"${definition.name}" must be one of: ${constraint.options.join(", ")}`,
           );
         }
         break;
       }
       case "TEXT": {
         if (typeof value !== "string") {
-          throw new DomainError(`CustomField "${definition.name}" requires a text value`);
+          throw new DomainError(`"${definition.name}" must be text`);
         }
         if (constraint.maxLength !== undefined && value.length > constraint.maxLength) {
           throw new DomainError(
-            `CustomField "${definition.name}" must be at most ${constraint.maxLength} characters`,
+            `"${definition.name}" must be at most ${constraint.maxLength} characters`,
           );
         }
         break;
       }
       case "DATE": {
         if (!(value instanceof Date)) {
-          throw new DomainError(`CustomField "${definition.name}" requires a date value`);
+          throw new DomainError(`"${definition.name}" must be a date`);
         }
         if (constraint.min !== undefined && value < constraint.min) {
           throw new DomainError(
-            `CustomField "${definition.name}" must be on or after ${constraint.min.toISOString()}`,
+            `"${definition.name}" must be on or after ${formatDate(constraint.min)}`,
           );
         }
         if (constraint.max !== undefined && value > constraint.max) {
           throw new DomainError(
-            `CustomField "${definition.name}" must be on or before ${constraint.max.toISOString()}`,
+            `"${definition.name}" must be on or before ${formatDate(constraint.max)}`,
           );
         }
         break;

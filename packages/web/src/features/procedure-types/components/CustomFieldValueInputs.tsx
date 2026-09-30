@@ -1,6 +1,6 @@
 "use client";
 
-import { useField } from "@/components/ActionForm";
+import { useField, useSelectSurvivesReset } from "@/components/ActionForm";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CustomFieldDto } from "../dtos";
@@ -84,17 +84,28 @@ function FieldControl({
   }
 
   if (constraint.valueType === "ENUM") {
-    return (
-      <select {...inputProps} className={selectClassName}>
-        <option value="">—</option>
-        {constraint.options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    );
+    return <EnumSelect options={constraint.options} inputProps={inputProps} />;
   }
 
   return <Input {...inputProps} type="text" maxLength={constraint.maxLength} />;
+}
+
+function EnumSelect({
+  options,
+  inputProps,
+}: {
+  options: string[];
+  inputProps: ReturnType<typeof useField>["inputProps"];
+}) {
+  const ref = useSelectSurvivesReset(inputProps.defaultValue);
+  return (
+    <select ref={ref} {...inputProps} className={selectClassName}>
+      <option value="">—</option>
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+    </select>
+  );
 }

@@ -10,8 +10,12 @@ vi.mock("next/headers", async () => (await import("@/test/next-action-mocks")).h
 const { authedApiRequestMock } = vi.hoisted(() => ({ authedApiRequestMock: vi.fn() }));
 vi.mock("@/lib/authed-api-request", () => ({ authedApiRequest: authedApiRequestMock }));
 
-const { addCustomFieldAction, modifyProcedureTypeAction, registerProcedureTypeAction } =
-  await import("./actions.js");
+const {
+  addControlDefinitionAction,
+  addCustomFieldAction,
+  modifyProcedureTypeAction,
+  registerProcedureTypeAction,
+} = await import("./actions.js");
 
 describe("registerProcedureTypeAction", () => {
   beforeEach(() => {
@@ -58,11 +62,11 @@ describe("registerProcedureTypeAction", () => {
   });
 
   it("expectable error: surfaces api's DomainError message inline, unchanged", async () => {
-    authedApiRequestMock.mockRejectedValue(new ApiDomainError("ProcedureType requires a name"));
+    authedApiRequestMock.mockRejectedValue(new ApiDomainError("A procedure type requires a name"));
 
     const result = await registerProcedureTypeAction(idleResult, formData({ name: "Pterigión" }));
 
-    expect(result).toMatchObject({ status: "error", message: "ProcedureType requires a name" });
+    expect(result).toMatchObject({ status: "error", message: "A procedure type requires a name" });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
@@ -104,17 +108,17 @@ describe("modifyProcedureTypeAction", () => {
   });
 
   it("expectable error: surfaces api's DomainError message inline, unchanged", async () => {
-    authedApiRequestMock.mockRejectedValue(new ApiDomainError("ProcedureType requires a name"));
+    authedApiRequestMock.mockRejectedValue(new ApiDomainError("A procedure type requires a name"));
 
     const result = await modifyProcedureTypeAction("pt-1", idleResult, formData({ name: "" }));
 
-    expect(result).toMatchObject({ status: "error", message: "ProcedureType requires a name" });
+    expect(result).toMatchObject({ status: "error", message: "A procedure type requires a name" });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 
   it("propagates NotFoundError as an inline error", async () => {
     authedApiRequestMock.mockRejectedValue(
-      new ApiNotFoundError("Procedure type pt-1 was not found"),
+      new ApiNotFoundError("This procedure type was not found"),
     );
 
     const result = await modifyProcedureTypeAction(
@@ -123,7 +127,7 @@ describe("modifyProcedureTypeAction", () => {
       formData({ name: "Renamed" }),
     );
 
-    expect(result).toMatchObject({ status: "error", message: "Procedure type pt-1 was not found" });
+    expect(result).toMatchObject({ status: "error", message: "This procedure type was not found" });
   });
 });
 
@@ -231,7 +235,7 @@ describe("addCustomFieldAction", () => {
 
   it("expectable error: surfaces api's DomainError message inline, unchanged", async () => {
     authedApiRequestMock.mockRejectedValue(
-      new ApiDomainError('ProcedureType already has a CustomField named "Pain (EVA)"'),
+      new ApiDomainError('This procedure type already has a custom field named "Pain (EVA)"'),
     );
 
     const result = await addCustomFieldAction(
@@ -247,8 +251,81 @@ describe("addCustomFieldAction", () => {
 
     expect(result).toMatchObject({
       status: "error",
-      message: 'ProcedureType already has a CustomField named "Pain (EVA)"',
+      message: 'This procedure type already has a custom field named "Pain (EVA)"',
     });
     expect(redirectMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("addControlDefinitionAction — scheduled timepoints (ADR 0031)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetNextActionMocks();
+  });
+
+  it("sends the typed timepoints as integer offsets in the chosen unit", async () => {
+    authedApiRequestMock.mockResolvedValue({ controlDefinitionId: "def-1" });
+
+    await expect(
+      addControlDefinitionAction(
+        "pt-1",
+        idleResult,
+        formData({ name: "Postop visits", mode: "scheduled", timepoints: "1, 3 7", unit: "days" }),
+      ),
+    ).rejects.toThrow("NEXT_REDIRECT:/settings/procedure-types/pt-1");
+
+    expect(authedApiRequestMock).toHaveBeenCalledWith({
+      method: "POST",
+      path: "/procedure-types/pt-1/control-definitions",
+      body: {
+        name: "Postop visits",
+        occurrenceRule: { mode: "scheduled", unit: "days", offsets: [1, 3, 7] },
+      },
+    });
+  });
+
+  it("rejects unparseable timepoints on the field itself, before calling api", async () => {
+    const result = await addControlDefinitionAction(
+      "pt-1",
+      idleResult,
+      formData({ name: "Postop visits", mode: "scheduled", timepoints: "1, tres", unit: "days" }),
+    );
+
+    expect(result).toMatchObject({
+      status: "error",
+      fieldErrors: { timepoints: "Enter whole numbers separated by commas, e.g. 1, 3, 7" },
+    });
+    expect(authedApiRequestMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects an empty timepoints field", async () => {
+    const result = await addControlDefinitionAction(
+      "pt-1",
+      idleResult,
+      formData({ name: "Postop visits", mode: "scheduled", timepoints: "", unit: "days" }),
+    );
+
+    expect(result).toMatchObject({
+      status: "error",
+      fieldErrors: { timepoints: "Enter whole numbers separated by commas, e.g. 1, 3, 7" },
+    });
+    expect(authedApiRequestMock).not.toHaveBeenCalled();
+  });
+
+  it("surfaces api's Domain rejection (e.g. a repeated timepoint) inline, unchanged", async () => {
+    authedApiRequestMock.mockRejectedValue(
+      new ApiDomainError("A timepoint cannot be listed more than once"),
+    );
+
+    const result = await addControlDefinitionAction(
+      "pt-1",
+      idleResult,
+      formData({ name: "Postop visits", mode: "scheduled", timepoints: "1, 3, 3", unit: "days" }),
+    );
+
+    expect(result).toMatchObject({
+      status: "error",
+      message: "A timepoint cannot be listed more than once",
+    });
   });
 });

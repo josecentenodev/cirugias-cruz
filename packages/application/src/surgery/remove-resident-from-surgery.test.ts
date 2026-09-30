@@ -114,7 +114,7 @@ describe("removeResidentFromSurgery", () => {
         surgeryId: "surgery-1",
         residentId: "resident-1",
       }),
-    ).rejects.toThrow(/own physician's tenant/);
+    ).rejects.toThrow(/own physician's surgeries/);
   });
 
   it("lets the domain reject an acting physician who does not own the surgery", async () => {

@@ -63,7 +63,7 @@ describe("getSurgery", () => {
   });
 
   it("calls Next's notFound() for a surgery that does not exist (or belongs to another tenant)", async () => {
-    authedApiRequestMock.mockRejectedValue(new ApiNotFoundError("Surgery s1 was not found"));
+    authedApiRequestMock.mockRejectedValue(new ApiNotFoundError("This surgery was not found"));
 
     await expect(getSurgery("s1")).rejects.toThrow("NEXT_NOT_FOUND");
   });

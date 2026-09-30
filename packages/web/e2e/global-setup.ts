@@ -24,6 +24,13 @@ const execAsync = promisify(exec);
 export default async function globalSetup(): Promise<() => Promise<void>> {
   const physician = await registerTestPhysician();
 
+  // Login refuses an unconfirmed email (ADR 0028) and the suite has no
+  // inbox — confirm directly in the database, same child-process pattern
+  // as the teardown below (see its comment for why `exec` + a string).
+  await execAsync(
+    `pnpm --filter @cirugias-cruz/http exec tsx ../infrastructure/e2e-confirm.ts ${physician.physicianId}`,
+  );
+
   process.env.PLAYWRIGHT_TEST_EMAIL = physician.email;
   process.env.PLAYWRIGHT_TEST_PASSWORD = physician.password;
 

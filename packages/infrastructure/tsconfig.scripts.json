@@ -5,5 +5,5 @@
     "noEmit": true,
     "declaration": false
   },
-  "include": ["e2e-cleanup.ts"]
+  "include": ["e2e-cleanup.ts", "e2e-confirm.ts"]
 }

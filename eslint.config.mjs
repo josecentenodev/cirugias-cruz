@@ -64,7 +64,12 @@ export default tseslint.config(
         // that package's main tsconfig `include` without breaking its
         // build. `allowDefaultProject` lets the project service lint it
         // against an inferred, single-file program instead.
-        projectService: { allowDefaultProject: ["packages/infrastructure/e2e-cleanup.ts"] },
+        projectService: {
+          allowDefaultProject: [
+            "packages/infrastructure/e2e-cleanup.ts",
+            "packages/infrastructure/e2e-confirm.ts",
+          ],
+        },
         tsconfigRootDir: import.meta.dirname,
       },
     },

@@ -1,19 +1,24 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 /**
- * Milestone 8's own scripted browser-level walkthrough (Measurable
- * completion criteria). One continuous session, mirroring the manual
- * verification performed after each vertical slice during
- * implementation (see docs/architecture/ROADMAP.md's Milestone 8
- * entry) — not a replacement for it, the first time it's been made
- * scripted and reproducible.
+ * The scripted browser-level walkthrough of the full physician workflow
+ * (Milestone 8's measurable completion criterion), kept current with the
+ * Milestone 10 IA (Surgery nested under its Patient; Settings / Staff
+ * sections), Milestone 11 (capped control types, frozen schemes, ADR
+ * 0026/0027/0030) and Milestone 12 (centralized form feedback: success
+ * toasts, inline errors that keep what was typed).
  *
  * Runs against a real `web` + `api` + Postgres stack end to end
- * (`playwright.config.ts`'s own comment explains the two base URLs).
- * Nothing here mocks `api` — every assertion below only passes if the
- * real Domain → Application → HTTP → BFF → UI chain actually worked.
+ * (`playwright.config.ts` explains the two base URLs). Nothing here mocks
+ * `api` — every assertion only passes if the real Domain → Application →
+ * HTTP → BFF → UI chain worked.
  */
 test.describe.configure({ mode: "serial" });
+
+/** The Milestone 12 success toast, wherever it lands after a redirect. */
+function toast(page: Page, text: string) {
+  return page.getByRole("region", { name: "Notifications" }).getByText(text);
+}
 
 test("full physician workflow: auth through Research Study lifecycle", async ({ page }) => {
   const email = process.env.PLAYWRIGHT_TEST_EMAIL;
@@ -31,30 +36,36 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await page.getByRole("button", { name: "Sign in" }).click();
 
     await expect(page).toHaveURL(/\/patients$/);
-    await expect(page.getByText("No patients registered yet.")).toBeVisible();
+    await expect(page.getByText("No patients yet")).toBeVisible();
   });
 
   await test.step("register a Procedure Type", async () => {
-    await page.goto("/procedure-types/new");
+    await page.goto("/settings/procedure-types/new");
     await page.getByLabel("Name").fill("Pterigión");
     await page.getByRole("button", { name: "Register procedure type" }).click();
 
-    await expect(page).toHaveURL(/\/procedure-types$/);
+    await expect(page).toHaveURL(/\/settings\/procedure-types$/);
     await expect(page.getByRole("cell", { name: "Pterigión" })).toBeVisible();
+    await expect(toast(page, "Procedure type created.")).toBeVisible();
   });
 
   await test.step("define a capped control type on the Procedure Type (ADR 0026)", async () => {
     await page.getByRole("cell", { name: "Pterigión" }).click();
     await expect(page).toHaveURL(/\/settings\/procedure-types\/[^/]+$/);
 
-    await page.getByLabel("Name").last().fill("Pain scale");
-    await page.getByLabel("Recording cap").selectOption("capped");
-    await page.getByLabel("Expected recordings").fill("2");
-    await page.getByLabel("Every").fill("24");
-    await page.getByRole("button", { name: "Add control type" }).click();
+    // Every new type is seeded with a default control type (ADR 0030), so
+    // the "add" form starts folded away.
+    const addControlType = page.locator("details", { hasText: "Add a control type" });
+    await addControlType.locator("summary").click();
+    await addControlType.getByLabel("Name").fill("Pain scale");
+    await addControlType.getByLabel("Recording cap").selectOption("capped");
+    await addControlType.getByLabel("Expected recordings").fill("2");
+    await addControlType.getByLabel("Every").fill("24");
+    await addControlType.getByRole("button", { name: "Add control type" }).click();
 
     await expect(page.getByRole("cell", { name: "Pain scale" })).toBeVisible();
     await expect(page.getByText("2 × every 24 hours")).toBeVisible();
+    await expect(toast(page, "Control added.")).toBeVisible();
   });
 
   await test.step("register a Patient", async () => {
@@ -65,11 +76,9 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await page.getByLabel("DNI (optional)").fill("30111222");
     await page.getByRole("button", { name: "Register patient" }).click();
 
+    await expect(page).toHaveURL(/\/patients\/[^/]+$/);
     await expect(page.getByRole("heading", { name: "Juan Pérez" })).toBeVisible();
-    // Milestone 12: the success survives the redirect as a one-shot toast.
-    await expect(
-      page.getByRole("region", { name: "Notifications" }).getByText("Patient registered."),
-    ).toBeVisible();
+    await expect(toast(page, "Patient registered.")).toBeVisible();
   });
 
   await test.step("an api rejection stays inline and keeps what was typed", async () => {
@@ -87,17 +96,27 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await expect(page.getByLabel("First name")).toHaveValue("Ana");
   });
 
-  await test.step("register a Surgery, verify it appears in the list", async () => {
-    await page.goto("/surgeries/new");
-    await page.getByLabel("Patient").selectOption({ label: "Juan Pérez" });
+  let surgeryUrl = "";
+  await test.step("register a Surgery from its Patient, see it in the patient's list", async () => {
+    await page.goto("/patients");
+    await page.getByRole("link", { name: "Juan Pérez" }).click();
+    await expect(page).toHaveURL(/\/patients\/[^/]+$/);
+    const patientUrl = page.url();
+
+    await page
+      .getByRole("link", { name: /Register (the first )?surgery/ })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/patients\/[^/]+\/surgeries\/new$/);
     await page.getByLabel("Procedure type").selectOption({ label: "Pterigión" });
     await page.getByLabel("Performed date").fill("2026-08-15");
     await page.getByRole("button", { name: "Register surgery" }).click();
 
-    await expect(page.getByRole("heading", { name: "Juan Pérez" })).toBeVisible();
-    const surgeryUrl = page.url();
+    await expect(page).toHaveURL(/\/patients\/[^/]+\/surgeries\/[^/]+$/);
+    await expect(toast(page, "Surgery registered.")).toBeVisible();
+    surgeryUrl = page.url();
 
-    await page.goto("/surgeries");
+    await page.goto(patientUrl);
     await expect(page.getByRole("cell", { name: "Pterigión" })).toBeVisible();
 
     await page.goto(surgeryUrl);
@@ -112,6 +131,7 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await expect(page.getByText("Evolución favorable")).toBeVisible();
     // Follow-up indicator for the capped definition (ADR 0026).
     await expect(page.getByText(/1 of 2 recorded/)).toBeVisible();
+    await expect(toast(page, "Control recorded.")).toBeVisible();
 
     await page.getByRole("button", { name: "Edit" }).click();
     await page.getByRole("textbox").first().fill("Evolución favorable, sin complicaciones");
@@ -130,7 +150,7 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
   });
 
   await test.step("register a Resident and assign them to the Surgery", async () => {
-    await page.goto("/residents/new");
+    await page.goto("/staff/residents/new");
     await page.getByLabel("First name").fill("Laura");
     await page.getByLabel("Last name").fill("Díaz");
     await page.getByLabel("Phone").fill("+54 11 3333-3333");
@@ -138,17 +158,18 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await page.getByLabel("Date of birth").fill("1995-02-02");
     await page.getByRole("button", { name: "Register resident" }).click();
 
+    await expect(page).toHaveURL(/\/staff\/residents$/);
     await expect(page.getByRole("cell", { name: "Laura Díaz" })).toBeVisible();
+    await expect(toast(page, "Resident registered.")).toBeVisible();
 
-    await page.goto("/surgeries");
-    // The patient's name is the surgery row's link — "Pterigión" itself is plain text.
-    await page.getByRole("link", { name: "Juan Pérez" }).click();
-
+    await page.goto(surgeryUrl);
     await page.getByLabel("Resident to assign").selectOption({ label: "Laura Díaz" });
     await page.getByRole("button", { name: "Assign" }).click();
 
-    await expect(page.getByText("Laura Díaz")).toBeVisible();
+    // Exact: the name also appears in the (closed) removal confirm dialog's copy.
+    await expect(page.getByText("Laura Díaz", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Remove" })).toBeVisible();
+    await expect(toast(page, "Resident assigned.")).toBeVisible();
   });
 
   await test.step("create a Research Study and add the Surgery to it", async () => {
@@ -188,7 +209,7 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     // fields and surgery universe are locked (ResearchStudy.assertModifiable).
     await expect(page.getByRole("button", { name: "Edit" })).not.toBeVisible();
     await expect(page.getByRole("button", { name: "Remove" })).not.toBeVisible();
-    await expect(page.getByText("A completed study's surgery universe is locked")).toBeVisible();
+    await expect(page.getByText(/surgery universe is locked/)).toBeVisible();
   });
 
   await test.step("reopen the study — editing and removal become available again", async () => {

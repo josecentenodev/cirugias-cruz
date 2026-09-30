@@ -9,6 +9,8 @@ export {
 export {
   parseControlOccurrenceRule,
   periodMilliseconds,
+  expectedRecordings,
+  timepointOffsetMilliseconds,
   CONTROL_PERIOD_UNITS,
   type ControlOccurrenceRule,
   type ControlPeriod,

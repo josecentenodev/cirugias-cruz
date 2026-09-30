@@ -13,14 +13,17 @@ export interface CustomFieldDto {
   constraint: CustomFieldConstraint;
 }
 
-/** Mirrors `api`'s `ControlOccurrenceRule` union (ADR 0026). */
+export type ControlPeriodUnitDto = "hours" | "days" | "weeks";
+
+/** Mirrors `api`'s `ControlOccurrenceRule` union (ADR 0026, amended by ADR 0031). */
 export type ControlOccurrenceRuleDto =
   | { mode: "uncapped" }
   | {
       mode: "capped";
       count: number;
-      period: { every: number; unit: "hours" | "days" | "weeks" };
-    };
+      period: { every: number; unit: ControlPeriodUnitDto };
+    }
+  | { mode: "scheduled"; unit: ControlPeriodUnitDto; offsets: number[] };
 
 /** Wire shape for one control definition — matches `serializeControlDefinition`. */
 export interface ControlDefinitionDto {

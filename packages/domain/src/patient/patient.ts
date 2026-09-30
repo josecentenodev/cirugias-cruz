@@ -44,19 +44,19 @@ export class Patient {
 
   static create(attributes: PatientAttributes): Patient {
     if (!attributes.id.trim()) {
-      throw new DomainError("Patient requires an id");
+      throw new DomainError("A patient record requires an identifier");
     }
     if (!attributes.physicianId.trim()) {
-      throw new DomainError("Patient must belong to a physician (tenant)");
+      throw new DomainError("A patient must belong to a physician");
     }
     if (!attributes.firstName.trim()) {
-      throw new DomainError("firstName is required");
+      throw new DomainError("First name is required");
     }
     if (!attributes.lastName.trim()) {
-      throw new DomainError("lastName is required");
+      throw new DomainError("Last name is required");
     }
     if (!attributes.dateOfBirth) {
-      throw new DomainError("dateOfBirth is required");
+      throw new DomainError("Date of birth is required");
     }
 
     const dni = attributes.dni?.trim() || undefined;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ActionForm, FormTextarea } from "@/components/ActionForm";
+import { ActionForm, FormTextarea, useSelectSurvivesReset } from "@/components/ActionForm";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PendingButton } from "@/components/ui/pending-button";
@@ -31,6 +31,7 @@ export function RecordOwnControlForm({
   const [definitionId, setDefinitionId] = useState(
     controlTypeOptions.length === 1 ? (controlTypeOptions[0]?.id ?? "") : "",
   );
+  const definitionSelectRef = useSelectSurvivesReset(definitionId);
   const [recordedAt, setRecordedAt] = useState("");
   const selectedType = controlTypeOptions.find((option) => option.id === definitionId);
   const blockedByCap = Boolean(selectedType?.atLimit);
@@ -52,6 +53,7 @@ export function RecordOwnControlForm({
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="definitionId">{messages.surgeries.recordControl.controlType}</Label>
         <select
+          ref={definitionSelectRef}
           id="definitionId"
           name="definitionId"
           required

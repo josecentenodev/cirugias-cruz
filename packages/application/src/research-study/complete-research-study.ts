@@ -22,7 +22,7 @@ export function completeResearchStudy(deps: CompleteResearchStudyDeps) {
   ): Promise<CompleteResearchStudyOutput> {
     const study = await deps.researchStudyRepository.findById(input.researchStudyId);
     if (!study) {
-      throw new NotFoundError(`Research study ${input.researchStudyId} was not found`);
+      throw new NotFoundError("This research study was not found");
     }
 
     study.complete(input.physicianId);

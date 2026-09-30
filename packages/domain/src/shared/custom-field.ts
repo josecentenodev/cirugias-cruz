@@ -35,13 +35,13 @@ export class CustomField {
 
   static create(attributes: CustomFieldAttributes): CustomField {
     if (!attributes.id.trim()) {
-      throw new DomainError("CustomField requires an id");
+      throw new DomainError("A custom field requires an identifier");
     }
     if (!attributes.name.trim()) {
-      throw new DomainError("CustomField requires a name");
+      throw new DomainError("A custom field requires a name");
     }
     if (attributes.constraint.valueType === "ENUM" && attributes.constraint.options.length === 0) {
-      throw new DomainError("An ENUM CustomField requires at least one option");
+      throw new DomainError("An options field requires at least one option");
     }
 
     return new CustomField({ ...attributes });

@@ -1,4 +1,4 @@
-import { DomainError } from "@cirugias-cruz/domain";
+import { DomainError, expectedRecordings } from "@cirugias-cruz/domain";
 import { NotFoundError } from "../shared/not-found-error.js";
 import type { CustomFieldValueInput } from "../shared/validate-custom-field-values.js";
 import { validateCustomFieldValues } from "../shared/validate-custom-field-values.js";
@@ -52,16 +52,16 @@ export function recordControl(deps: RecordControlDeps) {
   return async function execute(input: RecordControlInput): Promise<RecordControlOutput> {
     const surgery = await deps.surgeryRepository.findById(input.surgeryId);
     if (!surgery) {
-      throw new NotFoundError(`Surgery ${input.surgeryId} was not found`);
+      throw new NotFoundError("This surgery was not found");
     }
 
     if (surgery.physicianId !== input.physicianId) {
-      throw new DomainError("A control may only be recorded on a surgery within your own tenant");
+      throw new DomainError("You can only record controls on your own surgeries");
     }
 
     const procedureType = await deps.procedureTypeRepository.findById(surgery.procedureTypeId);
     if (!procedureType) {
-      throw new NotFoundError(`Procedure type ${surgery.procedureTypeId} was not found`);
+      throw new NotFoundError("This procedure type was not found");
     }
     validateCustomFieldValues(procedureType.customFields, input.customFieldValues ?? [], "CONTROL");
 
@@ -69,14 +69,11 @@ export function recordControl(deps: RecordControlDeps) {
       (candidate) => candidate.id === input.definitionId,
     );
     if (!definition) {
-      throw new NotFoundError(
-        `Control definition ${input.definitionId} was not found on this Procedure Type`,
-      );
+      throw new NotFoundError("This control type was not found on this procedure type");
     }
+    const expected = expectedRecordings(definition.occurrenceRule);
     const cappedContext: { definitionId: string; count: number } | undefined =
-      definition.occurrenceRule.mode === "capped"
-        ? { definitionId: definition.id, count: definition.occurrenceRule.count }
-        : undefined;
+      expected === null ? undefined : { definitionId: definition.id, count: expected };
 
     const author =
       input.author.type === "physician"

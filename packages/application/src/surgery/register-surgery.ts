@@ -43,18 +43,18 @@ export function registerSurgery(deps: RegisterSurgeryDeps) {
   return async function execute(input: RegisterSurgeryInput): Promise<RegisterSurgeryOutput> {
     const patient = await deps.patientRepository.findById(input.patientId);
     if (!patient) {
-      throw new NotFoundError(`Patient ${input.patientId} was not found`);
+      throw new NotFoundError("This patient was not found");
     }
     if (patient.physicianId !== input.physicianId) {
-      throw new DomainError("A surgery may only reference a patient within the same tenant");
+      throw new DomainError("A surgery can only be registered for one of your own patients");
     }
 
     const procedureType = await deps.procedureTypeRepository.findById(input.procedureTypeId);
     if (!procedureType) {
-      throw new NotFoundError(`Procedure type ${input.procedureTypeId} was not found`);
+      throw new NotFoundError("This procedure type was not found");
     }
     if (procedureType.physicianId !== input.physicianId) {
-      throw new DomainError("A surgery may only reference a procedure type within the same tenant");
+      throw new DomainError("A surgery can only use one of your own procedure types");
     }
 
     validateCustomFieldValues(procedureType.customFields, input.customFieldValues ?? [], "SURGERY");

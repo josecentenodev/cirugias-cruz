@@ -25,7 +25,7 @@ export function updateAnalysis(deps: UpdateAnalysisDeps) {
   return async function execute(input: UpdateAnalysisInput): Promise<UpdateAnalysisOutput> {
     const study = await deps.researchStudyRepository.findById(input.researchStudyId);
     if (!study) {
-      throw new NotFoundError(`Research study ${input.researchStudyId} was not found`);
+      throw new NotFoundError("This research study was not found");
     }
 
     study.updateAnalysis(input.analysis, input.physicianId);

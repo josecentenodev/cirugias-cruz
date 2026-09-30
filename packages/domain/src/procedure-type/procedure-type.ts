@@ -12,7 +12,7 @@ export interface ProcedureTypeAttributes {
 }
 
 /** Raised by every scheme mutator when the target definition has recorded data (ADR 0027). */
-const FROZEN_MESSAGE = "this field/control has recorded data and can no longer be changed";
+const FROZEN_MESSAGE = "This field or control type has recorded data and can no longer be changed";
 
 /**
  * A Procedure Type is owned and managed by a single Physician/Tenant.
@@ -38,13 +38,13 @@ export class ProcedureType {
 
   static create(attributes: ProcedureTypeAttributes): ProcedureType {
     if (!attributes.id.trim()) {
-      throw new DomainError("ProcedureType requires an id");
+      throw new DomainError("A procedure type requires an identifier");
     }
     if (!attributes.physicianId.trim()) {
-      throw new DomainError("ProcedureType must belong to a physician (tenant)");
+      throw new DomainError("A procedure type must belong to a physician");
     }
     if (!attributes.name.trim()) {
-      throw new DomainError("ProcedureType requires a name");
+      throw new DomainError("A procedure type requires a name");
     }
 
     return new ProcedureType(
@@ -113,7 +113,7 @@ export class ProcedureType {
 
     if (changes.name !== undefined) {
       if (!changes.name.trim()) {
-        throw new DomainError("ProcedureType requires a name");
+        throw new DomainError("A procedure type requires a name");
       }
       this.name_ = changes.name;
     }
@@ -131,7 +131,7 @@ export class ProcedureType {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
 
     if (this.customFields_.some((existing) => existing.name === field.name)) {
-      throw new DomainError(`ProcedureType already has a CustomField named "${field.name}"`);
+      throw new DomainError(`This procedure type already has a custom field named "${field.name}"`);
     }
 
     this.customFields_.push(field);
@@ -152,7 +152,7 @@ export class ProcedureType {
 
     const index = this.customFields_.findIndex((existing) => existing.id === fieldId);
     if (index === -1) {
-      throw new DomainError("CustomField not found on this ProcedureType");
+      throw new DomainError("This custom field was not found on this procedure type");
     }
     if (context.inUse) {
       throw new DomainError(FROZEN_MESSAGE);
@@ -162,7 +162,9 @@ export class ProcedureType {
         (existing) => existing.id !== fieldId && existing.name === replacement.name,
       )
     ) {
-      throw new DomainError(`ProcedureType already has a CustomField named "${replacement.name}"`);
+      throw new DomainError(
+        `This procedure type already has a custom field named "${replacement.name}"`,
+      );
     }
 
     this.customFields_.splice(index, 1, replacement);
@@ -173,7 +175,7 @@ export class ProcedureType {
 
     const index = this.customFields_.findIndex((existing) => existing.id === fieldId);
     if (index === -1) {
-      throw new DomainError("CustomField not found on this ProcedureType");
+      throw new DomainError("This custom field was not found on this procedure type");
     }
     if (context.inUse) {
       throw new DomainError(FROZEN_MESSAGE);
@@ -191,7 +193,7 @@ export class ProcedureType {
 
     if (this.controlDefinitions_.some((existing) => existing.name === definition.name)) {
       throw new DomainError(
-        `ProcedureType already has a control definition named "${definition.name}"`,
+        `This procedure type already has a control type named "${definition.name}"`,
       );
     }
 
@@ -208,7 +210,7 @@ export class ProcedureType {
 
     const definition = this.controlDefinitions_.find((existing) => existing.id === definitionId);
     if (!definition) {
-      throw new DomainError("Control definition not found on this ProcedureType");
+      throw new DomainError("This control type was not found on this procedure type");
     }
     if (context.inUse) {
       throw new DomainError(FROZEN_MESSAGE);
@@ -220,7 +222,7 @@ export class ProcedureType {
       )
     ) {
       throw new DomainError(
-        `ProcedureType already has a control definition named "${changes.name}"`,
+        `This procedure type already has a control type named "${changes.name}"`,
       );
     }
 
@@ -236,7 +238,7 @@ export class ProcedureType {
 
     const index = this.controlDefinitions_.findIndex((existing) => existing.id === definitionId);
     if (index === -1) {
-      throw new DomainError("Control definition not found on this ProcedureType");
+      throw new DomainError("This control type was not found on this procedure type");
     }
     if (context.inUse) {
       throw new DomainError(FROZEN_MESSAGE);

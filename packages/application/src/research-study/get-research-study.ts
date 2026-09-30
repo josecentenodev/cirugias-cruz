@@ -22,7 +22,7 @@ export function getResearchStudy(deps: GetResearchStudyDeps) {
   return async function execute(input: GetResearchStudyInput): Promise<GetResearchStudyOutput> {
     const study = await deps.researchStudyRepository.findById(input.researchStudyId);
     if (!study || study.physicianId !== input.physicianId) {
-      throw new NotFoundError(`Research study ${input.researchStudyId} was not found`);
+      throw new NotFoundError("This research study was not found");
     }
 
     return {

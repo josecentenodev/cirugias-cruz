@@ -37,10 +37,10 @@ export class ResearchStudy {
 
   static create(attributes: ResearchStudyAttributes): ResearchStudy {
     if (!attributes.id.trim()) {
-      throw new DomainError("ResearchStudy requires an id");
+      throw new DomainError("A research study requires an identifier");
     }
     if (!attributes.physicianId.trim()) {
-      throw new DomainError("ResearchStudy must belong to a physician (tenant)");
+      throw new DomainError("A research study must belong to a physician");
     }
 
     return new ResearchStudy(
@@ -181,7 +181,7 @@ export class ResearchStudy {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
 
     if (this.status_ !== "DRAFT") {
-      throw new DomainError("Only a DRAFT research study can move to IN_PROGRESS");
+      throw new DomainError("Only a draft research study can be started");
     }
 
     this.status_ = "IN_PROGRESS";
@@ -191,7 +191,7 @@ export class ResearchStudy {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
 
     if (this.status_ !== "IN_PROGRESS") {
-      throw new DomainError("Only an IN_PROGRESS research study can be completed");
+      throw new DomainError("Only an in-progress research study can be completed");
     }
 
     this.status_ = "COMPLETED";
@@ -202,7 +202,7 @@ export class ResearchStudy {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
 
     if (this.status_ !== "COMPLETED") {
-      throw new DomainError("Only a COMPLETED research study can be reopened");
+      throw new DomainError("Only a completed research study can be reopened");
     }
 
     this.status_ = "IN_PROGRESS";
@@ -212,7 +212,7 @@ export class ResearchStudy {
     assertActingPhysicianOwnsResource(this.physicianId_, actingPhysicianId);
 
     if (this.status_ !== "DRAFT") {
-      throw new DomainError("A research study may only be deleted while in DRAFT");
+      throw new DomainError("A research study can only be deleted while it is a draft");
     }
   }
 }

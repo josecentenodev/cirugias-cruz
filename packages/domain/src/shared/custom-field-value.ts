@@ -22,10 +22,10 @@ export class CustomFieldValue {
 
   static create(attributes: CustomFieldValueAttributes): CustomFieldValue {
     if (!attributes.definitionId.trim()) {
-      throw new DomainError("CustomFieldValue requires a definitionId");
+      throw new DomainError("A custom field value must reference its field");
     }
     if (attributes.value === undefined || attributes.value === null) {
-      throw new DomainError("CustomFieldValue requires a value");
+      throw new DomainError("A custom field value cannot be empty");
     }
 
     return new CustomFieldValue({ ...attributes });

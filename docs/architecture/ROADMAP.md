@@ -151,6 +151,26 @@ gets corrected — it is not meant to be treated as fixed once written.
   through `runFormAction`, every form through `ActionForm`; inline errors
   that keep what was typed, per-field validation, success toasts (also
   across redirects), ESLint-enforced. See Milestone 12.
+- **Manual-testing follow-ups (2026-09-30)** — three fixes from the
+  product owner's manual pass: (1) every Domain/Application error message
+  reworded as physician copy (no `CustomField`, `ProcedureType`, enum
+  constants, record ids, ISO timestamps or "tenant" in the UI), guarded
+  by `packages/application/src/shared/physician-facing-errors.test.ts`;
+  (2) control types can expect their recordings at explicit timepoints
+  (e.g. days 1, 3 and 7 after surgery) —
+  [ADR 0031](../decisions/0031-control-types-at-explicit-timepoints.md),
+  migration `20260930120000_scheduled_control_timepoints`; (3) the
+  success toast moved to top-center with a solid, high-contrast fill
+  (`docs/design/design-system.md`).
+  Verifying them surfaced two real bugs, both fixed with regression tests:
+  `api` coerced a numeric-looking option ("5") to a number, so an options
+  field with options 1..10 always failed "must be one of" (value schema is
+  now a `type` list, not `anyOf`); and after any rejected submit every
+  `<select>` in an `ActionForm` silently fell back to its first option
+  (React 19 re-applies a select's `defaultValue` only on mount) — e.g. a
+  retried control recorded under "General". `useSelectSurvivesReset` in
+  `components/ActionForm.tsx` now covers `FormSelect`, the control-type
+  selects and options fields.
 
 ### Not started
 

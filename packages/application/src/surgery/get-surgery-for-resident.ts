@@ -45,7 +45,7 @@ export function getSurgeryForResident(deps: GetSurgeryForResidentDeps) {
   return async function execute(input: GetSurgeryForResidentInput): Promise<SurgeryForResident> {
     const surgery = await deps.surgeryRepository.findById(input.surgeryId);
     if (!surgery || !surgery.participatingResidentIds.includes(input.residentId)) {
-      throw new NotFoundError(`Surgery ${input.surgeryId} was not found`);
+      throw new NotFoundError("This surgery was not found");
     }
 
     const [patient, procedureType] = await Promise.all([

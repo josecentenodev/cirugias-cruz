@@ -73,6 +73,7 @@ function controlDefinitionInput(fd: FormData) {
     count: fd.get("count") || undefined,
     every: fd.get("every") || undefined,
     unit: fd.get("unit") || undefined,
+    timepoints: fd.get("timepoints") || undefined,
   };
 }
 

@@ -31,18 +31,16 @@ export function removeResidentFromSurgery(deps: RemoveResidentFromSurgeryDeps) {
   ): Promise<RemoveResidentFromSurgeryOutput> {
     const surgery = await deps.surgeryRepository.findById(input.surgeryId);
     if (!surgery) {
-      throw new NotFoundError(`Surgery ${input.surgeryId} was not found`);
+      throw new NotFoundError("This surgery was not found");
     }
 
     const resident = await deps.residentRepository.findById(input.residentId);
     if (!resident) {
-      throw new NotFoundError(`Resident ${input.residentId} was not found`);
+      throw new NotFoundError("This resident was not found");
     }
 
     if (resident.physicianId !== input.physicianId) {
-      throw new DomainError(
-        "A resident may only be removed from a surgery within their own physician's tenant",
-      );
+      throw new DomainError("A resident can only be removed from their own physician's surgeries");
     }
 
     surgery.removeResident(resident.id, input.physicianId);

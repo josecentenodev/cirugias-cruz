@@ -42,11 +42,11 @@ export function modifyControl(deps: ModifyControlDeps) {
   return async function execute(input: ModifyControlInput): Promise<ModifyControlOutput> {
     const surgery = await deps.surgeryRepository.findById(input.surgeryId);
     if (!surgery) {
-      throw new NotFoundError(`Surgery ${input.surgeryId} was not found`);
+      throw new NotFoundError("This surgery was not found");
     }
 
     if (surgery.physicianId !== input.physicianId) {
-      throw new DomainError("A control may only be modified on a surgery within your own tenant");
+      throw new DomainError("You can only edit controls on your own surgeries");
     }
 
     const actingAs =

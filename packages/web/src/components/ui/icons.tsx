@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 
-/** Minimal inline icons — no icon library dependency for just two glyphs. */
+/** Minimal inline icons — no icon library dependency for a handful of glyphs. */
 function Icon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -36,6 +36,15 @@ export function TrashIcon(props: SVGProps<SVGSVGElement>) {
       <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
       <path d="M10 11v6" />
       <path d="M14 11v6" />
+    </Icon>
+  );
+}
+
+export function CheckCircleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="m8 12 3 3 5-6" />
     </Icon>
   );
 }

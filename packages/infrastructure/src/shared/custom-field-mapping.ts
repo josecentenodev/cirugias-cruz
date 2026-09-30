@@ -101,50 +101,76 @@ export interface ControlDefinitionRow {
   occurrenceCount: number | null;
   occurrencePeriodEvery: number | null;
   occurrencePeriodUnit: string | null;
+  occurrenceOffsets: number[];
 }
 
 export function toControlDefinitionRow(
   definition: import("@cirugias-cruz/domain").ControlDefinition,
   procedureTypeId: string,
-): {
-  id: string;
-  procedureTypeId: string;
-  name: string;
-  occurrenceMode: string;
-  occurrenceCount: number | null;
-  occurrencePeriodEvery: number | null;
-  occurrencePeriodUnit: string | null;
-} {
+): ControlDefinitionRow & { procedureTypeId: string } {
   const rule = definition.occurrenceRule;
-  return {
-    id: definition.id,
-    procedureTypeId,
-    name: definition.name,
-    occurrenceMode: rule.mode,
-    occurrenceCount: rule.mode === "capped" ? rule.count : null,
-    occurrencePeriodEvery: rule.mode === "capped" ? rule.period.every : null,
-    occurrencePeriodUnit: rule.mode === "capped" ? rule.period.unit : null,
-  };
+  const base = { id: definition.id, procedureTypeId, name: definition.name };
+  switch (rule.mode) {
+    case "uncapped":
+      return {
+        ...base,
+        occurrenceMode: "uncapped",
+        occurrenceCount: null,
+        occurrencePeriodEvery: null,
+        occurrencePeriodUnit: null,
+        occurrenceOffsets: [],
+      };
+    case "capped":
+      return {
+        ...base,
+        occurrenceMode: "capped",
+        occurrenceCount: rule.count,
+        occurrencePeriodEvery: rule.period.every,
+        occurrencePeriodUnit: rule.period.unit,
+        occurrenceOffsets: [],
+      };
+    case "scheduled":
+      return {
+        ...base,
+        occurrenceMode: "scheduled",
+        occurrenceCount: rule.offsets.length,
+        occurrencePeriodEvery: null,
+        occurrencePeriodUnit: rule.unit,
+        occurrenceOffsets: [...rule.offsets],
+      };
+  }
 }
 
 export function fromControlDefinitionRow(
   row: ControlDefinitionRow,
 ): import("@cirugias-cruz/domain").ControlDefinitionAttributes {
-  if (row.occurrenceMode === "capped") {
-    return {
-      id: row.id,
-      name: row.name,
-      occurrenceRule: {
-        mode: "capped",
-        count: row.occurrenceCount ?? 1,
-        period: {
-          every: row.occurrencePeriodEvery ?? 1,
-          unit: (row.occurrencePeriodUnit ?? "hours") as "hours" | "days" | "weeks",
+  const unit = (row.occurrencePeriodUnit ?? "hours") as "hours" | "days" | "weeks";
+  switch (row.occurrenceMode) {
+    case "uncapped":
+      return { id: row.id, name: row.name, occurrenceRule: { mode: "uncapped" } };
+    case "capped":
+      return {
+        id: row.id,
+        name: row.name,
+        occurrenceRule: {
+          mode: "capped",
+          count: row.occurrenceCount ?? 1,
+          period: { every: row.occurrencePeriodEvery ?? 1, unit },
         },
-      },
-    };
+      };
+    case "scheduled":
+      return {
+        id: row.id,
+        name: row.name,
+        occurrenceRule: { mode: "scheduled", unit, offsets: [...row.occurrenceOffsets] },
+      };
+    default:
+      // Fail closed: silently reading an unknown mode as "uncapped" would
+      // lift a cap the physician set.
+      throw new Error(
+        `Corrupt ControlDefinition row: unknown occurrenceMode "${row.occurrenceMode}"`,
+      );
   }
-  return { id: row.id, name: row.name, occurrenceRule: { mode: "uncapped" } };
 }
 
 export interface CustomFieldValueRow {

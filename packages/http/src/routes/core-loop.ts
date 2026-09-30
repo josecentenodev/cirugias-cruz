@@ -60,9 +60,11 @@ interface AddCustomFieldBody {
 }
 
 interface ControlOccurrenceRuleBody {
-  mode: "uncapped" | "capped";
+  mode: "uncapped" | "capped" | "scheduled";
   count?: number;
   period?: { every: number; unit: "hours" | "days" | "weeks" };
+  unit?: "hours" | "days" | "weeks";
+  offsets?: number[];
 }
 
 interface AddControlDefinitionBody {
@@ -223,6 +225,18 @@ const controlOccurrenceRuleSchema = {
       },
       additionalProperties: false,
     },
+    // ADR 0031 — explicit timepoints. Shape only: emptiness, ordering,
+    // duplicates and minimums are Domain rules with physician-facing copy.
+    {
+      type: "object",
+      required: ["mode", "unit", "offsets"],
+      properties: {
+        mode: { const: "scheduled" },
+        unit: { enum: ["hours", "days", "weeks"] },
+        offsets: { type: "array", items: { type: "integer" }, maxItems: 100 },
+      },
+      additionalProperties: false,
+    },
   ],
 } as const;
 
@@ -260,11 +274,13 @@ const customFieldValueSchema = {
   required: ["definitionId", "value"],
   properties: {
     definitionId: { type: "string" },
-    // Order matters under Fastify/AJV's coerceTypes: it tries each anyOf
-    // branch in order and keeps the first that validates after coercion,
-    // so "number" must come first — otherwise a real numeric value like
-    // 3 would be coerced to the string "3" to satisfy the string branch.
-    value: { anyOf: [{ type: "number" }, { type: "string" }] },
+    // A type *list*, not `anyOf`: under Fastify/AJV's coerceTypes, AJV
+    // coerces a multi-type `type` only when the value matches none of the
+    // listed types (ajv.js.org, "Type coercion rules"), so "5" stays the
+    // string an options/text field needs and 5 stays a number. `anyOf`
+    // coerced per branch — number first turned an option "5" into 5 and
+    // every numeric-looking option failed "must be one of" (2026-09-30).
+    value: { type: ["number", "string"] },
   },
 } as const;
 

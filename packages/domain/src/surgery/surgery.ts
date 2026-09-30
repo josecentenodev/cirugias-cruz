@@ -49,19 +49,19 @@ export class Surgery {
 
   static create(attributes: SurgeryAttributes): Surgery {
     if (!attributes.id.trim()) {
-      throw new DomainError("Surgery requires an id");
+      throw new DomainError("A surgery requires an identifier");
     }
     if (!attributes.physicianId.trim()) {
-      throw new DomainError("Surgery must belong to a physician (tenant)");
+      throw new DomainError("A surgery must belong to a physician");
     }
     if (!attributes.patientId.trim()) {
-      throw new DomainError("Surgery must belong to exactly one Patient");
+      throw new DomainError("A surgery must belong to exactly one patient");
     }
     if (!attributes.procedureTypeId.trim()) {
-      throw new DomainError("Surgery must belong to exactly one Procedure Type");
+      throw new DomainError("A surgery must have exactly one procedure type");
     }
     if (!attributes.performedAt) {
-      throw new DomainError("Surgery requires a performance/realization date");
+      throw new DomainError("A surgery requires the date it was performed");
     }
 
     const surgery = new Surgery(
@@ -200,7 +200,7 @@ export class Surgery {
     } else {
       if (!this.participatingResidentIds_.has(input.author.residentId)) {
         throw new DomainError(
-          "A resident may only record a Control while participating in this specific Surgery",
+          "A resident can only record a control on a surgery they are assigned to",
         );
       }
     }
@@ -211,7 +211,7 @@ export class Surgery {
       ).length;
       if (alreadyRecorded >= cappedContext.count) {
         throw new DomainError(
-          `This capped control already has its expected ${cappedContext.count} recording(s) on this Surgery`,
+          `This control type already has all ${cappedContext.count} expected recording(s) for this surgery`,
         );
       }
     }
@@ -224,7 +224,7 @@ export class Surgery {
   private findControl(controlId: string): Control {
     const control = this.controls_.find((c) => c.id === controlId);
     if (!control) {
-      throw new DomainError("Control not found in this Surgery");
+      throw new DomainError("This control was not found on this surgery");
     }
     return control;
   }
@@ -248,7 +248,7 @@ export class Surgery {
       assertActingPhysicianOwnsResource(this.physicianId_, actingAs.physicianId);
     } else {
       if (control.author.type !== "resident" || control.author.residentId !== actingAs.residentId) {
-        throw new DomainError("A resident may only modify a Control they themselves authored");
+        throw new DomainError("A resident can only edit controls they recorded themselves");
       }
     }
 
@@ -265,7 +265,7 @@ export class Surgery {
 
     const index = this.controls_.findIndex((c) => c.id === controlId);
     if (index === -1) {
-      throw new DomainError("Control not found in this Surgery");
+      throw new DomainError("This control was not found on this surgery");
     }
     this.controls_.splice(index, 1);
   }
@@ -278,7 +278,7 @@ export class Surgery {
 
     if (changes.procedureTypeId !== undefined) {
       if (!changes.procedureTypeId.trim()) {
-        throw new DomainError("Surgery must belong to exactly one Procedure Type");
+        throw new DomainError("A surgery must have exactly one procedure type");
       }
       this.procedureTypeId_ = changes.procedureTypeId;
     }

@@ -99,7 +99,7 @@ describe("Milestone 1 operations against real Prisma repositories", () => {
         procedureTypeId: PROCEDURE_TYPE_ID,
         performedAt: new Date("2026-01-10"),
       }),
-    ).rejects.toThrow(/same tenant/);
+    ).rejects.toThrow(/one of your own/);
   });
 
   it("recordControl persists the resulting Surgery aggregate, including its Control", async () => {

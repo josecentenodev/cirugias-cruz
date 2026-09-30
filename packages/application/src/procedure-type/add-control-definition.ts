@@ -26,7 +26,7 @@ export function addControlDefinition(deps: AddControlDefinitionDeps) {
   ): Promise<AddControlDefinitionOutput> {
     const procedureType = await deps.procedureTypeRepository.findById(input.procedureTypeId);
     if (!procedureType) {
-      throw new NotFoundError(`Procedure type ${input.procedureTypeId} was not found`);
+      throw new NotFoundError("This procedure type was not found");
     }
 
     const definition = ControlDefinition.create({

@@ -47,16 +47,16 @@ export class Control {
 
   static create(attributes: ControlAttributes): Control {
     if (!attributes.id.trim()) {
-      throw new DomainError("Control requires an id");
+      throw new DomainError("A control requires an identifier");
     }
     if (!attributes.recordedAt) {
-      throw new DomainError("Control requires a date/time");
+      throw new DomainError("A control requires a date and time");
     }
     if (!attributes.author) {
-      throw new DomainError("Control requires an author");
+      throw new DomainError("A control requires an author");
     }
     if (!attributes.definitionId?.trim()) {
-      throw new DomainError("Control requires a control definition (ADR 0030)");
+      throw new DomainError("A control requires a control type");
     }
 
     const control = new Control(
@@ -104,7 +104,7 @@ export class Control {
 
   updateRecordedAt(recordedAt: Date): void {
     if (!recordedAt) {
-      throw new DomainError("Control requires a date/time");
+      throw new DomainError("A control requires a date and time");
     }
     this.recordedAt_ = recordedAt;
   }

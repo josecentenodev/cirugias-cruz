@@ -25,7 +25,7 @@ export function removeControlDefinition(deps: RemoveControlDefinitionDeps) {
   ): Promise<RemoveControlDefinitionOutput> {
     const procedureType = await deps.procedureTypeRepository.findById(input.procedureTypeId);
     if (!procedureType) {
-      throw new NotFoundError(`Procedure type ${input.procedureTypeId} was not found`);
+      throw new NotFoundError("This procedure type was not found");
     }
 
     const inUse = await deps.surgeryRepository.isControlDefinitionInUse(

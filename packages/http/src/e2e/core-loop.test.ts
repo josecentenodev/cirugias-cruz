@@ -625,4 +625,177 @@ describe("Core loop over real HTTP, authenticated, against real Postgres", () =>
       expect.objectContaining({ definitionId: controlDefinitionId, recorded: 2, expected: 2 }),
     ]);
   });
+
+  it("keeps a numeric-looking option or text as a string, and a number as a number", async () => {
+    // Regression (manual testing 2026-09-30): an options field 1..10 always
+    // failed with "must be one of: 1, 2, …" because AJV coerced "5" to 5.
+    const app = await buildApp(buildDeps());
+    const { sessionId } = await registerAndLogin(app);
+    const cookies = { session_id: sessionId };
+
+    const procedureTypeId = (
+      await app.inject({
+        method: "POST",
+        url: "/procedure-types",
+        cookies,
+        payload: { name: "Pterigión" },
+      })
+    ).json<{ procedureTypeId: string }>().procedureTypeId;
+    const addField = async (name: string, constraint: unknown) =>
+      (
+        await app.inject({
+          method: "POST",
+          url: `/procedure-types/${procedureTypeId}/custom-fields`,
+          cookies,
+          payload: { name, scope: "SURGERY", constraint },
+        })
+      ).json<{ customFieldId: string }>().customFieldId;
+    const gradeId = await addField("Grade", { valueType: "ENUM", options: ["1", "2", "3"] });
+    const codeId = await addField("Code", { valueType: "TEXT" });
+    const sizeId = await addField("Size", { valueType: "NUMBER", min: 0, max: 10 });
+
+    const patientId = (
+      await app.inject({
+        method: "POST",
+        url: "/patients",
+        cookies,
+        payload: { firstName: "Ana", lastName: "García", dateOfBirth: "1990-05-15" },
+      })
+    ).json<{ patientId: string }>().patientId;
+    const registered = await app.inject({
+      method: "POST",
+      url: "/surgeries",
+      cookies,
+      payload: {
+        patientId,
+        procedureTypeId,
+        performedAt: "2026-01-10",
+        customFieldValues: [
+          { definitionId: gradeId, value: "2" },
+          { definitionId: codeId, value: "123" },
+          { definitionId: sizeId, value: 7 },
+        ],
+      },
+    });
+    expect(registered.statusCode).toBe(201);
+
+    const { surgeryId } = registered.json<{ surgeryId: string }>();
+    const surgery = await app.inject({ method: "GET", url: `/surgeries/${surgeryId}`, cookies });
+    const values = surgery.json<{ customFieldValues: { definitionId: string; value: unknown }[] }>()
+      .customFieldValues;
+    expect(values).toEqual(
+      expect.arrayContaining([
+        { definitionId: gradeId, value: "2" },
+        { definitionId: codeId, value: "123" },
+        { definitionId: sizeId, value: 7 },
+      ]),
+    );
+  });
+
+  it("scheduled control types: explicit timepoints, cap and next-due (ADR 0031)", async () => {
+    const app = await buildApp(buildDeps());
+    const { sessionId } = await registerAndLogin(app);
+    const cookies = { session_id: sessionId };
+
+    const procedureTypeId = (
+      await app.inject({
+        method: "POST",
+        url: "/procedure-types",
+        cookies,
+        payload: { name: "Pterigión" },
+      })
+    ).json<{ procedureTypeId: string }>().procedureTypeId;
+    const addDefinition = (name: string, occurrenceRule: unknown) =>
+      app.inject({
+        method: "POST",
+        url: `/procedure-types/${procedureTypeId}/control-definitions`,
+        cookies,
+        payload: { name, occurrenceRule },
+      });
+
+    // Fail paths — Domain rejections carry physician-facing copy.
+    const empty = await addDefinition("Visits", { mode: "scheduled", unit: "days", offsets: [] });
+    expect(empty.statusCode).toBe(400);
+    expect(empty.json()).toEqual({
+      error: "A scheduled control type needs at least one timepoint",
+    });
+    const repeated = await addDefinition("Visits", {
+      mode: "scheduled",
+      unit: "days",
+      offsets: [1, 3, 3],
+    });
+    expect(repeated.json()).toEqual({ error: "A timepoint cannot be listed more than once" });
+    const zero = await addDefinition("Visits", {
+      mode: "scheduled",
+      unit: "days",
+      offsets: [0, 3],
+    });
+    expect(zero.statusCode).toBe(400);
+    // Structural garbage never reaches Domain.
+    const malformed = await addDefinition("Visits", {
+      mode: "scheduled",
+      unit: "days",
+      offsets: [{ day: 1 }],
+    });
+    expect(malformed.statusCode).toBe(400);
+
+    const created = await addDefinition("Visits", {
+      mode: "scheduled",
+      unit: "days",
+      offsets: [7, 1, 3],
+    });
+    expect(created.statusCode).toBe(201);
+    const { controlDefinitionId } = created.json<{ controlDefinitionId: string }>();
+
+    const scheme = await app.inject({
+      method: "GET",
+      url: `/procedure-types/${procedureTypeId}`,
+      cookies,
+    });
+    expect(
+      scheme
+        .json<{ controlDefinitions: { id: string; occurrenceRule: unknown }[] }>()
+        .controlDefinitions.find((d) => d.id === controlDefinitionId)?.occurrenceRule,
+    ).toEqual({ mode: "scheduled", unit: "days", offsets: [1, 3, 7] });
+
+    const patientId = (
+      await app.inject({
+        method: "POST",
+        url: "/patients",
+        cookies,
+        payload: { firstName: "Ana", lastName: "García", dateOfBirth: "1990-05-15" },
+      })
+    ).json<{ patientId: string }>().patientId;
+    const surgeryId = (
+      await app.inject({
+        method: "POST",
+        url: "/surgeries",
+        cookies,
+        payload: { patientId, procedureTypeId, performedAt: "2026-01-10" },
+      })
+    ).json<{ surgeryId: string }>().surgeryId;
+    const record = (recordedAt: string) =>
+      app.inject({
+        method: "POST",
+        url: `/surgeries/${surgeryId}/controls`,
+        cookies,
+        payload: { recordedAt, author: { type: "physician" }, definitionId: controlDefinitionId },
+      });
+
+    expect((await record("2026-01-11")).statusCode).toBe(201);
+    const afterFirst = await app.inject({ method: "GET", url: `/surgeries/${surgeryId}`, cookies });
+    expect(
+      afterFirst
+        .json<{ followUp: { definitionId: string; nextDueAt: string | null }[] }>()
+        .followUp.find((item) => item.definitionId === controlDefinitionId),
+    ).toMatchObject({ recorded: 1, expected: 3, nextDueAt: "2026-01-13T00:00:00.000Z" });
+
+    expect((await record("2026-01-13")).statusCode).toBe(201);
+    expect((await record("2026-01-17")).statusCode).toBe(201);
+    const overCap = await record("2026-01-20");
+    expect(overCap.statusCode).toBe(400);
+    expect(overCap.json()).toEqual({
+      error: "This control type already has all 3 expected recording(s) for this surgery",
+    });
+  });
 });

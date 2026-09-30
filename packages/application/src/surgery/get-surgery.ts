@@ -31,7 +31,7 @@ export function getSurgery(deps: GetSurgeryDeps) {
   return async function execute(input: GetSurgeryInput): Promise<GetSurgeryOutput> {
     const surgery = await deps.surgeryRepository.findById(input.surgeryId);
     if (!surgery || surgery.physicianId !== input.physicianId) {
-      throw new NotFoundError(`Surgery ${input.surgeryId} was not found`);
+      throw new NotFoundError("This surgery was not found");
     }
 
     const procedureType = await deps.procedureTypeRepository.findById(surgery.procedureTypeId);

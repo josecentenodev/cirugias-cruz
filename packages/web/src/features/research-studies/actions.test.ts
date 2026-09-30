@@ -127,11 +127,11 @@ describe("addSurgeryToStudyAction", () => {
   });
 
   it("expectable error: surfaces api's NotFoundError message inline, unchanged", async () => {
-    authedApiRequestMock.mockRejectedValue(new ApiNotFoundError("Surgery s1 was not found"));
+    authedApiRequestMock.mockRejectedValue(new ApiNotFoundError("This surgery was not found"));
 
     const result = await addSurgeryToStudyAction("rs1", idleResult, formData({ surgeryId: "s1" }));
 
-    expect(result).toMatchObject({ status: "error", message: "Surgery s1 was not found" });
+    expect(result).toMatchObject({ status: "error", message: "This surgery was not found" });
   });
 });
 
@@ -180,14 +180,14 @@ describe("changeResearchStudyStatusAction", () => {
 
   it("expectable error: surfaces api's illegal-transition rejection inline, unchanged", async () => {
     authedApiRequestMock.mockRejectedValue(
-      new ApiDomainError("Only a DRAFT research study can move to IN_PROGRESS"),
+      new ApiDomainError("Only a draft research study can be started"),
     );
 
     const result = await changeResearchStudyStatusAction("rs1", "IN_PROGRESS", idleResult);
 
     expect(result).toMatchObject({
       status: "error",
-      message: "Only a DRAFT research study can move to IN_PROGRESS",
+      message: "Only a draft research study can be started",
     });
   });
 });
@@ -208,14 +208,14 @@ describe("deleteResearchStudyAction", () => {
 
   it("expectable error: a non-DRAFT study's rejection surfaces inline, unchanged", async () => {
     authedApiRequestMock.mockRejectedValue(
-      new ApiDomainError("A research study may only be deleted while in DRAFT"),
+      new ApiDomainError("A research study can only be deleted while it is a draft"),
     );
 
     const result = await deleteResearchStudyAction("rs1", idleResult);
 
     expect(result).toMatchObject({
       status: "error",
-      message: "A research study may only be deleted while in DRAFT",
+      message: "A research study can only be deleted while it is a draft",
     });
     expect(redirectMock).not.toHaveBeenCalled();
   });

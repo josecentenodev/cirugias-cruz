@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { toCustomFieldView, toProcedureTypeDetailView, toProcedureTypeView } from "./mappers";
+import {
+  summarizeOccurrenceRule,
+  toControlDefinitionView,
+  toCustomFieldView,
+  toProcedureTypeDetailView,
+  toProcedureTypeView,
+} from "./mappers";
 import type { CustomFieldDto, ProcedureTypeDto } from "./dtos";
 
 function buildDto(overrides: Partial<ProcedureTypeDto> = {}): ProcedureTypeDto {
@@ -120,5 +126,38 @@ describe("toProcedureTypeDetailView", () => {
     );
     expect(view.customFields).toHaveLength(2);
     expect(view.customFields.map((f) => f.id)).toEqual(["cf-1", "cf-2"]);
+  });
+});
+
+describe("summarizeOccurrenceRule", () => {
+  it("reads each recording rule in physician language", () => {
+    expect(summarizeOccurrenceRule({ mode: "uncapped" })).toBe("Uncapped");
+    expect(
+      summarizeOccurrenceRule({ mode: "capped", count: 3, period: { every: 3, unit: "days" } }),
+    ).toBe("3 × every 3 days");
+    expect(summarizeOccurrenceRule({ mode: "scheduled", unit: "days", offsets: [1, 3, 7] })).toBe(
+      "Days 1, 3, 7 after surgery",
+    );
+  });
+});
+
+describe("toControlDefinitionView", () => {
+  it("prefills a scheduled definition's timepoints and unit for editing", () => {
+    expect(
+      toControlDefinitionView(
+        {
+          id: "def-1",
+          name: "Postop visits",
+          occurrenceRule: { mode: "scheduled", unit: "weeks", offsets: [1, 2, 6] },
+        },
+        false,
+      ),
+    ).toMatchObject({
+      mode: "scheduled",
+      periodUnit: "weeks",
+      timepoints: "1, 2, 6",
+      count: undefined,
+      periodEvery: undefined,
+    });
   });
 });

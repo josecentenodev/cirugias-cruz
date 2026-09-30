@@ -17,7 +17,7 @@ export class Physician {
 
   static create(attributes: PhysicianAttributes): Physician {
     if (!attributes.id.trim()) {
-      throw new DomainError("Physician requires an id");
+      throw new DomainError("A physician record requires an identifier");
     }
 
     const person = Person.create(attributes);

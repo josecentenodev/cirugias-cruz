@@ -81,34 +81,69 @@ export type AddCustomFieldInput = z.infer<typeof addCustomFieldSchema>;
 
 /**
  * Mirrors `api`'s own `controlOccurrenceRuleSchema` / control-definition
- * body schemas (ADR 0026). The form submits a flat `mode` + optional
- * `count`/`every`/`unit`; this reassembles the discriminated union `api`
- * expects. `api` (`ControlDefinition.create`) stays the sole authority on
+ * body schemas (ADR 0026 / 0031). The form submits a flat `mode` + optional
+ * `count`/`every`/`unit`/`timepoints`; this reassembles the discriminated
+ * union `api` expects. `timepoints` is free text ("1, 3, 7"): only its
+ * shape is checked here — duplicates, zero and ordering are Domain rules
+ * with their own physician-facing copy. `api` (`ControlDefinition.create`) stays the sole authority on
  * name-uniqueness and the freeze rule (ADR 0027).
  */
+const TIMEPOINTS_HINT = "Enter whole numbers separated by commas, e.g. 1, 3, 7";
+
+/** "1, 3 7" → [1, 3, 7]; `null` when empty or any entry isn't a whole number. */
+export function parseTimepoints(raw: string | undefined): number[] | null {
+  const tokens = (raw ?? "").split(/[\s,;]+/).filter((token) => token.length > 0);
+  if (tokens.length === 0) {
+    return null;
+  }
+  const numbers = tokens.map(Number);
+  return numbers.every((value) => Number.isInteger(value)) ? numbers : null;
+}
+
 export const controlDefinitionSchema = z
   .object({
     name: z.string().trim().min(1, "Name is required"),
-    mode: z.enum(["uncapped", "capped"]),
+    mode: z.enum(["uncapped", "capped", "scheduled"]),
     count: z.coerce.number().int().min(1).optional(),
     every: z.coerce.number().int().min(1).optional(),
     unit: z.enum(["hours", "days", "weeks"]).optional(),
+    timepoints: z.string().trim().optional(),
   })
-  .refine(
-    (value) =>
-      value.mode === "uncapped" ||
-      (value.count !== undefined && value.every !== undefined && value.unit !== undefined),
-    "A capped control needs a count and a measurement period",
-  );
+  .superRefine((value, ctx) => {
+    if (
+      value.mode === "capped" &&
+      (value.count === undefined || value.every === undefined || value.unit === undefined)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "A capped control needs a count and a measurement period",
+      });
+    }
+    if (value.mode === "scheduled") {
+      if (parseTimepoints(value.timepoints) === null) {
+        ctx.addIssue({ code: "custom", path: ["timepoints"], message: TIMEPOINTS_HINT });
+      }
+      if (value.unit === undefined) {
+        ctx.addIssue({ code: "custom", path: ["unit"], message: "Choose hours, days or weeks" });
+      }
+    }
+  });
 
 export type ControlDefinitionInput = z.infer<typeof controlDefinitionSchema>;
 
 export function toOccurrenceRuleBody(input: ControlDefinitionInput) {
-  return input.mode === "uncapped"
-    ? { mode: "uncapped" as const }
-    : {
+  const unit = input.unit as "hours" | "days" | "weeks";
+  switch (input.mode) {
+    case "uncapped":
+      return { mode: "uncapped" as const };
+    case "capped":
+      return {
         mode: "capped" as const,
         count: input.count as number,
-        period: { every: input.every as number, unit: input.unit as "hours" | "days" | "weeks" },
+        period: { every: input.every as number, unit },
       };
+    case "scheduled":
+      // Non-null: `controlDefinitionSchema` already rejected unparseable timepoints.
+      return { mode: "scheduled" as const, unit, offsets: parseTimepoints(input.timepoints) ?? [] };
+  }
 }

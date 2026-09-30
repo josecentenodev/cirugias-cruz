@@ -24,10 +24,10 @@ export class Resident {
 
   static create(attributes: ResidentAttributes): Resident {
     if (!attributes.id.trim()) {
-      throw new DomainError("Resident requires an id");
+      throw new DomainError("A resident record requires an identifier");
     }
     if (!attributes.physicianId.trim()) {
-      throw new DomainError("Resident must belong to a physician (tenant)");
+      throw new DomainError("A resident must belong to a physician");
     }
 
     const person = Person.create(attributes);

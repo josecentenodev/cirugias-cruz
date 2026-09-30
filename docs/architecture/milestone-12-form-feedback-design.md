@@ -196,10 +196,22 @@ domain, Application or `api` change; page-level `error.tsx` /
   login `<form>` — invalid HTML, now a sibling); `FormTextarea` /
   `FormSelect` beside `FormField`; `CustomFieldValueInputs` bound via
   `useField` so CustomField values are restored too.
-- **Flash reader has three triggers**, not one (`empírico`, browser spike):
-  route change, a form settling (pending → idle), and a form (re)mounting.
-  A redirect back to the same URL doesn't change the pathname, and the
-  redirect re-creates the form, so the settle edge alone never fired.
+- **Flash reader has four triggers**, not one (`empírico`, browser spike):
+  route change, a form settling (pending → idle), a form (re)mounting, and
+  a form that submitted unmounting. A redirect back to the same URL doesn't
+  change the pathname, and the redirect re-creates the form, so the settle
+  edge alone never fired.
+  - _Fourth trigger added 2026-09-30 (manual testing)_: a row's own remove
+    button (`DangerousConfirm` inside the row it deletes — control types,
+    custom fields, surgery residents, study surgeries) disappears with the
+    row before it settles, so none of the first three fired: no toast,
+    and the flash surfaced later as a stray toast on an unrelated page.
+    Reading the flash synchronously in the unmount cleanup works — the
+    cookie is already set when the row unmounts (`empírico`, e2e red →
+    fix → green, mutation-checked). Covered by `full-workflow`
+    (`expectFlashConsumed`). If yet another gap appears, prefer replacing
+    the event-driven reader (e.g. the server rendering the flash key into
+    the layout) over adding a fifth trigger.
 - **Phase 2 landed as one commit**, not one per slice: `ConfirmSubmit` /
   `DangerousConfirm` change type for every slice that uses them at once.
 - **ESLint guard ordering** (mutation-tested): in flat config a later

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 /**
  * The scripted browser-level walkthrough of the full physician workflow
@@ -18,6 +18,27 @@ test.describe.configure({ mode: "serial" });
 /** The Milestone 12 success toast, wherever it lands after a redirect. */
 function toast(page: Page, text: string) {
   return page.getByRole("region", { name: "Notifications" }).getByText(text);
+}
+
+/**
+ * Opens a `DangerousConfirm` dialog from `trigger`, types the
+ * confirmation phrase and submits.
+ */
+async function confirmRemoval(page: Page, trigger: Locator, phrase: string) {
+  await trigger.click();
+  const dialog = page.locator("dialog[open]");
+  await dialog.getByRole("textbox").fill(phrase);
+  await dialog.getByRole("button", { name: "Remove" }).click();
+}
+
+/**
+ * The one-shot flash was consumed where the action happened — never left
+ * behind to surface later as a stray toast on an unrelated page (seen
+ * 2026-09-30: removing a row's own record redirected back to the same
+ * page, the row's form unmounted, and nothing read the flash).
+ */
+async function expectFlashConsumed(page: Page) {
+  await expect.poll(() => page.evaluate(() => document.cookie.includes("flash="))).toBe(false);
 }
 
 test("full physician workflow: auth through Research Study lifecycle", async ({ page }) => {
@@ -84,6 +105,33 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await addControlType.getByLabel("Timepoints after surgery").fill("7, 1, 3");
     await addControlType.getByRole("button", { name: "Add control type" }).click();
     await expect(page.getByText("Days 1, 3, 7 after surgery")).toBeVisible();
+  });
+
+  await test.step("removing an unused scheme definition confirms it in place (row removal toast)", async () => {
+    await confirmRemoval(
+      page,
+      page.getByRole("row", { name: /Postop visits/ }).getByRole("button", { name: "Remove" }),
+      "Postop visits",
+    );
+    await expect(page.getByRole("cell", { name: "Postop visits" })).toHaveCount(0);
+    await expect(toast(page, "Control removed.")).toBeVisible();
+    await expectFlashConsumed(page);
+
+    const addField = page.locator("details", { hasText: "Add a custom field" });
+    // Starts open while the type has no custom fields yet.
+    if ((await addField.getAttribute("open")) === null) await addField.locator("summary").click();
+    await addField.getByLabel("Name").fill("Temporary field");
+    await addField.getByRole("button", { name: "Add custom field" }).click();
+    await expect(page.getByRole("cell", { name: "Temporary field" })).toBeVisible();
+
+    await confirmRemoval(
+      page,
+      page.getByRole("row", { name: /Temporary field/ }).getByRole("button", { name: "Remove" }),
+      "Temporary field",
+    );
+    await expect(page.getByRole("cell", { name: "Temporary field" })).toHaveCount(0);
+    await expect(toast(page, "Field removed.")).toBeVisible();
+    await expectFlashConsumed(page);
   });
 
   await test.step("register a Patient", async () => {
@@ -188,6 +236,12 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await expect(page.getByText("Laura Díaz", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Remove" })).toBeVisible();
     await expect(toast(page, "Resident assigned.")).toBeVisible();
+
+    // Removing them (no control recorded yet) confirms it in place too.
+    await confirmRemoval(page, page.getByRole("button", { name: "Remove" }), "Laura Díaz");
+    await expect(page.getByText("No residents assigned yet.")).toBeVisible();
+    await expect(toast(page, "Resident removed from the surgery.")).toBeVisible();
+    await expectFlashConsumed(page);
   });
 
   await test.step("create a Research Study and add the Surgery to it", async () => {
@@ -236,6 +290,11 @@ test("full physician workflow: auth through Research Study lifecycle", async ({ 
     await expect(page.getByText("In progress", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Edit" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Remove" })).toBeVisible();
+
+    await confirmRemoval(page, page.getByRole("button", { name: "Remove" }), "DELETE");
+    await expect(page.getByRole("button", { name: "Remove" })).toHaveCount(0);
+    await expect(toast(page, "Surgery removed from the study.")).toBeVisible();
+    await expectFlashConsumed(page);
   });
 
   await test.step("logout, then confirm a protected route redirects to /login", async () => {
